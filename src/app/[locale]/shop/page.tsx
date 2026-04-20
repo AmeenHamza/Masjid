@@ -1,0 +1,42 @@
+export const dynamic = 'force-dynamic';
+
+import { getShopRecords, getSiteSettings } from '@/lib/public-data';
+import { SiteHeader } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
+import { SectionPage } from '@/components/section-page';
+import { getTranslations } from 'next-intl/server';
+import { formatCurrency, formatNumber } from '@/lib/utils';
+
+export default async function ShopPage() {
+  const [settings, t, records] = await Promise.all([getSiteSettings(), getTranslations('pages'), getShopRecords()]);
+
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  const monthly = records.filter((item: any) => item.month === currentMonth && item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  const yearly = records.filter((item: any) => item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+
+  const rows = records.map((item: any) => ({
+    Date: `${item.month || '-'}-${item.year || '-'}`,
+    Item: String(item.itemName || '-'),
+    Quantity: formatNumber(Number(item.quantity || 0)),
+    Amount: formatCurrency(Number(item.amount || 0))
+  }));
+
+  return (
+    <>
+      <SiteHeader phone={settings.phone} />
+      <SectionPage
+        title={t('shop.title')}
+        subtitle={t('shop.subtitle')}
+        summary={[
+          { label: 'Monthly', value: formatCurrency(monthly) },
+          { label: 'Yearly', value: formatCurrency(yearly) },
+          { label: 'Entries', value: formatNumber(records.length) }
+        ]}
+        columns={['Date', 'Item', 'Quantity', 'Amount']}
+        rows={rows}
+      />
+      <SiteFooter address={settings.address} phone={settings.phone} />
+    </>
+  );
+}

@@ -1,0 +1,94 @@
+{
+  "common": {
+    "home": "Home",
+    "income": "Income",
+    "expense": "Expense",
+    "shop": "Shop",
+    "donations": "Donations",
+    "fitrah": "Fitrah",
+    "gallery": "Gallery",
+    "projects": "Projects",
+    "admin": "Admin",
+    "switchLanguage": "Switch language",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "showMore": "Show More",
+    "search": "Search",
+    "exportCsv": "Export CSV",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "nav": {
+    "income": "Income",
+    "expense": "Expense",
+    "shop": "Shop",
+    "donation": "Donation",
+    "ramadanDonation": "Ramadan Donation",
+    "ramadanExpense": "Ramadan Expense",
+    "fitrah": "Fitrah",
+    "project": "Project",
+    "gallery": "Gallery"
+  },
+  "pages": {
+    "income": { "title": "Income", "subtitle": "Monthly and yearly income records from the admin panel." },
+    "expense": { "title": "Expense", "subtitle": "Monthly and yearly expense records from the admin panel." },
+    "shop": { "title": "Shop", "subtitle": "Shop records and related totals." },
+    "donations": { "title": "Donations", "subtitle": "Friday, box, Ramadan, general, and project donations." },
+    "fitrah": { "title": "Fitrah", "subtitle": "Fitrah records and family entries." },
+    "projects": { "title": "Projects", "subtitle": "Active, upcoming, and completed masjid projects." },
+    "gallery": { "title": "Gallery", "subtitle": "Images and videos uploaded by the admin team." }
+  },
+  "home": {
+    "title": "Jami Masjid Noori & Madrasa",
+    "subtitle": "Korangi No. 1, Karachi, Pakistan",
+    "marquee": "Prayer times update live from the admin panel. Friday Juma timing is shown separately.",
+    "highlight": "Please give donation according to your ability and support the masjid and madrasa activities.",
+    "navigation": "Navigation",
+    "projectsHeading": "Projects",
+    "activeProjectsHeading": "Active Projects",
+    "galleryHeading": "Gallery",
+    "recentMedia": "Recent Media",
+    "footerAddress": "Korangi No. 1, Karachi, Pakistan",
+    "footerPhone": "+92 300 1234567"
+  },
+  "prayers": {
+    "fajr": "فجر",
+    "zohar": "ظہر",
+    "asr": "عصر",
+    "maghrib": "مغرب",
+    "isha": "عشاء",
+    "juma": "جمعہ"
+  },
+  "metrics": {
+    "totalIncome": "Total Income",
+    "totalDonation": "Total Donation",
+    "activeProjects": "Active Projects",
+    "yearlyExpense": "Yearly Expense"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "prayerTimes": "Prayer Times",
+    "incomeRecords": "Income Records",
+    "expenseRecords": "Expense Records",
+    "shopRecords": "Shop Records",
+    "donations": "Donations",
+    "ramadan": "Ramadan",
+    "fitrah": "Fitrah",
+    "projects": "Projects",
+    "gallery": "Gallery",
+    "heroSlides": "Hero Slides",
+    "settings": "Settings"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "signInTitle": "Admin sign in",
+    "signInSubtitle": "Secure access for Jami Masjid staff",
+    "signingIn": "Signing in..."
+  }
+}

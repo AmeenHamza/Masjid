@@ -1,0 +1,24 @@
+export const dynamic = 'force-dynamic';
+
+import { getProjects, getSiteSettings } from '@/lib/public-data';
+import { SiteHeader } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
+import { ProjectCards } from '@/components/project-cards';
+
+export default async function ProjectsPage() {
+  const [settings, projects] = await Promise.all([getSiteSettings(), getProjects()]);
+
+  return (
+    <main>
+      <SiteHeader phone={settings.phone} />
+      <section className="mx-auto max-w-7xl px-4 py-10 lg:px-6">
+        <h1 className="text-4xl font-black">Projects</h1>
+        <p className="mt-2 text-slate-600 dark:text-slate-400">Track current masjid and madrasa initiatives with progress badges and totals.</p>
+        <div className="mt-8">
+          <ProjectCards projects={projects as never} />
+        </div>
+      </section>
+      <SiteFooter address={settings.address} phone={settings.phone} />
+    </main>
+  );
+}
