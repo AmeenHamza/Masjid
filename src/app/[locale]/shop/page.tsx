@@ -8,7 +8,7 @@ import { getTranslations } from 'next-intl/server';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
 export default async function ShopPage() {
-  const [settings, t, records] = await Promise.all([getSiteSettings(), getTranslations('pages'), getShopRecords()]);
+  const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations('pages'), getTranslations('common'), getShopRecords()]);
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -16,25 +16,37 @@ export default async function ShopPage() {
   const yearly = records.filter((item: any) => item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
   const rows = records.map((item: any) => ({
-    Date: `${item.month || '-'}-${item.year || '-'}`,
-    Item: String(item.itemName || '-'),
-    Quantity: formatNumber(Number(item.quantity || 0)),
-    Amount: formatCurrency(Number(item.amount || 0))
+    date: `${item.month || '-'}-${item.year || '-'}`,
+    item: String(item.itemName || '-'),
+    quantity: formatNumber(Number(item.quantity || 0)),
+    amount: formatCurrency(Number(item.amount || 0))
+  }));
+
+  const columns = [common('date'), common('item'), common('quantity'), common('amount')];
+
+  const normalizedRows = rows.map((item) => ({
+    [common('date')]: item.date,
+    [common('item')]: item.item,
+    [common('quantity')]: item.quantity,
+    [common('amount')]: item.amount
   }));
 
   return (
     <>
       <SiteHeader phone={settings.phone} />
       <SectionPage
+        brandLabel={`${common('brandTop')} ${common('brandBottom')}`}
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}
         summary={[
-          { label: 'Monthly', value: formatCurrency(monthly) },
-          { label: 'Yearly', value: formatCurrency(yearly) },
-          { label: 'Entries', value: formatNumber(records.length) }
+          { label: common('monthly'), value: formatCurrency(monthly) },
+          { label: common('yearly'), value: formatCurrency(yearly) },
+          { label: common('entries'), value: formatNumber(records.length) }
         ]}
-        columns={['Date', 'Item', 'Quantity', 'Amount']}
-        rows={rows}
+        columns={columns}
+        rows={normalizedRows}
+        recordsLabel={common('records')}
+        noRecordsLabel={common('noRecordsYet')}
       />
       <SiteFooter address={settings.address} phone={settings.phone} />
     </>

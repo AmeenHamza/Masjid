@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { verifyAuthToken } from './jwt';
+import { backendApiUrl } from './backend-url';
 
 const TOKEN_COOKIE = 'jm_auth';
 
@@ -11,7 +11,20 @@ export async function getServerSession() {
   }
 
   try {
-    return await verifyAuthToken(token);
+    const response = await fetch(`${backendApiUrl}/auth/me`, {
+      method: 'GET',
+      headers: {
+        Cookie: `${TOKEN_COOKIE}=${token}`
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as { ok: boolean; admin?: { id: string; email: string; role: 'admin' } };
+    return data.admin ?? null;
   } catch {
     return null;
   }
@@ -20,7 +33,7 @@ export async function getServerSession() {
 export async function requireAdmin() {
   const session = await getServerSession();
   if (!session) {
-    redirect('/en/admin/login');
+    redirect('/admin/login');
   }
   return session;
 }

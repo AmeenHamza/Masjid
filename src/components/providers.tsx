@@ -17,7 +17,7 @@ type ProvidersProps = {
 export function Providers({ children, locale, messages }: ProvidersProps) {
   return (
     <Provider store={store}>
-      <NextIntlClientProvider locale={locale} messages={messages}>
+      <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Karachi">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           {children}
           <Toaster position="top-right" richColors closeButton />

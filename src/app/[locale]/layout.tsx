@@ -1,4 +1,4 @@
-import { getLocale, getMessages } from 'next-intl/server';
+import { getMessages } from 'next-intl/server';
 import { Providers } from '@/components/providers';
 import { notFound } from 'next/navigation';
 import { locales } from '@/i18n/config';
@@ -11,8 +11,8 @@ export default async function LocaleLayout({ children, params }: Readonly<{ chil
     notFound();
   }
 
-  const messages = await getMessages();
-  const resolvedLocale = await getLocale();
+  const resolvedLocale = locale as 'en' | 'ur';
+  const messages = await getMessages({ locale: resolvedLocale });
 
   return (
     <Providers locale={resolvedLocale} messages={messages}>

@@ -79,12 +79,12 @@ export default async function HomePage() {
             <h2 className="mt-2 text-3xl font-black">{settings.masjidName}</h2>
           </div>
         </div>
-        <NavGrid labels={labels} counts={counts} showMoreLabel={tCommon('showMore')} />
+        <NavGrid labels={labels} counts={counts} showMoreLabel={tCommon('showMore')} summaryLabel={tCommon('liveSummary')} />
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
         <Card className="border-amber-300 bg-amber-100/90 dark:border-amber-400/30 dark:bg-amber-400/10">
-          <p className="text-center text-lg font-bold text-slate-900 dark:text-white">{tCommon('showMore')} - {settings.notice || 'مسجد اور مدرسہ کی انتظامیہ سے رابطہ کریں'}</p>
+          <p className="text-center text-lg font-bold text-slate-900 dark:text-white">{tCommon('showMore')} - {settings.notice || tHome('defaultNotice')}</p>
         </Card>
       </section>
 

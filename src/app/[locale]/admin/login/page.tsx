@@ -1,9 +1,8 @@
 'use client';
 
 import type { FormEvent } from 'react';
-import { useState } from 'react';
-import { useLocale, useTranslations } from 'next-intl';
-import { useRouter } from '@/navigation';
+import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,10 +10,19 @@ import { backendApiUrl } from '@/lib/backend-url';
 
 export default function AdminLoginPage() {
   const t = useTranslations('auth');
-  const locale = useLocale();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const response = await fetch(`${backendApiUrl}/auth/me`, { credentials: 'include' });
+      if (response.ok) {
+        window.location.replace('/admin');
+      }
+    };
+
+    checkSession();
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +42,7 @@ export default function AdminLoginPage() {
       return;
     }
 
-    router.push(`/${locale}/admin`);
+    window.location.assign('/admin');
   }
 
   return (

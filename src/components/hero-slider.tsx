@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 type Slide = {
   title: string;
@@ -13,6 +14,7 @@ type Slide = {
 };
 
 export function HeroSlider({ slides }: { slides: Slide[] }) {
+  const t = useTranslations('common');
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
           <Image src={current.imageUrl} alt={current.title} fill className="object-cover" priority />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/40 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-300">Jami Masjid Noori</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-300">{t('brandTop')}</p>
             <h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-white sm:text-5xl">{current.title}</h1>
             {current.subtitle ? <p className="mt-3 max-w-2xl text-sm text-white/80 sm:text-lg">{current.subtitle}</p> : null}
           </div>

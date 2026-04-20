@@ -1,36 +1,45 @@
 'use client';
 
-import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { usePathname, useRouter } from '@/navigation';
-
-const localeMeta = {
-  en: { label: 'EN', flag: '/flags/uk.svg' },
-  ur: { label: 'اردو', flag: '/flags/pk.svg' }
-} as const;
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export function LanguageSwitcher() {
   const locale = useLocale();
   const t = useTranslations('common');
   const pathname = usePathname();
-  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const nextLocale = locale === 'en' ? 'ur' : 'en';
-  const targetPath = pathname.replace(/^\/(en|ur)(?=\/|$)/, '') || '/';
+  function goToLocale(targetLocale: 'en' | 'ur') {
+    if (targetLocale === locale) {
+      return;
+    }
+
+    const cleanPath = (pathname || '/').replace(/^\/(en|ur)(?=\/|$)/, '') || '/';
+    const queryString = searchParams.toString();
+    const targetPath = `/${targetLocale}${cleanPath === '/' ? '' : cleanPath}`;
+    window.location.assign(queryString ? `${targetPath}?${queryString}` : targetPath);
+  }
 
   return (
-    <button
-      type="button"
-      onClick={() => router.push(targetPath, { locale: nextLocale })}
-      className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-black/20 px-4 text-sm font-semibold text-white backdrop-blur transition hover:bg-black/30 dark:bg-white/10"
+    <div
+      className="inline-flex h-10 items-center gap-1 rounded-full border border-emerald-900/20 bg-white/70 p-1 text-xs font-semibold text-slate-800 backdrop-blur dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
       aria-label={t('switchLanguage')}
+      role="group"
     >
-      <span className="relative h-4 w-6 overflow-hidden rounded-sm">
-        <Image src={localeMeta[locale as 'en' | 'ur'].flag} alt="flag" fill className="object-cover" />
-      </span>
-      <span>{localeMeta[locale as 'en' | 'ur'].label}</span>
-      <span className="text-white/60">/</span>
-      <span>{localeMeta[nextLocale].label}</span>
-    </button>
+      <button
+        type="button"
+        onClick={() => goToLocale('en')}
+        className={`rounded-full px-3 py-1.5 transition ${locale === 'en' ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10'}`}
+      >
+        {t('languageEnglish')}
+      </button>
+      <button
+        type="button"
+        onClick={() => goToLocale('ur')}
+        className={`rounded-full px-3 py-1.5 transition ${locale === 'ur' ? 'bg-emerald-700 text-white' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10'}`}
+      >
+        {t('languageUrdu')}
+      </button>
+    </div>
   );
 }

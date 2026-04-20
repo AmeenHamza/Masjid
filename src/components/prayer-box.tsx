@@ -7,6 +7,7 @@ import { Badge } from './ui/badge';
 const prayerKeys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha', 'juma'] as const;
 
 export function PrayerBox({ prayers }: { prayers: Record<string, string> }) {
+  const common = useTranslations('common');
   const t = useTranslations('prayers');
   const [now, setNow] = useState(new Date());
 
@@ -28,8 +29,8 @@ export function PrayerBox({ prayers }: { prayers: Record<string, string> }) {
     <aside className="rounded-[2rem] border border-slate-900/80 bg-slate-950 p-5 text-white shadow-soft">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.32em] text-emerald-300">Prayer Times</p>
-          <h2 className="mt-2 text-2xl font-black">اوقاتِ نماز</h2>
+          <p className="text-xs uppercase tracking-[0.32em] text-emerald-300">{common('prayerTimes')}</p>
+          <h2 className="mt-2 text-2xl font-black">{common('prayerTimes')}</h2>
         </div>
         <Badge className="bg-amber-400 text-slate-950">{t(activePrayer)}</Badge>
       </div>
