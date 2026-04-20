@@ -13,22 +13,30 @@ export default async function AdminDashboardPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-black">Dashboard</h1>
-        <p className="mt-2 text-slate-600 dark:text-slate-400">All public data is sourced from admin collections.</p>
+    <div className="space-y-5 lg:space-y-8">
+      <div className="rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
+        <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Dashboard</h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400 sm:text-base">All public data is sourced from admin collections and updates live across the website.</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card><div className="text-sm text-slate-500">Income</div><div className="mt-2 text-3xl font-black">{metrics.totalIncome}</div></Card>
-        <Card><div className="text-sm text-slate-500">Donation</div><div className="mt-2 text-3xl font-black">{metrics.totalDonation}</div></Card>
-        <Card><div className="text-sm text-slate-500">Projects</div><div className="mt-2 text-3xl font-black">{projects.length}</div></Card>
-        <Card><div className="text-sm text-slate-500">Gallery</div><div className="mt-2 text-3xl font-black">{gallery.length}</div></Card>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-emerald-900/10 bg-gradient-to-br from-emerald-50 to-white dark:border-white/10 dark:from-emerald-500/10 dark:to-slate-950">
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Income</div><div className="mt-2 text-3xl font-black tracking-tight">{metrics.totalIncome}</div>
+        </Card>
+        <Card className="border-emerald-900/10 bg-gradient-to-br from-amber-50 to-white dark:border-white/10 dark:from-amber-500/10 dark:to-slate-950">
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Donation</div><div className="mt-2 text-3xl font-black tracking-tight">{metrics.totalDonation}</div>
+        </Card>
+        <Card className="border-emerald-900/10 bg-gradient-to-br from-sky-50 to-white dark:border-white/10 dark:from-sky-500/10 dark:to-slate-950">
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Projects</div><div className="mt-2 text-3xl font-black tracking-tight">{projects.length}</div>
+        </Card>
+        <Card className="border-emerald-900/10 bg-gradient-to-br from-fuchsia-50 to-white dark:border-white/10 dark:from-fuchsia-500/10 dark:to-slate-950">
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Gallery</div><div className="mt-2 text-3xl font-black tracking-tight">{gallery.length}</div>
+        </Card>
       </div>
-      <Card>
-        <h2 className="text-2xl font-black">Today's Prayer Times</h2>
+      <Card className="border-emerald-900/10 bg-white/80 dark:border-white/10 dark:bg-slate-950/70">
+        <h2 className="text-xl font-black sm:text-2xl">Today's Prayer Times</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {Object.entries(prayers).map(([key, value]) => (
-            <Badge key={key} className="bg-emerald-700 text-white">{key}: {String(value)}</Badge>
+            <Badge key={key} className="bg-emerald-700 text-white shadow-sm">{key}: {String(value)}</Badge>
           ))}
         </div>
       </Card>

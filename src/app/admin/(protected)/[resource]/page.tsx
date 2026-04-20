@@ -118,16 +118,16 @@ export default function AdminResourcePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-5 lg:space-y-8">
+      <div className="flex flex-col gap-4 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/70 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight">{resource.title}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Manage {currentResource.title.toLowerCase()} with live create, update and delete actions.</p>
+          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{resource.title}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">Manage {currentResource.title.toLowerCase()} with live create, update and delete actions.</p>
         </div>
-        <Button onClick={() => setSelected({})}>New Record</Button>
+        <Button onClick={() => setSelected({})} className="w-full sm:w-auto">New Record</Button>
       </div>
 
-      <Card className="border-emerald-900/10 bg-white/80 shadow-lg dark:border-white/10 dark:bg-slate-950/70">
+      <Card className="border-emerald-900/10 bg-white/85 shadow-lg dark:border-white/10 dark:bg-slate-950/70">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold">{selected?._id ? 'Edit Record' : 'Create Record'}</h2>
           {saving ? (
