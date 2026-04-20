@@ -33,6 +33,31 @@ const fallbackSettings: SiteSettings = {
   notice: 'مسجد اور مدرسہ کی انتظامیہ سے رابطہ کریں'
 };
 
+function getDateKeyForTimeZone(timeZone: string) {
+  const formatter = new Intl.DateTimeFormat('en', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  if (!year || !month || !day) {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function getCurrentDateKey() {
+  const appTimeZone = process.env.APP_TIME_ZONE || 'Asia/Karachi';
+  return getDateKeyForTimeZone(appTimeZone);
+}
+
 function isDatabaseConfigured() {
   return Boolean(process.env.MONGO_URI);
 }
@@ -76,7 +101,7 @@ export async function getHeroSlides() {
 }
 
 export async function getTodayPrayerTimes() {
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = getCurrentDateKey();
   const fallbackPrayerTimes = {
     dateKey: todayKey,
     fajr: '5:15',

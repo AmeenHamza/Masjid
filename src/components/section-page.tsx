@@ -1,5 +1,6 @@
 import { Card } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { AutoRefresh } from './auto-refresh';
 
 type SectionPageProps = {
   brandLabel: string;
@@ -15,6 +16,7 @@ type SectionPageProps = {
 export function SectionPage({ brandLabel, title, subtitle, summary, rows, columns, recordsLabel, noRecordsLabel }: SectionPageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 lg:px-6">
+      <AutoRefresh />
       <div className="mb-8">
         <p className="text-sm uppercase tracking-[0.3em] text-emerald-700">{brandLabel}</p>
         <h1 className="mt-3 text-4xl font-black">{title}</h1>

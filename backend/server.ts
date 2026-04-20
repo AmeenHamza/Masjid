@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 import { connectBackendDb } from './db';
 import { AdminUser, resourceModels, type ResourceKey } from './models';
 import { adminAuthMiddleware, authCookieName, ensureDefaultAdmin, signToken } from './auth';
+import { ensureDefaultContent } from './seed';
 
 const app = express();
 const backendPort = Number(process.env.BACKEND_PORT || 5000);
@@ -95,6 +96,12 @@ app.get('/api/admin/:collection', adminAuthMiddleware, async (req, res) => {
     return;
   }
 
+  if (key === 'settings') {
+    const latest = await model.findOne().sort({ updatedAt: -1, createdAt: -1 }).lean();
+    res.json({ ok: true, items: latest ? [latest] : [] });
+    return;
+  }
+
   const items = await model.find().sort({ createdAt: -1 }).lean();
   res.json({ ok: true, items });
 });
@@ -106,6 +113,26 @@ app.post('/api/admin/:collection', adminAuthMiddleware, async (req, res) => {
 
   if (!model) {
     res.status(404).json({ ok: false, message: 'Unknown collection' });
+    return;
+  }
+
+  if (key === 'settings') {
+    const existing = await model.findOne().sort({ updatedAt: -1, createdAt: -1 });
+    if (existing) {
+      existing.set({ ...req.body, addedBy: admin?.id });
+      await existing.save();
+      res.json({ ok: true, item: existing });
+      return;
+    }
+  }
+
+  if (key === 'prayer-times' && req.body?.dateKey) {
+    const upserted = await model.findOneAndUpdate(
+      { dateKey: req.body.dateKey },
+      { ...req.body, addedBy: admin?.id },
+      { upsert: true, new: true }
+    );
+    res.status(201).json({ ok: true, item: upserted });
     return;
   }
 
@@ -148,6 +175,7 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 async function start() {
   await connectBackendDb();
   await ensureDefaultAdmin();
+  await ensureDefaultContent();
 
   app.listen(backendPort, () => {
     // eslint-disable-next-line no-console

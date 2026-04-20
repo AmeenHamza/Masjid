@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table';
 import { getResourceConfig } from '@/lib/admin-ui';
 import { ResourceForm } from '@/components/resource-form';
@@ -14,10 +16,28 @@ export default function AdminResourcePage() {
   const resource = getResourceConfig(params.resource);
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [selected, setSelected] = useState<Record<string, unknown> | undefined>();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function loadItems() {
+    if (!resource) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(resource.apiPath, { credentials: 'include' });
+      const data = await response.json();
+      setItems(data.items || []);
+    } catch {
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    if (!resource) return;
-    fetch(resource.apiPath, { credentials: 'include' }).then((response) => response.json()).then((data) => setItems(data.items || []));
+    void loadItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resource]);
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
@@ -36,6 +56,9 @@ export default function AdminResourcePage() {
   const currentResource = resource;
 
   async function save(values: Record<string, unknown>) {
+    setSaving(true);
+    const isUpdate = Boolean(selected?._id);
+
     const normalizedValues = Object.fromEntries(
       currentResource.fields.map((field) => {
         const value = values[field.name];
@@ -51,33 +74,84 @@ export default function AdminResourcePage() {
         return [field.name, value];
       })
     );
-    const method = selected?._id ? 'PATCH' : 'POST';
-    const path = selected?._id ? `${currentResource.apiPath}/${selected._id}` : currentResource.apiPath;
-    await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(normalizedValues), credentials: 'include' });
-    setSelected(undefined);
-    const refreshed = await fetch(currentResource.apiPath, { credentials: 'include' }).then((response) => response.json());
-    setItems(refreshed.items || []);
+
+    try {
+      const method = isUpdate ? 'PATCH' : 'POST';
+      const path = isUpdate ? `${currentResource.apiPath}/${selected?._id}` : currentResource.apiPath;
+      const response = await fetch(path, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(normalizedValues),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Save failed');
+      }
+
+      setSelected(undefined);
+      await loadItems();
+      toast.success(isUpdate ? 'Updated successfully' : 'Saved successfully');
+    } catch {
+      toast.error('Unable to save record');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function remove(id: string) {
-    await fetch(`${currentResource.apiPath}/${id}`, { method: 'DELETE', credentials: 'include' });
-    const refreshed = await fetch(currentResource.apiPath, { credentials: 'include' }).then((response) => response.json());
-    setItems(refreshed.items || []);
+    setDeletingId(id);
+
+    try {
+      const response = await fetch(`${currentResource.apiPath}/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Delete failed');
+      }
+
+      await loadItems();
+      toast.success('Deleted successfully');
+    } catch {
+      toast.error('Unable to delete record');
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black">{resource.title}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Manage {currentResource.title.toLowerCase()} with full CRUD.</p>
+          <h1 className="text-3xl font-black tracking-tight">{resource.title}</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Manage {currentResource.title.toLowerCase()} with live create, update and delete actions.</p>
         </div>
-        <Button onClick={() => setSelected({})}>New</Button>
+        <Button onClick={() => setSelected({})}>New Record</Button>
       </div>
-      <Card>
-        <ResourceForm fields={currentResource.fields} defaultValues={selected} onSubmit={save} />
+
+      <Card className="border-emerald-900/10 bg-white/80 shadow-lg dark:border-white/10 dark:bg-slate-950/70">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">{selected?._id ? 'Edit Record' : 'Create Record'}</h2>
+          {saving ? (
+            <span className="inline-flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+              <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+            </span>
+          ) : null}
+        </div>
+        <ResourceForm
+          fields={currentResource.fields}
+          defaultValues={selected}
+          onSubmit={save}
+          isSubmitting={saving}
+          submitLabel={selected?._id ? 'Update' : 'Save'}
+        />
       </Card>
-      {columns.length ? (
+
+      {loading ? (
+        <Card className="flex items-center justify-center py-12">
+          <div className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading records...
+          </div>
+        </Card>
+      ) : columns.length ? (
         <DataTable
           columns={[
             ...columns,
@@ -87,7 +161,14 @@ export default function AdminResourcePage() {
               cell: ({ row }) => (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>Edit</Button>
-                  <Button variant="destructive" size="sm" onClick={() => remove(String(row.original._id))}>Delete</Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={deletingId === String(row.original._id)}
+                    onClick={() => remove(String(row.original._id))}
+                  >
+                    {deletingId === String(row.original._id) ? 'Deleting...' : 'Delete'}
+                  </Button>
                 </div>
               )
             }
@@ -95,7 +176,9 @@ export default function AdminResourcePage() {
           data={items}
           searchKey={currentResource.searchKeys[0]}
         />
-      ) : null}
+      ) : (
+        <Card className="py-10 text-center text-slate-600 dark:text-slate-300">No records found yet.</Card>
+      )}
     </div>
   );
 }

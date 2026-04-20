@@ -12,6 +12,7 @@ import { SummaryMetrics } from '@/components/summary-metrics';
 import { ProjectCards } from '@/components/project-cards';
 import { MasonryGallery } from '@/components/masonry-gallery';
 import { Card } from '@/components/ui/card';
+import { AutoRefresh } from '@/components/auto-refresh';
 
 export default async function HomePage() {
   const [settings, slides, prayers, metrics, projects, gallery, tCommon, tNav, tHome, tMetrics] = await Promise.all([
@@ -53,6 +54,7 @@ export default async function HomePage() {
 
   return (
     <main>
+      <AutoRefresh />
       <SiteHeader phone={settings.phone} />
       <PrayerMarquee text={settings.prayerMarquee || ''} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[1.7fr_0.95fr] lg:px-6">

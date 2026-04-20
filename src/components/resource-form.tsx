@@ -12,9 +12,11 @@ type Props = {
   fields: FieldConfig[];
   defaultValues?: Record<string, unknown>;
   onSubmit: (values: Record<string, unknown>) => Promise<void>;
+  submitLabel?: string;
+  isSubmitting?: boolean;
 };
 
-export function ResourceForm({ fields, defaultValues, onSubmit }: Props) {
+export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'Save', isSubmitting = false }: Props) {
   const { register, handleSubmit, reset, setValue, watch } = useForm<Record<string, unknown>>({ defaultValues });
 
   useEffect(() => {
@@ -64,7 +66,9 @@ export function ResourceForm({ fields, defaultValues, onSubmit }: Props) {
         );
       })}
       <div className="md:col-span-2">
-        <Button type="submit">Save</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving...' : submitLabel}
+        </Button>
       </div>
     </form>
   );
