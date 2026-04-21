@@ -3,12 +3,12 @@ import { Card } from './ui/card';
 
 const cards = [
   { key: 'income', color: 'bg-emerald-700', href: '/income' },
-  { key: 'expense', color: 'bg-amber-500', href: '/expense' },
-  { key: 'shop', color: 'bg-cyan-600', href: '/shop' },
-  { key: 'donation', color: 'bg-rose-600', href: '/donations' },
-  { key: 'fitrah', color: 'bg-lime-700', href: '/fitrah' },
-  { key: 'project', color: 'bg-slate-700', href: '/projects' },
-  { key: 'gallery', color: 'bg-fuchsia-700', href: '/gallery' }
+  { key: 'expense', color: 'bg-emerald-700', href: '/expense' },
+  { key: 'shop', color: 'bg-emerald-700', href: '/shop' },
+  { key: 'donation', color: 'bg-emerald-700', href: '/donations' },
+  { key: 'fitrah', color: 'bg-emerald-700', href: '/fitrah' },
+  { key: 'project', color: 'bg-emerald-700', href: '/projects' },
+  { key: 'gallery', color: 'bg-emerald-700', href: '/gallery' }
 ];
 
 export function NavGrid({ labels, counts, showMoreLabel, summaryLabel }: { labels: Record<string, string>; counts: Record<string, string>; showMoreLabel: string; summaryLabel: string }) {
@@ -22,7 +22,6 @@ export function NavGrid({ labels, counts, showMoreLabel, summaryLabel }: { label
               <p className="text-xs uppercase tracking-[0.28em] text-white/70">{labels[card.key]}</p>
               <div className="mt-4 flex items-end justify-between gap-3">
                 <div className="text-3xl font-black tabular-nums">{counts[card.key] || '0'}</div>
-                <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-white/80">Live</span>
               </div>
               <p className="mt-1 text-sm text-white/85">{summaryLabel}</p>
             </div>
