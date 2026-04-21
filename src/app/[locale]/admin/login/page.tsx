@@ -15,9 +15,13 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const response = await fetch(`${backendApiUrl}/auth/me`, { credentials: 'include' });
-      if (response.ok) {
-        window.location.replace('/admin');
+      try {
+        const response = await fetch(`${backendApiUrl}/auth/me`, { credentials: 'include' });
+        if (response.ok) {
+          window.location.replace('/admin');
+        }
+      } catch {
+        // Ignore on load; submit handler shows error state.
       }
     };
 
@@ -28,21 +32,33 @@ export default function AdminLoginPage() {
     event.preventDefault();
     setLoading(true);
     setError('');
-    const formData = new FormData(event.currentTarget);
-    const response = await fetch(`${backendApiUrl}/auth/login`, {
-      method: 'POST',
-      body: JSON.stringify(Object.fromEntries(formData.entries())),
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-    setLoading(false);
 
-    if (!response.ok) {
+    try {
+      const formData = new FormData(event.currentTarget);
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
+      const response = await fetch(`${backendApiUrl}/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(formData.entries())),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        signal: controller.signal
+      });
+
+      window.clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        setError('Login failed');
+        return;
+      }
+
+      window.location.assign('/admin');
+    } catch {
       setError('Login failed');
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    window.location.assign('/admin');
   }
 
   return (

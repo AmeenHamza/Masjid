@@ -109,12 +109,12 @@ export async function getTodayPrayerTimes() {
   const todayKey = getCurrentDateKey();
   const fallbackPrayerTimes = {
     dateKey: todayKey,
-    fajr: '5:15',
-    zohar: '12:30',
-    asr: '4:15',
-    maghrib: '6:55',
-    isha: '8:15',
-    juma: '1:30'
+    fajr: '00:00',
+    zohar: '00:00',
+    asr: '00:00',
+    maghrib: '00:00',
+    isha: '00:00',
+    juma: '00:00'
   };
 
   if (!isDatabaseConfigured()) {

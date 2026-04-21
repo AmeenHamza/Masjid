@@ -17,9 +17,13 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const response = await fetch(`${backendApiUrl}/auth/me`, { credentials: 'include' });
-      if (response.ok) {
-        router.replace('/admin');
+      try {
+        const response = await fetch(`${backendApiUrl}/auth/me`, { credentials: 'include' });
+        if (response.ok) {
+          router.replace('/admin');
+        }
+      } catch {
+        // Ignore on load; form submit will show explicit error if backend is unavailable.
       }
     };
 
@@ -31,22 +35,32 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError('');
 
-    const formData = new FormData(event.currentTarget);
-    const response = await fetch(`${backendApiUrl}/auth/login`, {
-      method: 'POST',
-      body: JSON.stringify(Object.fromEntries(formData.entries())),
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
+    try {
+      const formData = new FormData(event.currentTarget);
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 12000);
 
-    setLoading(false);
+      const response = await fetch(`${backendApiUrl}/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(formData.entries())),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
+      window.clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        setError(t('loginFailed'));
+        return;
+      }
+
+      router.push('/admin');
+    } catch {
       setError(t('loginFailed'));
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    router.push('/admin');
   }
 
   return (

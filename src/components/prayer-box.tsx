@@ -38,7 +38,7 @@ export function PrayerBox({ prayers }: { prayers: Record<string, string> }) {
         {prayerKeys.map((key) => (
           <div key={key} className={`flex items-center justify-between rounded-2xl px-4 py-3 ${activePrayer === key ? 'bg-emerald-700' : 'bg-white/5'}`}>
             <span className="text-lg font-bold">{t(key)}</span>
-            <span className="text-lg font-semibold">{prayers[key]}</span>
+            <span className="text-lg font-semibold">{String(prayers[key] || '00:00')}</span>
           </div>
         ))}
       </div>

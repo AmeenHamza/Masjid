@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { getTranslations } from 'next-intl/server';
-import { getGallery, getHeroSlides, getProjects, getSiteSettings, getSummaryMetrics, getTodayPrayerTimes } from '@/lib/public-data';
+import { getGallery, getProjects, getSiteSettings, getSummaryMetrics, getTodayPrayerTimes } from '@/lib/public-data';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { PrayerMarquee } from '@/components/prayer-marquee';
@@ -18,9 +18,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const resolvedLocale: 'en' | 'ur' = locale === 'ur' ? 'ur' : 'en';
 
-  const [settings, slides, prayers, metrics, projects, gallery, tCommon, tNav, tHome, tMetrics] = await Promise.all([
+  const [settings, prayers, metrics, projects, gallery, tCommon, tNav, tHome, tMetrics] = await Promise.all([
     getSiteSettings(),
-    getHeroSlides(),
     getTodayPrayerTimes(),
     getSummaryMetrics(),
     getProjects(),
@@ -49,13 +48,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       juma: 'Juma'
     };
 
+  const prayerValues = prayers as Record<string, unknown>;
+  const getPrayerTime = (key: string) => String(prayerValues[key] ?? '00:00') || '00:00';
+
   const prayerItems = [
-    { key: 'fajr', label: prayerLabels.fajr, time: prayers.fajr },
-    { key: 'zohar', label: prayerLabels.zohar, time: prayers.zohar },
-    { key: 'asr', label: prayerLabels.asr, time: prayers.asr },
-    { key: 'maghrib', label: prayerLabels.maghrib, time: prayers.maghrib },
-    { key: 'isha', label: prayerLabels.isha, time: prayers.isha },
-    { key: 'juma', label: prayerLabels.juma, time: prayers.juma }
+    { key: 'fajr', label: prayerLabels.fajr, time: getPrayerTime('fajr') },
+    { key: 'zohar', label: prayerLabels.zohar, time: getPrayerTime('zohar') },
+    { key: 'asr', label: prayerLabels.asr, time: getPrayerTime('asr') },
+    { key: 'maghrib', label: prayerLabels.maghrib, time: getPrayerTime('maghrib') },
+    { key: 'isha', label: prayerLabels.isha, time: getPrayerTime('isha') },
+    { key: 'juma', label: prayerLabels.juma, time: getPrayerTime('juma') }
   ];
 
   const labels = {
@@ -78,13 +80,23 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     gallery: String(gallery.length)
   };
 
+  const galleryHeroSlides = (gallery as Array<{ mediaType?: string; url?: string; title?: string; caption?: string; order?: number }>)
+    .filter((item) => item.mediaType === 'image' && Boolean(item.url))
+    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+    .map((item) => ({
+      title: item.title || tHome('recentMedia'),
+      subtitle: item.caption || settings.madrasaName,
+      imageUrl: String(item.url),
+      linkUrl: '/gallery'
+    }));
+
   return (
     <main>
       <AutoRefresh />
       <SiteHeader phone={settings.phone} />
       <PrayerMarquee text={settings.prayerMarquee || tHome('marquee')} locale={resolvedLocale} items={prayerItems} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[1.7fr_0.95fr] lg:px-6">
-        <HeroSlider slides={slides as never} />
+        <HeroSlider slides={galleryHeroSlides as never} />
         <PrayerBox prayers={prayers as Record<string, string>} />
       </section>
 

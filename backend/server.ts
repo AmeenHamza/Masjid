@@ -17,6 +17,14 @@ const app = express();
 const backendPort = Number(process.env.BACKEND_PORT || 5000);
 const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
+const asyncHandler = (
+  handler: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>
+): express.RequestHandler => {
+  return (req, res, next) => {
+    void handler(req, res, next).catch(next);
+  };
+};
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -43,7 +51,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'masjid-express-backend' });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', asyncHandler(async (req, res) => {
   const email = String(req.body?.email || '').toLowerCase().trim();
   const password = String(req.body?.password || '');
 
@@ -75,7 +83,7 @@ app.post('/api/auth/login', async (req, res) => {
   });
 
   res.json({ ok: true, user: { email: admin.email, name: admin.name } });
-});
+}));
 
 app.post('/api/auth/logout', (_req, res) => {
   res.clearCookie(authCookieName, { path: '/' });
@@ -87,7 +95,7 @@ app.get('/api/auth/me', adminAuthMiddleware, (req, res) => {
   res.json({ ok: true, admin });
 });
 
-app.get('/api/admin/:collection', adminAuthMiddleware, async (req, res) => {
+app.get('/api/admin/:collection', adminAuthMiddleware, asyncHandler(async (req, res) => {
   const key = req.params.collection as ResourceKey;
   const model = resourceModels[key];
 
@@ -104,9 +112,9 @@ app.get('/api/admin/:collection', adminAuthMiddleware, async (req, res) => {
 
   const items = await model.find().sort({ createdAt: -1 }).lean();
   res.json({ ok: true, items });
-});
+}));
 
-app.post('/api/admin/:collection', adminAuthMiddleware, async (req, res) => {
+app.post('/api/admin/:collection', adminAuthMiddleware, asyncHandler(async (req, res) => {
   const key = req.params.collection as ResourceKey;
   const model = resourceModels[key];
   const admin = (req as express.Request & { admin?: { id: string } }).admin;
@@ -116,10 +124,31 @@ app.post('/api/admin/:collection', adminAuthMiddleware, async (req, res) => {
     return;
   }
 
+  const payload = { ...req.body, addedBy: admin?.id };
+
+  if (key === 'gallery') {
+    const mediaUrl = String(payload.url || '').trim();
+    if (!mediaUrl) {
+      res.status(400).json({ ok: false, message: 'Gallery image URL is required' });
+      return;
+    }
+    if (!payload.mediaType) {
+      payload.mediaType = 'image';
+    }
+  }
+
+  if (key === 'hero-slides') {
+    const imageUrl = String(payload.imageUrl || '').trim();
+    if (!imageUrl) {
+      res.status(400).json({ ok: false, message: 'Hero image URL is required' });
+      return;
+    }
+  }
+
   if (key === 'settings') {
     const existing = await model.findOne().sort({ updatedAt: -1, createdAt: -1 });
     if (existing) {
-      existing.set({ ...req.body, addedBy: admin?.id });
+      existing.set(payload);
       await existing.save();
       res.json({ ok: true, item: existing });
       return;
@@ -129,18 +158,18 @@ app.post('/api/admin/:collection', adminAuthMiddleware, async (req, res) => {
   if (key === 'prayer-times' && req.body?.dateKey) {
     const upserted = await model.findOneAndUpdate(
       { dateKey: req.body.dateKey },
-      { ...req.body, addedBy: admin?.id },
+      payload,
       { upsert: true, new: true }
     );
     res.status(201).json({ ok: true, item: upserted });
     return;
   }
 
-  const created = await model.create({ ...req.body, addedBy: admin?.id });
+  const created = await model.create(payload);
   res.status(201).json({ ok: true, item: created });
-});
+}));
 
-app.patch('/api/admin/:collection/:id', adminAuthMiddleware, async (req, res) => {
+app.patch('/api/admin/:collection/:id', adminAuthMiddleware, asyncHandler(async (req, res) => {
   const key = req.params.collection as ResourceKey;
   const model = resourceModels[key];
   const admin = (req as express.Request & { admin?: { id: string } }).admin;
@@ -150,11 +179,29 @@ app.patch('/api/admin/:collection/:id', adminAuthMiddleware, async (req, res) =>
     return;
   }
 
-  const updated = await model.findByIdAndUpdate(req.params.id, { ...req.body, addedBy: admin?.id }, { new: true });
-  res.json({ ok: true, item: updated });
-});
+  const payload = { ...req.body, addedBy: admin?.id };
 
-app.delete('/api/admin/:collection/:id', adminAuthMiddleware, async (req, res) => {
+  if (key === 'gallery' && Object.prototype.hasOwnProperty.call(payload, 'url')) {
+    const mediaUrl = String(payload.url || '').trim();
+    if (!mediaUrl) {
+      res.status(400).json({ ok: false, message: 'Gallery image URL is required' });
+      return;
+    }
+  }
+
+  if (key === 'hero-slides' && Object.prototype.hasOwnProperty.call(payload, 'imageUrl')) {
+    const imageUrl = String(payload.imageUrl || '').trim();
+    if (!imageUrl) {
+      res.status(400).json({ ok: false, message: 'Hero image URL is required' });
+      return;
+    }
+  }
+
+  const updated = await model.findByIdAndUpdate(req.params.id, payload, { new: true });
+  res.json({ ok: true, item: updated });
+}));
+
+app.delete('/api/admin/:collection/:id', adminAuthMiddleware, asyncHandler(async (req, res) => {
   const key = req.params.collection as ResourceKey;
   const model = resourceModels[key];
 
@@ -165,7 +212,7 @@ app.delete('/api/admin/:collection/:id', adminAuthMiddleware, async (req, res) =
 
   await model.findByIdAndDelete(req.params.id);
   res.json({ ok: true });
-});
+}));
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const message = error instanceof Error ? error.message : 'Unexpected backend error';
