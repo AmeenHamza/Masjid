@@ -7,8 +7,10 @@ import { MasonryGallery } from '@/components/masonry-gallery';
 import { getTranslations } from 'next-intl/server';
 import { AutoRefresh } from '@/components/auto-refresh';
 
-export default async function GalleryPage() {
-  const [settings, gallery, t] = await Promise.all([getSiteSettings(), getGallery(), getTranslations('pages')]);
+export default async function GalleryPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = locale as 'en' | 'ur';
+  const [settings, gallery, t] = await Promise.all([getSiteSettings(), getGallery(), getTranslations({ locale: resolvedLocale, namespace: 'pages' })]);
 
   return (
     <main>

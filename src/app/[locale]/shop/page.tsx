@@ -7,8 +7,10 @@ import { SectionPage } from '@/components/section-page';
 import { getTranslations } from 'next-intl/server';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
-export default async function ShopPage() {
-  const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations('pages'), getTranslations('common'), getShopRecords()]);
+export default async function ShopPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = locale as 'en' | 'ur';
+  const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' }), getShopRecords()]);
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;

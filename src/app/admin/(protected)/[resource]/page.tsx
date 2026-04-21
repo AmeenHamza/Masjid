@@ -57,7 +57,7 @@ export default function AdminResourcePage() {
         if (key.toLowerCase().includes('url')) {
           const displayText = value.length > 65 ? `${value.slice(0, 65)}...` : value;
           return (
-            <a href={value} target="_blank" rel="noreferrer" className="block max-w-[260px] break-all text-xs text-emerald-700 underline decoration-dotted underline-offset-2 hover:text-emerald-600 dark:text-emerald-300" title={value}>
+            <a href={value} target="_blank" rel="noreferrer" className="block max-w-[260px] break-all text-xs text-emerald-700 underline decoration-dotted underline-offset-2 hover:text-emerald-600" title={value}>
               {displayText}
             </a>
           );
@@ -138,19 +138,19 @@ export default function AdminResourcePage() {
 
   return (
     <div className="space-y-5 lg:space-y-8">
-      <div className="flex flex-col gap-4 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/70 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex flex-col gap-4 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{resource.title}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">{t('managingResources').replace('{{resource}}', currentResource.title.toLowerCase())}</p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600">{t('managingResources').replace('{{resource}}', currentResource.title.toLowerCase())}</p>
         </div>
         <Button onClick={() => setSelected({})} className="w-full sm:w-auto">{t('newRecord')}</Button>
       </div>
 
-      <Card className="border-emerald-900/10 bg-white/85 shadow-lg dark:border-white/10 dark:bg-slate-950/70">
+      <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold">{selected?._id ? t('editRecord') : t('createRecord')}</h2>
           {saving ? (
-            <span className="inline-flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+            <span className="inline-flex items-center gap-2 text-sm text-emerald-700">
               <Loader2 className="h-4 w-4 animate-spin" /> {t('saving')}
             </span>
           ) : null}
@@ -166,7 +166,7 @@ export default function AdminResourcePage() {
 
       {loading ? (
         <Card className="flex items-center justify-center py-12">
-          <div className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <div className="inline-flex items-center gap-2 text-sm text-slate-600">
             <Loader2 className="h-4 w-4 animate-spin" /> {t('loadingRecords')}
           </div>
         </Card>
@@ -196,7 +196,7 @@ export default function AdminResourcePage() {
           searchKey={currentResource.searchKeys[0]}
         />
       ) : (
-        <Card className="py-10 text-center text-slate-600 dark:text-slate-300">{t('noRecordsFound')}</Card>
+        <Card className="py-10 text-center text-slate-600">{t('noRecordsFound')}</Card>
       )}
     </div>
   );

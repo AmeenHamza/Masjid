@@ -56,7 +56,7 @@ export function DataTable<TData extends Record<string, unknown>>({ columns, data
       </div>
       <div className="grid gap-3 md:hidden">
         {table.getRowModel().rows.map((row) => (
-          <div key={row.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950">
+          <div key={row.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="grid gap-3">
               {row.getVisibleCells().map((cell) => {
                 if (cell.column.id === 'actions') {
@@ -68,11 +68,11 @@ export function DataTable<TData extends Record<string, unknown>>({ columns, data
                 }
 
                 return (
-                  <div key={cell.id} className="rounded-2xl bg-slate-50 px-3 py-2 dark:bg-white/5">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  <div key={cell.id} className="rounded-2xl bg-slate-50 px-3 py-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
                       {String(cell.column.columnDef.header ?? '')}
                     </div>
-                    <div className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100">
+                    <div className="mt-1 text-sm font-medium text-slate-800">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </div>
                   </div>
@@ -83,13 +83,13 @@ export function DataTable<TData extends Record<string, unknown>>({ columns, data
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950 md:block">
+      <div className="hidden overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm md:block">
         <table className="min-w-[900px] w-full text-sm">
-          <thead className="bg-slate-50 text-left dark:bg-white/5">
+          <thead className="bg-slate-50 text-left">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-4 py-3 font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                  <th key={header.id} className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -98,9 +98,9 @@ export function DataTable<TData extends Record<string, unknown>>({ columns, data
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t border-slate-200 dark:border-white/10">
+              <tr key={row.id} className="border-t border-slate-200">
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3 align-top text-slate-700 dark:text-slate-200">
+                  <td key={cell.id} className="px-4 py-3 align-top text-slate-700">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

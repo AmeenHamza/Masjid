@@ -7,8 +7,10 @@ import { SectionPage } from '@/components/section-page';
 import { getTranslations } from 'next-intl/server';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
-export default async function FitrahPage() {
-  const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations('pages'), getTranslations('common'), getFitrahRecords()]);
+export default async function FitrahPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = locale as 'en' | 'ur';
+  const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' }), getFitrahRecords()]);
 
   const totalMembers = records.reduce((sum: number, item: any) => sum + Number(item.membersCount || 0), 0);
   const totalAmount = records.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);

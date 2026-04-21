@@ -12,6 +12,11 @@ import { Donation } from '@/models/Donation';
 import { ShopRecord } from '@/models/ShopRecord';
 import { FitrahRecord } from '@/models/FitrahRecord';
 
+// Serialization helper to convert MongoDB objects to plain JSON
+function serialize<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data)) as T;
+}
+
 export type SiteSettings = {
   masjidName: string;
   madrasaName: string;
@@ -70,7 +75,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   try {
     await connectToDatabase();
     const settings = await MasjidSettings.findOne().lean<SiteSettings | null>();
-    return settings ?? fallbackSettings;
+     return settings ? serialize(settings) : fallbackSettings;
   } catch {
     return fallbackSettings;
   }
@@ -94,7 +99,7 @@ export async function getHeroSlides() {
   try {
     await connectToDatabase();
     const slides = await HeroSlide.find({ active: true }).sort({ order: 1, createdAt: -1 }).lean();
-    return slides.length > 0 ? slides : fallbackSlides;
+     return slides.length > 0 ? serialize(slides) : fallbackSlides;
   } catch {
     return fallbackSlides;
   }
@@ -119,7 +124,7 @@ export async function getTodayPrayerTimes() {
   try {
     await connectToDatabase();
     const prayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
-    return prayerTimes ?? fallbackPrayerTimes;
+     return prayerTimes ? serialize(prayerTimes) : fallbackPrayerTimes;
   } catch {
     return fallbackPrayerTimes;
   }
@@ -144,12 +149,12 @@ export async function getSummaryMetrics() {
       Project.countDocuments({ status: 'Incomplete' })
     ]);
 
-    return {
+     return serialize({
       totalIncome: incomeAgg[0]?.total ?? 0,
       yearlyExpense: expenseAgg[0]?.total ?? 0,
       totalDonation: donationAgg[0]?.total ?? 0,
       activeProjects: projectCount
-    };
+     });
   } catch {
     return {
       totalIncome: 0,
@@ -168,7 +173,7 @@ export async function getProjects() {
   try {
     await connectToDatabase();
     const projects = await Project.find().sort({ createdAt: -1 }).lean();
-    return projects;
+     return serialize(projects);
   } catch {
     return [];
   }
@@ -182,7 +187,7 @@ export async function getGallery() {
   try {
     await connectToDatabase();
     const items = await GalleryItem.find().sort({ order: 1, createdAt: -1 }).lean();
-    return items;
+     return serialize(items);
   } catch {
     return [];
   }
@@ -193,7 +198,8 @@ export async function getIncomeRecords() {
 
   try {
     await connectToDatabase();
-    return await IncomeRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     const records = await IncomeRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     return serialize(records);
   } catch {
     return [];
   }
@@ -204,7 +210,8 @@ export async function getExpenseRecords() {
 
   try {
     await connectToDatabase();
-    return await ExpenseRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     const records = await ExpenseRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     return serialize(records);
   } catch {
     return [];
   }
@@ -215,7 +222,8 @@ export async function getShopRecords() {
 
   try {
     await connectToDatabase();
-    return await ShopRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     const records = await ShopRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     return serialize(records);
   } catch {
     return [];
   }
@@ -226,7 +234,8 @@ export async function getDonationRecords() {
 
   try {
     await connectToDatabase();
-    return await Donation.find().sort({ createdAt: -1 }).limit(200).lean();
+     const records = await Donation.find().sort({ createdAt: -1 }).limit(200).lean();
+     return serialize(records);
   } catch {
     return [];
   }
@@ -237,7 +246,8 @@ export async function getFitrahRecords() {
 
   try {
     await connectToDatabase();
-    return await FitrahRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     const records = await FitrahRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     return serialize(records);
   } catch {
     return [];
   }

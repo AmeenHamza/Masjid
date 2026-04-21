@@ -7,8 +7,10 @@ import { SectionPage } from '@/components/section-page';
 import { getTranslations } from 'next-intl/server';
 import { formatCurrency } from '@/lib/utils';
 
-export default async function DonationsPage() {
-  const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations('pages'), getTranslations('common'), getDonationRecords()]);
+export default async function DonationsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = locale as 'en' | 'ur';
+  const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' }), getDonationRecords()]);
 
   const sumType = (type: string) => records.filter((item: any) => item.type === type).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 

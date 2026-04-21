@@ -7,8 +7,10 @@ import { ProjectCards } from '@/components/project-cards';
 import { getTranslations } from 'next-intl/server';
 import { AutoRefresh } from '@/components/auto-refresh';
 
-export default async function ProjectsPage() {
-  const [settings, projects, t] = await Promise.all([getSiteSettings(), getProjects(), getTranslations('pages')]);
+export default async function ProjectsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale = locale as 'en' | 'ur';
+  const [settings, projects, t] = await Promise.all([getSiteSettings(), getProjects(), getTranslations({ locale: resolvedLocale, namespace: 'pages' })]);
 
   return (
     <main>
