@@ -2,15 +2,13 @@ import { Link } from '@/navigation';
 import { Card } from './ui/card';
 
 const cards = [
-  { key: 'income', color: 'bg-emerald-700', href: '/admin/income-records' },
-  { key: 'expense', color: 'bg-amber-500', href: '/admin/expense-records' },
-  { key: 'shop', color: 'bg-cyan-600', href: '/admin/shop-records' },
-  { key: 'donation', color: 'bg-rose-600', href: '/admin/donations' },
-  { key: 'ramadanDonation', color: 'bg-teal-700', href: '/admin/ramadan-donations' },
-  { key: 'ramadanExpense', color: 'bg-indigo-700', href: '/admin/ramadan-expenses' },
-  { key: 'fitrah', color: 'bg-lime-700', href: '/admin/fitrah-records' },
-  { key: 'project', color: 'bg-slate-700', href: '/admin/projects' },
-  { key: 'gallery', color: 'bg-fuchsia-700', href: '/admin/gallery' }
+  { key: 'income', color: 'bg-emerald-700', href: '/income' },
+  { key: 'expense', color: 'bg-amber-500', href: '/expense' },
+  { key: 'shop', color: 'bg-cyan-600', href: '/shop' },
+  { key: 'donation', color: 'bg-rose-600', href: '/donations' },
+  { key: 'fitrah', color: 'bg-lime-700', href: '/fitrah' },
+  { key: 'project', color: 'bg-slate-700', href: '/projects' },
+  { key: 'gallery', color: 'bg-fuchsia-700', href: '/gallery' }
 ];
 
 export function NavGrid({ labels, counts, showMoreLabel, summaryLabel }: { labels: Record<string, string>; counts: Record<string, string>; showMoreLabel: string; summaryLabel: string }) {

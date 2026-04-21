@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ColumnDef } from '@tanstack/react-table';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,6 +15,9 @@ import { Button } from '@/components/ui/button';
 export default function AdminResourcePage() {
   const params = useParams<{ resource: string }>();
   const resource = getResourceConfig(params.resource);
+  const t = useTranslations('admin');
+  const tToast = useTranslations('toast');
+  const tCommon = useTranslations('common');
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [selected, setSelected] = useState<Record<string, unknown> | undefined>();
   const [loading, setLoading] = useState(true);
@@ -29,7 +33,7 @@ export default function AdminResourcePage() {
       const data = await response.json();
       setItems(data.items || []);
     } catch {
-      toast.error('Failed to load data');
+      toast.error(tToast('failedToLoadData'));
     } finally {
       setLoading(false);
     }
@@ -50,7 +54,7 @@ export default function AdminResourcePage() {
   }, [items]);
 
   if (!resource) {
-    return <Card>Unknown resource</Card>;
+    return <Card>{t('unknownResource')}</Card>;
   }
 
   const currentResource = resource;
@@ -91,9 +95,9 @@ export default function AdminResourcePage() {
 
       setSelected(undefined);
       await loadItems();
-      toast.success(isUpdate ? 'Updated successfully' : 'Saved successfully');
+      toast.success(isUpdate ? tToast('updatedSuccessfully') : tToast('savedSuccessfully'));
     } catch {
-      toast.error('Unable to save record');
+      toast.error(tToast('unableToSaveRecord'));
     } finally {
       setSaving(false);
     }
@@ -109,9 +113,9 @@ export default function AdminResourcePage() {
       }
 
       await loadItems();
-      toast.success('Deleted successfully');
+      toast.success(tToast('deletedSuccessfully'));
     } catch {
-      toast.error('Unable to delete record');
+      toast.error(tToast('unableToDeleteRecord'));
     } finally {
       setDeletingId(null);
     }
@@ -122,17 +126,17 @@ export default function AdminResourcePage() {
       <div className="flex flex-col gap-4 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/70 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{resource.title}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">Manage {currentResource.title.toLowerCase()} with live create, update and delete actions.</p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-400">{t('managingResources').replace('{{resource}}', currentResource.title.toLowerCase())}</p>
         </div>
-        <Button onClick={() => setSelected({})} className="w-full sm:w-auto">New Record</Button>
+        <Button onClick={() => setSelected({})} className="w-full sm:w-auto">{t('newRecord')}</Button>
       </div>
 
       <Card className="border-emerald-900/10 bg-white/85 shadow-lg dark:border-white/10 dark:bg-slate-950/70">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">{selected?._id ? 'Edit Record' : 'Create Record'}</h2>
+          <h2 className="text-lg font-bold">{selected?._id ? t('editRecord') : t('createRecord')}</h2>
           {saving ? (
             <span className="inline-flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
-              <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+              <Loader2 className="h-4 w-4 animate-spin" /> {t('saving')}
             </span>
           ) : null}
         </div>
@@ -141,14 +145,14 @@ export default function AdminResourcePage() {
           defaultValues={selected}
           onSubmit={save}
           isSubmitting={saving}
-          submitLabel={selected?._id ? 'Update' : 'Save'}
+          submitLabel={selected?._id ? t('update') : tCommon('save')}
         />
       </Card>
 
       {loading ? (
         <Card className="flex items-center justify-center py-12">
           <div className="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading records...
+            <Loader2 className="h-4 w-4 animate-spin" /> {t('loadingRecords')}
           </div>
         </Card>
       ) : columns.length ? (
@@ -157,17 +161,17 @@ export default function AdminResourcePage() {
             ...columns,
             {
               id: 'actions',
-              header: 'Actions',
+              header: t('actions'),
               cell: ({ row }) => (
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>{tCommon('edit')}</Button>
                   <Button
                     variant="destructive"
                     size="sm"
                     disabled={deletingId === String(row.original._id)}
                     onClick={() => remove(String(row.original._id))}
                   >
-                    {deletingId === String(row.original._id) ? 'Deleting...' : 'Delete'}
+                    {deletingId === String(row.original._id) ? t('deleting') : tCommon('delete')}
                   </Button>
                 </div>
               )
@@ -177,7 +181,7 @@ export default function AdminResourcePage() {
           searchKey={currentResource.searchKeys[0]}
         />
       ) : (
-        <Card className="py-10 text-center text-slate-600 dark:text-slate-300">No records found yet.</Card>
+        <Card className="py-10 text-center text-slate-600 dark:text-slate-300">{t('noRecordsFound')}</Card>
       )}
     </div>
   );

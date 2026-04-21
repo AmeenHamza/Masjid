@@ -68,9 +68,34 @@ body {
   animation: marquee 28s linear infinite;
 }
 
+.prayer-marquee-track {
+  animation-duration: 24s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.prayer-marquee-track--en {
+  animation-name: prayer-marquee-en;
+}
+
+.prayer-marquee-track--ur {
+  animation-name: prayer-marquee-ur;
+}
+
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+@keyframes prayer-marquee-en {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes prayer-marquee-ur {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
 }
 
 .glass {

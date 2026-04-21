@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ThemeToggle } from './theme-toggle';
 import type { ReactNode } from 'react';
 import { backendApiUrl } from '@/lib/backend-url';
@@ -25,6 +26,8 @@ const links = [
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const t = useTranslations('admin');
+  const tComponents = useTranslations('components');
 
   async function logout() {
     await fetch(`${backendApiUrl}/auth/logout`, { method: 'POST', credentials: 'include' });
@@ -34,28 +37,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const activeClass = 'border-emerald-700 bg-emerald-700 text-white shadow-md shadow-emerald-700/20 dark:border-emerald-400 dark:bg-emerald-500 dark:text-slate-950';
   const inactiveClass = 'border-transparent bg-white/70 text-slate-700 hover:border-emerald-700/20 hover:bg-emerald-50 dark:bg-white/5 dark:text-white/85 dark:hover:border-white/10 dark:hover:bg-white/10';
 
-  const labels: Record<string, string> = {
-    dashboard: 'Dashboard',
-    prayerTimes: 'Prayer Times',
-    incomeRecords: 'Income Records',
-    expenseRecords: 'Expense Records',
-    shopRecords: 'Shop Records',
-    donations: 'Donations',
-    fitrah: 'Fitrah',
-    projects: 'Projects',
-    gallery: 'Gallery',
-    settings: 'Settings'
-  };
-
-  const navItems = useMemo(() => links.map((link) => ({ ...link, label: labels[link.key] })), []);
+  const navItems = useMemo(() => links.map((link) => ({ ...link, label: t(link.key as any) })), [t]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       <header className="sticky top-0 z-40 border-b border-emerald-900/10 bg-white/85 backdrop-blur dark:border-white/10 dark:bg-slate-950/85 lg:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.28em] text-emerald-700">Masjid Admin</div>
-            <div className="text-lg font-black">Jami Masjid Noori</div>
+            <div className="text-[10px] uppercase tracking-[0.28em] text-emerald-700">{tComponents('masjidAdmin')}</div>
+            <div className="text-lg font-black">{tComponents('jamisMasjidNoori')}</div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -74,8 +64,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <div className="grid min-h-[calc(100vh-61px)] lg:min-h-screen lg:grid-cols-[290px_1fr]">
         <aside className="hidden border-r border-emerald-900/10 bg-white/80 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-950/80 lg:sticky lg:top-0 lg:block lg:h-screen lg:overflow-y-auto">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.28em] text-emerald-700">Masjid Admin</div>
-            <h1 className="mt-2 text-2xl font-black">Jami Masjid Noori</h1>
+            <div className="text-[11px] uppercase tracking-[0.28em] text-emerald-700">{tComponents('masjidAdmin')}</div>
+            <h1 className="mt-2 text-2xl font-black">{tComponents('jamisMasjidNoori')}</h1>
           </div>
           <nav className="mt-8 space-y-2">
             {navItems.map((link) => {
@@ -92,7 +82,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <div className="mt-8 flex items-center gap-3">
             <ThemeToggle />
             <button onClick={logout} className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-              <LogOut className="h-4 w-4" /> Logout
+              <LogOut className="h-4 w-4" /> {tComponents('logout')}
             </button>
           </div>
         </aside>
@@ -108,8 +98,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <aside className="absolute right-0 top-0 h-full w-[92vw] max-w-sm overflow-y-auto border-l border-emerald-900/10 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-slate-950">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.28em] text-emerald-700">Masjid Admin</div>
-                <div className="text-lg font-black">Navigation</div>
+                <div className="text-[10px] uppercase tracking-[0.28em] text-emerald-700">{tComponents('masjidAdmin')}</div>
+                <div className="text-lg font-black">{tComponents('navigation')}</div>
               </div>
               <button type="button" onClick={() => setMobileMenuOpen(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5" aria-label="Close menu">
                 <X className="h-5 w-5" />
@@ -137,7 +127,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <div className="mt-8 grid gap-3">
               <ThemeToggle />
               <button onClick={logout} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-                <LogOut className="h-4 w-4" /> Logout
+                <LogOut className="h-4 w-4" /> {tComponents('logout')}
               </button>
             </div>
           </aside>

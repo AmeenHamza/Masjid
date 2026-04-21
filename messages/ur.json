@@ -101,6 +101,8 @@
   },
   "admin": {
     "dashboard": "ڈیش بورڈ",
+    "dashboardDescription": "تمام عوامی ڈیٹا ایڈمن کلیکشنز سے لیا گیا ہے اور پوری ویب سائٹ پر براہِ راست اپڈیٹ ہوتا ہے۔",
+    "todayPrayerTimes": "آج کے نماز کے اوقات",
     "prayerTimes": "نماز کے اوقات",
     "incomeRecords": "آمدنی ریکارڈ",
     "expenseRecords": "اخراجات ریکارڈ",
@@ -118,6 +120,23 @@
     "password": "پاس ورڈ",
     "signInTitle": "ایڈمن سائن اِن",
     "signInSubtitle": "جامع مسجد اسٹاف کیلئے محفوظ رسائی",
-    "signingIn": "سائن اِن ہو رہا ہے..."
+    "signingIn": "سائن اِن ہو رہا ہے...",
+    "signIn": "سائن اِن",
+    "loginFailed": "لاگ اِن ناکام ہیں۔ ای میل یا پاس ورڈ تبدیل کریں۔",
+    "adminLoginDescription": "مسجد کا ڈیٹا اور ویب سائٹ کے مواد منیج کرنے کے لیے لاگ اِن کریں۔"
+  },
+  "toast": {
+    "failedToLoadData": "ڈیٹا لوڈ کرنے میں ناکامی",
+    "updatedSuccessfully": "چیز کامیابی سے رب کر دیگئی",
+    "savedSuccessfully": "کامیابی سے محفوظ ہو گیا",
+    "unableToSaveRecord": "ریکارڈ محفوظ نہیں کیا جا سکا",
+    "deletedSuccessfully": "کامیابی سے حذف کر دیا گیا",
+    "unableToDeleteRecord": "ریکارڈ حذف نہیں کیا جا سکا"
+  },
+  "components": {
+    "masjidAdmin": "مسجد ایڈمن",
+    "jamisMasjidNoori": "جامع مسجد نوری",
+    "navigation": "رہنمائی",
+    "logout": "لاگ آؤٹ"
   }
 }

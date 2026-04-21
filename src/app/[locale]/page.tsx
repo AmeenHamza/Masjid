@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { getMessages, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { getGallery, getHeroSlides, getProjects, getSiteSettings, getSummaryMetrics, getTodayPrayerTimes } from '@/lib/public-data';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
@@ -14,7 +14,10 @@ import { MasonryGallery } from '@/components/masonry-gallery';
 import { Card } from '@/components/ui/card';
 import { AutoRefresh } from '@/components/auto-refresh';
 
-export default async function HomePage() {
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const resolvedLocale: 'en' | 'ur' = locale === 'ur' ? 'ur' : 'en';
+
   const [settings, slides, prayers, metrics, projects, gallery, tCommon, tNav, tHome, tMetrics] = await Promise.all([
     getSiteSettings(),
     getHeroSlides(),
@@ -22,19 +25,44 @@ export default async function HomePage() {
     getSummaryMetrics(),
     getProjects(),
     getGallery(),
-    getTranslations('common'),
-    getTranslations('nav'),
-    getTranslations('home'),
-    getTranslations('metrics')
+    getTranslations({ locale: resolvedLocale, namespace: 'common' }),
+    getTranslations({ locale: resolvedLocale, namespace: 'nav' }),
+    getTranslations({ locale: resolvedLocale, namespace: 'home' }),
+    getTranslations({ locale: resolvedLocale, namespace: 'metrics' })
   ]);
+
+  const prayerLabels = resolvedLocale === 'ur'
+    ? {
+      fajr: 'فجر',
+      zohar: 'ظہر',
+      asr: 'عصر',
+      maghrib: 'مغرب',
+      isha: 'عشاء',
+      juma: 'جمعہ'
+    }
+    : {
+      fajr: 'Fajr',
+      zohar: 'Zohar',
+      asr: 'Asr',
+      maghrib: 'Maghrib',
+      isha: 'Isha',
+      juma: 'Juma'
+    };
+
+  const prayerItems = [
+    { key: 'fajr', label: prayerLabels.fajr, time: prayers.fajr },
+    { key: 'zohar', label: prayerLabels.zohar, time: prayers.zohar },
+    { key: 'asr', label: prayerLabels.asr, time: prayers.asr },
+    { key: 'maghrib', label: prayerLabels.maghrib, time: prayers.maghrib },
+    { key: 'isha', label: prayerLabels.isha, time: prayers.isha },
+    { key: 'juma', label: prayerLabels.juma, time: prayers.juma }
+  ];
 
   const labels = {
     income: tNav('income'),
     expense: tNav('expense'),
     shop: tNav('shop'),
     donation: tNav('donation'),
-    ramadanDonation: tNav('ramadanDonation'),
-    ramadanExpense: tNav('ramadanExpense'),
     fitrah: tNav('fitrah'),
     project: tNav('project'),
     gallery: tNav('gallery')
@@ -45,8 +73,6 @@ export default async function HomePage() {
     expense: String(metrics.yearlyExpense),
     shop: '0',
     donation: String(metrics.totalDonation),
-    ramadanDonation: '0',
-    ramadanExpense: '0',
     fitrah: '0',
     project: String(metrics.activeProjects),
     gallery: String(gallery.length)
@@ -56,7 +82,7 @@ export default async function HomePage() {
     <main>
       <AutoRefresh />
       <SiteHeader phone={settings.phone} />
-      <PrayerMarquee text={settings.prayerMarquee || ''} />
+      <PrayerMarquee text={settings.prayerMarquee || tHome('marquee')} locale={resolvedLocale} items={prayerItems} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[1.7fr_0.95fr] lg:px-6">
         <HeroSlider slides={slides as never} />
         <PrayerBox prayers={prayers as Record<string, string>} />

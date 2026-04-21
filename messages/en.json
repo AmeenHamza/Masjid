@@ -101,6 +101,8 @@
   },
   "admin": {
     "dashboard": "Dashboard",
+    "dashboardDescription": "All public data is sourced from admin collections and updates live across the website.",
+    "todayPrayerTimes": "Today's Prayer Times",
     "prayerTimes": "Prayer Times",
     "incomeRecords": "Income Records",
     "expenseRecords": "Expense Records",
@@ -111,13 +113,41 @@
     "projects": "Projects",
     "gallery": "Gallery",
     "heroSlides": "Hero Slides",
-    "settings": "Settings"
+    "settings": "Settings",
+    "unknownResource": "Unknown resource",
+    "newRecord": "New Record",
+    "editRecord": "Edit Record",
+    "createRecord": "Create Record",
+    "managingResources": "Manage {{resource}} with live create, update and delete actions.",
+    "loadingRecords": "Loading records...",
+    "actions": "Actions",
+    "deleting": "Deleting...",
+    "noRecordsFound": "No records found yet.",
+    "saving": "Saving...",
+    "update": "Update"
   },
   "auth": {
     "email": "Email",
     "password": "Password",
     "signInTitle": "Admin sign in",
     "signInSubtitle": "Secure access for Jami Masjid staff",
-    "signingIn": "Signing in..."
+    "signingIn": "Signing in...",
+    "signIn": "Sign In",
+    "loginFailed": "Login failed. Please check email/password.",
+    "adminLoginDescription": "Login to manage masjid data and website content."
+  },
+  "toast": {
+    "failedToLoadData": "Failed to load data",
+    "updatedSuccessfully": "Updated successfully",
+    "savedSuccessfully": "Saved successfully",
+    "unableToSaveRecord": "Unable to save record",
+    "deletedSuccessfully": "Deleted successfully",
+    "unableToDeleteRecord": "Unable to delete record"
+  },
+  "components": {
+    "masjidAdmin": "Masjid Admin",
+    "jamisMasjidNoori": "Jami Masjid Noori",
+    "navigation": "Navigation",
+    "logout": "Logout"
   }
 }
