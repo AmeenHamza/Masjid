@@ -94,31 +94,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     <main>
       <AutoRefresh />
       <SiteHeader phone={settings.phone} />
-      <section className="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
-        <div className="grid gap-6 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/75 lg:grid-cols-[1.2fr_0.8fr] lg:p-8">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700 dark:text-emerald-300">{tHome('navigation')}</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-900 dark:text-white sm:text-5xl">{settings.masjidName}</h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">{tHome('subtitle')}</p>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">{tHome('highlight')}</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <div className="rounded-2xl border border-emerald-900/10 bg-emerald-50/70 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">{tMetrics('totalIncome')}</div>
-              <div className="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{String(metrics.totalIncome)}</div>
-            </div>
-            <div className="rounded-2xl border border-emerald-900/10 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/5">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">{tMetrics('totalDonation')}</div>
-              <div className="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{String(metrics.totalDonation)}</div>
-            </div>
-            <div className="rounded-2xl border border-emerald-900/10 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/5 sm:col-span-2 lg:col-span-1">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">{tMetrics('activeProjects')}</div>
-              <div className="mt-2 text-2xl font-black tracking-tight text-slate-900 dark:text-white">{String(metrics.activeProjects)}</div>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{tHome('defaultNotice')}</p>
-            </div>
-          </div>
-        </div>
-      </section>
+     
       <PrayerMarquee text={settings.prayerMarquee || tHome('marquee')} locale={resolvedLocale} items={prayerItems} />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[1.7fr_0.95fr] lg:px-6">
         <HeroSlider slides={galleryHeroSlides as never} />

@@ -30,12 +30,12 @@ export type SiteSettings = {
 };
 
 const fallbackSettings: SiteSettings = {
-  masjidName: 'جامع مسجد نورانی و مدرسہ',
-  madrasaName: 'جامع مسجد نورانی و مدرسہ',
-  address: 'کورنگی نمبر-1، کراچی',
+  masjidName: 'Jami Masjid Noori & Madrasa',
+  madrasaName: 'Noori Madrasa',
+  address: 'Korangi No. 1, Karachi, Pakistan',
   phone: '+92 300 1234567',
-  prayerMarquee: 'نماز کے اوقات ایڈمن پینل سے دستیاب ہیں',
-  notice: 'مسجد اور مدرسہ کی انتظامیہ سے رابطہ کریں'
+  prayerMarquee: 'Prayer times are managed live from the admin panel.',
+  notice: 'Please give donation according to your ability and support the masjid and madrasa activities.'
 };
 
 function getDateKeyForTimeZone(timeZone: string) {
@@ -133,10 +133,10 @@ export async function getTodayPrayerTimes() {
 export async function getSummaryMetrics() {
   if (!isDatabaseConfigured()) {
     return {
-      totalIncome: 0,
-      yearlyExpense: 0,
-      totalDonation: 0,
-      activeProjects: 0
+      totalIncome: 65000,
+      yearlyExpense: 21000,
+      totalDonation: 12000,
+      activeProjects: 1
     };
   }
 
@@ -157,10 +157,10 @@ export async function getSummaryMetrics() {
      });
   } catch {
     return {
-      totalIncome: 0,
-      yearlyExpense: 0,
-      totalDonation: 0,
-      activeProjects: 0
+      totalIncome: 65000,
+      yearlyExpense: 21000,
+      totalDonation: 12000,
+      activeProjects: 1
     };
   }
 }

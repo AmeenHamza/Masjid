@@ -33,7 +33,7 @@ export async function ensureDefaultContent() {
       madrasaName: 'Noori Madrasa',
       address: 'Korangi No. 1, Karachi, Pakistan',
       phone: '+92 300 1234567',
-      notice: 'Please support masjid and madrasa activities with your donations.',
+      notice: 'Please give donation according to your ability and support the masjid and madrasa activities.',
       prayerMarquee: 'Prayer times are managed live from the admin panel.'
     });
   }
