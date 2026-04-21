@@ -1,12 +1,13 @@
 import { backendApiUrl } from './backend-url';
 
-export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'url' | 'date' | 'checkbox';
+export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'url' | 'date' | 'checkbox' | 'media-upload';
 
 export type FieldConfig = {
   name: string;
   label: string;
   type: FieldType;
   options?: Array<{ label: string; value: string }>;
+  accept?: string;
 };
 
 export type ResourceConfig = {
@@ -158,7 +159,7 @@ export const adminResources: ResourceConfig[] = [
       ] },
       { name: 'targetAmount', label: 'Target Amount', type: 'number' },
       { name: 'collectedAmount', label: 'Collected Amount', type: 'number' },
-      { name: 'imageUrl', label: 'Image URL', type: 'url' }
+      { name: 'imageUrl', label: 'Upload Image', type: 'media-upload', accept: 'image/*' }
     ]
   },
   {
@@ -169,8 +170,7 @@ export const adminResources: ResourceConfig[] = [
     fields: [
       { name: 'title', label: 'Title', type: 'text' },
       { name: 'mediaType', label: 'Media Type', type: 'select', options: [{ label: 'Image', value: 'image' }, { label: 'Video', value: 'video' }] },
-      { name: 'url', label: 'URL', type: 'url' },
-      { name: 'thumbnailUrl', label: 'Thumbnail URL', type: 'url' },
+      { name: 'url', label: 'Upload Media', type: 'media-upload', accept: 'image/*' },
       { name: 'caption', label: 'Caption', type: 'textarea' },
       { name: 'order', label: 'Order', type: 'number' }
     ]

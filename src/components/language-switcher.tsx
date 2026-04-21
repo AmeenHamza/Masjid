@@ -1,7 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useSearchParams } from 'next/navigation';
+
+const LOCALE_KEY = 'site-locale';
+
+function setLocaleCookie(locale: 'en' | 'ur') {
+  document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000; samesite=lax`;
+}
+
+function getLocaleCookie() {
+  const pair = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith('NEXT_LOCALE='));
+
+  return pair?.split('=')[1];
+}
 
 export function LanguageSwitcher() {
   const locale = useLocale();
@@ -9,15 +24,36 @@ export function LanguageSwitcher() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  useEffect(() => {
+    const savedLocale = localStorage.getItem(LOCALE_KEY);
+    if (savedLocale !== 'en' && savedLocale !== 'ur') {
+      localStorage.setItem(LOCALE_KEY, locale);
+      setLocaleCookie(locale as 'en' | 'ur');
+      return;
+    }
+
+    const cookieLocale = getLocaleCookie();
+    if (cookieLocale !== savedLocale) {
+      setLocaleCookie(savedLocale);
+    }
+
+    if (savedLocale !== locale) {
+      window.location.reload();
+    }
+  }, [locale]);
+
   function goToLocale(targetLocale: 'en' | 'ur') {
     if (targetLocale === locale) {
       return;
     }
 
-    const cleanPath = (pathname || '/').replace(/^\/(en|ur)(?=\/|$)/, '') || '/';
+    localStorage.setItem(LOCALE_KEY, targetLocale);
+    setLocaleCookie(targetLocale);
+
+    const cleanPath = pathname || '/';
     const queryString = searchParams.toString();
-    const targetPath = `/${targetLocale}${cleanPath === '/' ? '' : cleanPath}`;
-    window.location.assign(queryString ? `${targetPath}?${queryString}` : targetPath);
+    const targetPath = queryString ? `${cleanPath}?${queryString}` : cleanPath;
+    window.location.assign(targetPath);
   }
 
   return (

@@ -1,5 +1,6 @@
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
+import Image from 'next/image';
 
 const badgeClass: Record<string, string> = {
   Complete: 'bg-emerald-600 text-white',
@@ -7,11 +8,16 @@ const badgeClass: Record<string, string> = {
   Upcoming: 'bg-slate-700 text-white'
 };
 
-export function ProjectCards({ projects }: { projects: Array<{ title: string; description: string; status: string; collectedAmount?: number; targetAmount?: number }> }) {
+export function ProjectCards({ projects }: { projects: Array<{ title: string; description: string; status: string; imageUrl?: string; collectedAmount?: number; targetAmount?: number }> }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {projects.map((project) => (
         <Card key={project.title} className="overflow-hidden">
+          {project.imageUrl ? (
+            <div className="relative mb-4 h-44 overflow-hidden rounded-2xl">
+              <Image src={project.imageUrl} alt={project.title} fill className="object-cover" />
+            </div>
+          ) : null}
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-xl font-black">{project.title}</h3>

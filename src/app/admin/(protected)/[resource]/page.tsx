@@ -46,10 +46,25 @@ export default function AdminResourcePage() {
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
     if (!items[0]) return [];
-    return Object.keys(items[0]).filter((key) => key !== '_id' && key !== '__v').map((key) => ({
+    const hiddenKeys = new Set(['_id', '__v', 'addedBy', 'createdAt', 'updatedAt']);
+
+    return Object.keys(items[0]).filter((key) => !hiddenKeys.has(key)).map((key) => ({
       accessorKey: key,
       header: key,
-      cell: ({ getValue }) => String(getValue())
+      cell: ({ getValue }) => {
+        const value = String(getValue() ?? '');
+
+        if (key.toLowerCase().includes('url')) {
+          const displayText = value.length > 65 ? `${value.slice(0, 65)}...` : value;
+          return (
+            <a href={value} target="_blank" rel="noreferrer" className="block max-w-[260px] break-all text-xs text-emerald-700 underline decoration-dotted underline-offset-2 hover:text-emerald-600 dark:text-emerald-300" title={value}>
+              {displayText}
+            </a>
+          );
+        }
+
+        return <span className="block max-w-[260px] break-words">{value}</span>;
+      }
     }));
   }, [items]);
 

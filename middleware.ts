@@ -5,22 +5,16 @@ import { NextResponse } from 'next/server';
 const intlMiddleware = createMiddleware({
   locales: ['en', 'ur'],
   defaultLocale: 'en',
-  localePrefix: 'always',
+  localePrefix: 'never',
   localeDetection: false
 });
 
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname === '/') {
+  const localePrefixMatch = request.nextUrl.pathname.match(/^\/(en|ur)(\/.*)?$/);
+  if (localePrefixMatch) {
+    const cleanPath = localePrefixMatch[2] || '/';
     const url = request.nextUrl.clone();
-    url.pathname = '/en';
-    return NextResponse.redirect(url);
-  }
-
-  const normalizedPath = request.nextUrl.pathname.replace(/^\/(en|ur)\/(en|ur)(?=\/|$)/, '/$1');
-
-  if (normalizedPath !== request.nextUrl.pathname) {
-    const url = request.nextUrl.clone();
-    url.pathname = normalizedPath;
+    url.pathname = cleanPath;
     return NextResponse.redirect(url);
   }
 

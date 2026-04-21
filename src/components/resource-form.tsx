@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -18,10 +18,59 @@ type Props = {
 
 export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'Save', isSubmitting = false }: Props) {
   const { register, handleSubmit, reset, setValue, watch } = useForm<Record<string, unknown>>({ defaultValues });
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+
+  const mediaType = String(watch('mediaType') ?? defaultValues?.mediaType ?? 'image');
 
   useEffect(() => {
     reset(defaultValues);
+    setUploadErrors({});
   }, [defaultValues, reset]);
+
+  async function handleMediaUpload(fieldName: string, file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    if (mediaType !== 'image') {
+      setUploadErrors((prev) => ({ ...prev, [fieldName]: 'Video upload will be available soon. Please select Image for now.' }));
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setUploadErrors((prev) => ({ ...prev, [fieldName]: 'Please select an image file.' }));
+      return;
+    }
+
+    setUploadingField(fieldName);
+    setUploadErrors((prev) => ({ ...prev, [fieldName]: '' }));
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('mediaType', mediaType);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; url?: string; message?: string };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.message || 'Upload failed');
+      }
+
+      setValue(fieldName, payload.url, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed';
+      setUploadErrors((prev) => ({ ...prev, [fieldName]: message }));
+    } finally {
+      setUploadingField(null);
+    }
+  }
 
   return (
     <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
@@ -54,6 +103,36 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
             <label key={field.name} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:col-span-2">
               <input type="checkbox" className="h-5 w-5" defaultChecked={Boolean(defaultValues?.[field.name])} onChange={(event) => setValue(field.name, event.target.checked)} />
               <span className="text-sm font-semibold">{field.label}</span>
+            </label>
+          );
+        }
+
+        if (field.type === 'media-upload') {
+          const mediaUrl = String(watch(field.name) ?? defaultValues?.[field.name] ?? '');
+
+          return (
+            <label key={field.name} className="sm:col-span-2">
+              <div className="mb-2 text-sm font-semibold">{field.label}</div>
+              <Input
+                type="file"
+                accept={field.accept || 'image/*'}
+                onChange={(event) => {
+                  void handleMediaUpload(field.name, event.target.files?.[0] ?? null);
+                }}
+                className="w-full"
+              />
+              <input type="hidden" {...register(field.name)} />
+              {uploadingField === field.name ? <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">Uploading image...</p> : null}
+              {uploadErrors[field.name] ? <p className="mt-2 text-xs text-rose-600 dark:text-rose-300">{uploadErrors[field.name]}</p> : null}
+              {mediaUrl ? (
+                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-slate-900/40">
+                  {mediaType === 'image' ? (
+                    <img src={mediaUrl} alt="Uploaded media preview" className="h-44 w-full rounded-lg object-cover sm:h-56" />
+                  ) : (
+                    <p className="text-xs text-slate-500 dark:text-slate-300">Video preview will be enabled when video upload support is released.</p>
+                  )}
+                </div>
+              ) : null}
             </label>
           );
         }
