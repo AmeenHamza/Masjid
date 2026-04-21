@@ -1,15 +1,10 @@
-import createMiddleware from 'next-intl/middleware';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const intlMiddleware = createMiddleware({
-  locales: ['en', 'ur'],
-  defaultLocale: 'en',
-  localePrefix: 'never',
-  localeDetection: false
-});
-
 export function middleware(request: NextRequest) {
+  const localeCookie = request.cookies.get('NEXT_LOCALE')?.value;
+  const locale = localeCookie === 'ur' ? 'ur' : 'en';
+
   const localePrefixMatch = request.nextUrl.pathname.match(/^\/(en|ur)(\/.*)?$/);
   if (localePrefixMatch) {
     const cleanPath = localePrefixMatch[2] || '/';
@@ -29,7 +24,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  return intlMiddleware(request);
+  const url = request.nextUrl.clone();
+  url.pathname = `/${locale}${request.nextUrl.pathname === '/' ? '' : request.nextUrl.pathname}`;
+  return NextResponse.rewrite(url);
 }
 
 export const config = {
