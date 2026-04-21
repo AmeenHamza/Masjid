@@ -15,14 +15,18 @@ export function NavGrid({ labels, counts, showMoreLabel, summaryLabel }: { label
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {cards.map((card) => (
-        <Card key={card.key} className={`overflow-hidden border-0 p-0 text-white ${card.color}`}>
-          <div className="flex h-full flex-col justify-between p-5">
+        <Card key={card.key} className={`group relative overflow-hidden border-0 p-0 text-white shadow-lg ${card.color}`}>
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.18),transparent_42%)] opacity-80 transition duration-300 group-hover:opacity-100" />
+          <div className="relative flex h-full flex-col justify-between p-5">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-white/70">{labels[card.key]}</p>
-              <div className="mt-4 text-3xl font-black">{counts[card.key] || '0'}</div>
+              <div className="mt-4 flex items-end justify-between gap-3">
+                <div className="text-3xl font-black tabular-nums">{counts[card.key] || '0'}</div>
+                <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-white/80">Live</span>
+              </div>
               <p className="mt-1 text-sm text-white/85">{summaryLabel}</p>
             </div>
-            <Link href={card.href} className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-bold text-slate-950 transition hover:bg-white/90">
+            <Link href={card.href} className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-white/95 px-5 text-sm font-bold text-slate-950 transition group-hover:bg-white">
               {showMoreLabel}
             </Link>
           </div>

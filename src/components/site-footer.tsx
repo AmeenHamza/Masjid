@@ -18,9 +18,9 @@ export function SiteFooter({ address, phone }: { address: string; phone: string 
   ];
 
   return (
-    <footer className="border-t border-emerald-900/10 bg-gradient-to-b from-white/90 to-emerald-50/70 py-12 backdrop-blur dark:border-white/10 dark:from-slate-950 dark:to-emerald-950/20">
+    <footer className="border-t border-slate-200/80 bg-gradient-to-b from-white/95 via-white to-emerald-50/80 py-12 backdrop-blur dark:border-white/10 dark:from-slate-950 dark:via-slate-950 dark:to-emerald-950/20">
       <div className="mx-auto max-w-7xl px-4 lg:px-6">
-        <div className="grid gap-8 rounded-3xl border border-emerald-900/10 bg-white/80 p-6 shadow-sm ring-1 ring-white/60 dark:border-white/10 dark:bg-white/5 dark:ring-white/10 lg:grid-cols-[1.15fr_0.9fr_0.9fr] lg:p-8">
+        <div className="grid gap-8 rounded-[2rem] border border-slate-200/80 bg-white/85 p-6 shadow-sm ring-1 ring-white/60 dark:border-white/10 dark:bg-white/5 dark:ring-white/10 lg:grid-cols-[1.15fr_0.9fr_0.9fr] lg:p-8">
           <div>
             <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">{t('title')}</h2>
             <p className="mt-2 max-w-md text-sm leading-6 text-slate-600 dark:text-slate-300">{t('highlight')}</p>
@@ -60,11 +60,11 @@ export function SiteFooter({ address, phone }: { address: string; phone: string 
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-900/20 bg-white/80 px-3 py-2 text-xs font-bold text-slate-700 dark:border-white/15 dark:bg-white/5 dark:text-slate-200">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-900/15 bg-emerald-50/80 px-3 py-2 text-xs font-bold text-slate-700 dark:border-white/15 dark:bg-white/5 dark:text-slate-200">
                 <ShieldCheck className="h-4 w-4" />
                 <span>{tCommon('admin')}</span>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-900/20 bg-white/80 px-3 py-2 text-xs font-bold text-slate-700 dark:border-white/15 dark:bg-white/5 dark:text-slate-200">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-900/15 bg-emerald-50/80 px-3 py-2 text-xs font-bold text-slate-700 dark:border-white/15 dark:bg-white/5 dark:text-slate-200">
                 <Compass className="h-4 w-4" />
                 <span>{tCommon('projects')}</span>
               </div>
@@ -73,7 +73,7 @@ export function SiteFooter({ address, phone }: { address: string; phone: string 
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 border-t border-emerald-900/10 pt-5 text-xs text-slate-600 dark:border-white/10 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-5 flex flex-col gap-3 border-t border-slate-200/80 pt-5 text-xs text-slate-600 dark:border-white/10 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>
             &copy; {year} {t('title')}.
           </p>

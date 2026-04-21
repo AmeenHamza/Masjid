@@ -5,7 +5,7 @@ export function MasonryGallery({ items }: { items: Array<{ mediaType: 'image' | 
   return (
     <div className="columns-1 gap-4 space-y-4 sm:columns-2 xl:columns-3">
       {items.map((item) => (
-        <Card key={item.url} className="break-inside-avoid overflow-hidden p-0">
+        <Card key={item.url} className="group break-inside-avoid overflow-hidden p-0 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
           {item.mediaType === 'video' ? (
             <video controls className="h-auto w-full object-cover">
               <source src={item.url} />
@@ -13,6 +13,7 @@ export function MasonryGallery({ items }: { items: Array<{ mediaType: 'image' | 
           ) : (
             <div className="relative aspect-[4/3] w-full">
               <Image src={item.url} alt={item.title} fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
             </div>
           )}
           <div className="p-4">
