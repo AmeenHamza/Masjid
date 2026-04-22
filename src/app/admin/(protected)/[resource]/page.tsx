@@ -23,6 +23,7 @@ export default function AdminResourcePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [formResetToken, setFormResetToken] = useState(0);
 
   async function loadItems() {
     if (!resource) return;
@@ -31,7 +32,11 @@ export default function AdminResourcePage() {
     try {
       const response = await fetch(resource.apiPath, { credentials: 'include' });
       const data = await response.json();
-      setItems(data.items || []);
+      const nextItems = data.items || [];
+      setItems(nextItems);
+      if (resource.key === 'settings') {
+        setSelected(nextItems[0] || {});
+      }
     } catch {
       toast.error(tToast('failedToLoadData'));
     } finally {
@@ -73,10 +78,17 @@ export default function AdminResourcePage() {
   }
 
   const currentResource = resource;
+  const isSettingsResource = currentResource.key === 'settings';
 
   async function save(values: Record<string, unknown>) {
     setSaving(true);
     const isUpdate = Boolean(selected?._id);
+
+    if (isSettingsResource && !isUpdate) {
+      toast.error(tToast('unableToSaveRecord'));
+      setSaving(false);
+      return;
+    }
 
     const normalizedValues = Object.fromEntries(
       currentResource.fields.map((field) => {
@@ -110,6 +122,9 @@ export default function AdminResourcePage() {
 
       setSelected(undefined);
       await loadItems();
+      if (!isSettingsResource) {
+        setFormResetToken((current) => current + 1);
+      }
       toast.success(isUpdate ? tToast('updatedSuccessfully') : tToast('savedSuccessfully'));
     } catch {
       toast.error(tToast('unableToSaveRecord'));
@@ -143,12 +158,12 @@ export default function AdminResourcePage() {
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{resource.title}</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">{t('managingResources').replace('{{resource}}', currentResource.title.toLowerCase())}</p>
         </div>
-        <Button onClick={() => setSelected({})} className="w-full sm:w-auto">{t('newRecord')}</Button>
+        {!isSettingsResource ? <Button onClick={() => setSelected({})} className="w-full sm:w-auto">{t('newRecord')}</Button> : null}
       </div>
 
       <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">{selected?._id ? t('editRecord') : t('createRecord')}</h2>
+          <h2 className="text-lg font-bold">{isSettingsResource ? t('viewRecord') : (selected?._id ? t('editRecord') : t('createRecord'))}</h2>
           {saving ? (
             <span className="inline-flex items-center gap-2 text-sm text-emerald-700">
               <Loader2 className="h-4 w-4 animate-spin" /> {t('saving')}
@@ -160,17 +175,18 @@ export default function AdminResourcePage() {
           defaultValues={selected}
           onSubmit={save}
           isSubmitting={saving}
-          submitLabel={selected?._id ? t('update') : tCommon('save')}
+          resetToken={formResetToken}
+          submitLabel={isSettingsResource ? t('update') : (selected?._id ? t('update') : tCommon('save'))}
         />
       </Card>
 
-      {loading ? (
+      {!isSettingsResource && loading ? (
         <Card className="flex items-center justify-center py-12">
           <div className="inline-flex items-center gap-2 text-sm text-slate-600">
             <Loader2 className="h-4 w-4 animate-spin" /> {t('loadingRecords')}
           </div>
         </Card>
-      ) : columns.length ? (
+      ) : !isSettingsResource && columns.length ? (
         <DataTable
           columns={[
             ...columns,
@@ -195,9 +211,9 @@ export default function AdminResourcePage() {
           data={items}
           searchKey={currentResource.searchKeys[0]}
         />
-      ) : (
+      ) : !isSettingsResource ? (
         <Card className="py-10 text-center text-slate-600">{t('noRecordsFound')}</Card>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -19,15 +19,26 @@ const navItems = [
   { href: '/gallery', key: 'gallery' }
 ];
 
-export function SiteHeader({ phone = '+92 300 1234567' }: { phone?: string }) {
+export function SiteHeader({
+  phone = '+92 300 1234567',
+  masjidName
+}: {
+  phone?: string;
+  masjidName?: string;
+}) {
   const t = useTranslations('common');
   const [open, setOpen] = useState(false);
+  const normalizedName = (masjidName || '').trim();
+  const words = normalizedName.split(/\s+/).filter(Boolean);
+  const hasSplitName = words.length > 2;
+  const logoTopText = hasSplitName ? words.slice(0, 2).join(' ') : (masjidName || t('brandTop'));
+  const logoBottomText = hasSplitName ? words.slice(2).join(' ') : t('brandBottom');
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 text-slate-900 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/75 dark:text-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
         <Link href="/" className="shrink-0">
-          <Logo topText={t('brandTop')} bottomText={t('brandBottom')} tone="dark" />
+          <Logo topText={logoTopText} bottomText={logoBottomText} tone="dark" />
         </Link>
         <nav className="hidden items-center gap-1 xl:flex">
           {navItems.map((item) => (
@@ -41,7 +52,7 @@ export function SiteHeader({ phone = '+92 300 1234567' }: { phone?: string }) {
           <ThemeToggle />
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-900/15 bg-emerald-50/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm dark:border-white/15 dark:bg-white/5 dark:text-white/90">
             <Phone className="h-4 w-4" />
-            <span>{phone}</span>
+            <span dir="ltr" className="[unicode-bidi:isolate]">{phone}</span>
           </div>
         </div>
         <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-emerald-200 hover:text-emerald-700 lg:hidden dark:border-white/10 dark:bg-white/5 dark:text-white" onClick={() => setOpen(!open)}>

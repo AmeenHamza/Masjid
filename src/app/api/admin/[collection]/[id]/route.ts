@@ -2,8 +2,34 @@ import { connectToDatabase } from '@/lib/db';
 import { apiError, json } from '@/lib/api';
 import { getServerSession } from '@/lib/auth';
 import { resourceMap } from '@/lib/admin-resources';
+import { minutesToCanonical24, parsePrayerTimeToMinutes } from '@/lib/prayer-activity';
 
 type Params = { params: Promise<{ collection: string; id: string }> };
+
+function normalizePrayerTimesPatchBody(body: Record<string, unknown>) {
+  const keys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha', 'juma'] as const;
+
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+    const raw = String(body[key] ?? '').trim();
+
+    if (!raw) {
+      if (key === 'juma') {
+        body[key] = '';
+        continue;
+      }
+      return { ok: false as const, message: `${key} time cannot be empty.` };
+    }
+
+    const minutes = parsePrayerTimeToMinutes(raw);
+    if (minutes === null) {
+      return { ok: false as const, message: `Invalid ${key} time. Use 4:15 PM or 16:15.` };
+    }
+    body[key] = minutesToCanonical24(minutes);
+  }
+
+  return { ok: true as const };
+}
 
 export async function PATCH(request: Request, { params }: Params) {
   const { collection, id } = await params;
@@ -14,6 +40,13 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!session) return apiError('Unauthorized', 401);
 
   const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') return apiError('Invalid request body', 400);
+
+  if (collection === 'prayer-times') {
+    const normalized = normalizePrayerTimesPatchBody(body as Record<string, unknown>);
+    if (!normalized.ok) return apiError(normalized.message, 400);
+  }
+
   const parsed = resource.schema.partial().safeParse(body);
   if (!parsed.success) return apiError('Validation failed', 400, parsed.error.flatten());
 

@@ -11,7 +11,7 @@ const cards = [
   { key: 'gallery', color: 'bg-emerald-700', href: '/gallery' }
 ];
 
-export function NavGrid({ labels, counts, showMoreLabel, summaryLabel }: { labels: Record<string, string>; counts: Record<string, string>; showMoreLabel: string; summaryLabel: string }) {
+export function NavGrid({ labels, counts, showMoreLabel }: { labels: Record<string, string>; counts: Record<string, string>; showMoreLabel: string }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {cards.map((card) => (
@@ -23,7 +23,6 @@ export function NavGrid({ labels, counts, showMoreLabel, summaryLabel }: { label
               <div className="mt-4 flex items-end justify-between gap-3">
                 <div className="text-3xl font-black tabular-nums">{counts[card.key] || '0'}</div>
               </div>
-              <p className="mt-1 text-sm text-white/85">{summaryLabel}</p>
             </div>
             <Link href={card.href} className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-white/95 px-5 text-sm font-bold text-slate-950 transition group-hover:bg-white">
               {showMoreLabel}

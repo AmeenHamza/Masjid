@@ -1,29 +1,39 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from './ui/badge';
+import { formatPrayerTimeParts, getActivePrayerKey } from '@/lib/prayer-activity';
 
 const prayerKeys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha', 'juma'] as const;
 
-export function PrayerBox({ prayers }: { prayers: Record<string, string> }) {
+export function PrayerBox({ prayers, timeZone = 'Asia/Karachi' }: { prayers: Record<string, string>; timeZone?: string }) {
+  const locale = useLocale();
   const common = useTranslations('common');
   const t = useTranslations('prayers');
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(interval);
+    const tick = () => setNow(new Date());
+    const msToNextMinute = (60 - new Date().getSeconds()) * 1000;
+    let intervalId: number | undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      tick();
+      intervalId = window.setInterval(tick, 60_000);
+    }, msToNextMinute);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (typeof intervalId === 'number') {
+        window.clearInterval(intervalId);
+      }
+    };
   }, []);
 
   const activePrayer = useMemo(() => {
-    const hour = now.getHours() + now.getMinutes() / 60;
-    if (hour >= 18.1) return 'maghrib';
-    if (hour >= 15.5) return 'asr';
-    if (hour >= 12.0) return 'zohar';
-    if (hour >= 5.0) return 'fajr';
-    return 'isha';
-  }, [now]);
+    return getActivePrayerKey(prayers, now, timeZone);
+  }, [prayers, now, timeZone]);
 
   return (
     <aside className="relative overflow-hidden rounded-[2rem] border border-slate-900/80 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-5 text-white shadow-soft">
@@ -39,7 +49,10 @@ export function PrayerBox({ prayers }: { prayers: Record<string, string> }) {
         {prayerKeys.map((key) => (
           <div key={key} className={`flex items-center justify-between rounded-2xl px-4 py-3 transition ${activePrayer === key ? 'bg-white/14 ring-1 ring-emerald-300/30' : 'bg-white/5'}`}>
             <span className="text-base font-bold tracking-wide">{t(key)}</span>
-            <span className="text-lg font-semibold tabular-nums">{String(prayers[key] || '00:00')}</span>
+            <span dir="ltr" className="inline-flex items-center gap-1 text-lg font-semibold tabular-nums [unicode-bidi:isolate]">
+              <span>{formatPrayerTimeParts(prayers[key]).time}</span>
+              <span className="text-xs font-bold uppercase tracking-[0.08em]">{formatPrayerTimeParts(prayers[key]).period}</span>
+            </span>
           </div>
         ))}
       </div>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { formatPrayerTime } from '@/lib/prayer-activity';
 
 interface AdminDashboardContentProps {
   metrics: {
@@ -15,9 +16,11 @@ interface AdminDashboardContentProps {
 }
 
 export function AdminDashboardContent({ metrics, projects, gallery, prayers }: AdminDashboardContentProps) {
+  const locale = useLocale();
   const t = useTranslations('admin');
   const tCommon = useTranslations('common');
   const tPrayers = useTranslations('prayers');
+  const prayerKeys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha', 'juma'] as const;
 
   return (
     <div className="space-y-5 lg:space-y-8">
@@ -46,11 +49,12 @@ export function AdminDashboardContent({ metrics, projects, gallery, prayers }: A
       <Card className="border-emerald-900/10 bg-white/80">
         <h2 className="text-xl font-black sm:text-2xl">{t('todayPrayerTimes')}</h2>
         <div className="mt-4 flex flex-wrap gap-2">
-          {Object.entries(prayers).map(([key, value]) => {
-            const prayerLabel = tPrayers(key as any) || key;
+          {prayerKeys.map((key) => {
+            const prayerLabel = tPrayers(key);
+            const value = prayers[key];
             return (
               <Badge key={key} className="bg-emerald-700 text-white shadow-sm">
-                {prayerLabel}: {String(value)}
+                {prayerLabel}: {formatPrayerTime(String(value ?? ''), locale)}
               </Badge>
             );
           })}

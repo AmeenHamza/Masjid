@@ -83,6 +83,14 @@ body {
   animation-name: prayer-marquee-ur;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .marquee,
+  .prayer-marquee-track,
+  .reveal {
+    animation: none !important;
+  }
+}
+
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }

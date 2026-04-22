@@ -14,10 +14,17 @@ export default function AdminResourcePage() {
   const resource = getResourceConfig(params.resource);
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [selected, setSelected] = useState<Record<string, unknown> | undefined>();
+  const [formResetToken, setFormResetToken] = useState(0);
 
   useEffect(() => {
     if (!resource) return;
-    fetch(resource.apiPath, { credentials: 'include' }).then((response) => response.json()).then((data) => setItems(data.items || []));
+    fetch(resource.apiPath, { credentials: 'include' }).then((response) => response.json()).then((data) => {
+      const nextItems = data.items || [];
+      setItems(nextItems);
+      if (resource.key === 'settings') {
+        setSelected(nextItems[0] || {});
+      }
+    });
   }, [resource]);
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
@@ -49,8 +56,13 @@ export default function AdminResourcePage() {
   }
 
   const currentResource = resource;
+  const isSettingsResource = currentResource.key === 'settings';
 
   async function save(values: Record<string, unknown>) {
+    if (isSettingsResource && !selected?._id) {
+      return;
+    }
+
     const normalizedValues = Object.fromEntries(
       currentResource.fields.map((field) => {
         const value = values[field.name];
@@ -72,6 +84,11 @@ export default function AdminResourcePage() {
     setSelected(undefined);
     const refreshed = await fetch(currentResource.apiPath, { credentials: 'include' }).then((response) => response.json());
     setItems(refreshed.items || []);
+    if (isSettingsResource) {
+      setSelected((refreshed.items || [])[0] || {});
+    } else {
+      setFormResetToken((current) => current + 1);
+    }
   }
 
   async function remove(id: string) {
@@ -87,12 +104,12 @@ export default function AdminResourcePage() {
           <h1 className="text-3xl font-black">{resource.title}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400">Manage {currentResource.title.toLowerCase()} with full CRUD.</p>
         </div>
-        <Button onClick={() => setSelected({})}>New</Button>
+        {!isSettingsResource ? <Button onClick={() => setSelected({})}>New</Button> : null}
       </div>
       <Card>
-        <ResourceForm fields={currentResource.fields} defaultValues={selected} onSubmit={save} />
+        <ResourceForm fields={currentResource.fields} defaultValues={selected} onSubmit={save} resetToken={formResetToken} submitLabel={isSettingsResource ? 'Update' : 'Save'} />
       </Card>
-      {columns.length ? (
+      {!isSettingsResource && columns.length ? (
         <DataTable
           columns={[
             ...columns,

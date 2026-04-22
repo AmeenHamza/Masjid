@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -14,19 +14,32 @@ type Props = {
   onSubmit: (values: Record<string, unknown>) => Promise<void>;
   submitLabel?: string;
   isSubmitting?: boolean;
+  resetToken?: number;
 };
 
-export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'Save', isSubmitting = false }: Props) {
+function buildEmptyValues(fields: FieldConfig[]): Record<string, unknown> {
+  return Object.fromEntries(fields.map((field) => [field.name, field.type === 'checkbox' ? false : '']));
+}
+
+export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'Save', isSubmitting = false, resetToken = 0 }: Props) {
   const { register, handleSubmit, reset, setValue, watch } = useForm<Record<string, unknown>>({ defaultValues });
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
 
+  const emptyValues = useMemo(() => buildEmptyValues(fields), [fields]);
+
   const mediaType = String(watch('mediaType') ?? defaultValues?.mediaType ?? 'image');
 
   useEffect(() => {
-    reset(defaultValues);
+    const hasDefaults = Boolean(defaultValues && Object.keys(defaultValues).length > 0);
+    reset(hasDefaults ? { ...emptyValues, ...defaultValues } : emptyValues);
     setUploadErrors({});
-  }, [defaultValues, reset]);
+  }, [defaultValues, emptyValues, reset]);
+
+  useEffect(() => {
+    reset(emptyValues);
+    setUploadErrors({});
+  }, [emptyValues, reset, resetToken]);
 
   async function handleMediaUpload(fieldName: string, file: File | null) {
     if (!file) {
@@ -79,7 +92,7 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
           return (
             <label key={field.name} className="sm:col-span-2">
               <div className="mb-2 text-sm font-semibold">{field.label}</div>
-              <Textarea {...register(field.name)} defaultValue={defaultValues?.[field.name] as string | undefined} className="min-h-[110px]" />
+              <Textarea {...register(field.name)} className="min-h-[110px]" />
             </label>
           );
         }
@@ -88,7 +101,7 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
           return (
             <label key={field.name} className="min-w-0">
               <div className="mb-2 text-sm font-semibold">{field.label}</div>
-              <Select {...register(field.name)} defaultValue={String(defaultValues?.[field.name] ?? '')} className="w-full">
+              <Select {...register(field.name)} className="w-full">
                 <option value="">Select...</option>
                 {field.options?.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -101,14 +114,14 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
         if (field.type === 'checkbox') {
           return (
             <label key={field.name} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:col-span-2">
-              <input type="checkbox" className="h-5 w-5" defaultChecked={Boolean(defaultValues?.[field.name])} onChange={(event) => setValue(field.name, event.target.checked)} />
+              <input type="checkbox" className="h-5 w-5" {...register(field.name)} />
               <span className="text-sm font-semibold">{field.label}</span>
             </label>
           );
         }
 
         if (field.type === 'media-upload') {
-          const mediaUrl = String(watch(field.name) ?? defaultValues?.[field.name] ?? '');
+          const mediaUrl = String(watch(field.name) ?? '');
 
           return (
             <label key={field.name} className="sm:col-span-2">
@@ -140,7 +153,7 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
         return (
           <label key={field.name} className="min-w-0">
             <div className="mb-2 text-sm font-semibold">{field.label}</div>
-            <Input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'} {...register(field.name)} defaultValue={String(defaultValues?.[field.name] ?? '')} className="w-full" />
+            <Input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'} {...register(field.name)} className="w-full" />
           </label>
         );
       })}

@@ -51,7 +51,7 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.4 }}
           className="relative h-[280px] sm:h-[360px] lg:h-[480px]"
         >
           <Image

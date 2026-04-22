@@ -2,6 +2,7 @@ type MarqueeItem = {
   key: string;
   label: string;
   time?: string;
+  period?: string;
 };
 
 export function PrayerMarquee({
@@ -25,7 +26,10 @@ export function PrayerMarquee({
             {prayerItems.map((item) => (
               <span key={item.key} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1">
                 <span className="font-bold">{item.label}</span>
-                <span className="text-white/90">{item.time}</span>
+                <span dir="ltr" className="inline-flex items-center gap-1 text-white/90 tabular-nums [unicode-bidi:isolate]">
+                  <span>{item.time}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.08em]">{item.period}</span>
+                </span>
               </span>
             ))}
           </div>

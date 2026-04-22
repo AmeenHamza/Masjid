@@ -25,6 +25,69 @@ const asyncHandler = (
   };
 };
 
+function parsePrayerTimeToMinutes(value: unknown): number | null {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+
+  const match = /^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/.exec(text);
+  if (!match) return null;
+
+  const rawHour = Number(match[1]);
+  const minute = Number(match[2]);
+  const suffix = match[3]?.toUpperCase();
+
+  if (!Number.isInteger(rawHour) || !Number.isInteger(minute)) return null;
+  if (minute < 0 || minute > 59) return null;
+
+  if (suffix) {
+    if (rawHour < 1 || rawHour > 12) return null;
+    const normalizedHour = rawHour % 12;
+    const hour24 = suffix === 'PM' ? normalizedHour + 12 : normalizedHour;
+    return hour24 * 60 + minute;
+  }
+
+  if (rawHour < 0 || rawHour > 23) return null;
+  return rawHour * 60 + minute;
+}
+
+function toCanonical24(minutes: number): string {
+  const total = ((minutes % 1440) + 1440) % 1440;
+  const hour = Math.floor(total / 60);
+  const minute = total % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function normalizePrayerPayload(payload: Record<string, unknown>) {
+  const requiredKeys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha'] as const;
+  const optionalKeys = ['juma'] as const;
+
+  for (const key of requiredKeys) {
+    if (!Object.prototype.hasOwnProperty.call(payload, key)) continue;
+    const minutes = parsePrayerTimeToMinutes(payload[key]);
+    if (minutes === null) {
+      return { ok: false as const, message: `Invalid ${key} time. Use e.g. 4:15 PM or 16:15` };
+    }
+    payload[key] = toCanonical24(minutes);
+  }
+
+  for (const key of optionalKeys) {
+    if (!Object.prototype.hasOwnProperty.call(payload, key)) continue;
+    const value = String(payload[key] ?? '').trim();
+    if (!value) {
+      payload[key] = '';
+      continue;
+    }
+
+    const minutes = parsePrayerTimeToMinutes(value);
+    if (minutes === null) {
+      return { ok: false as const, message: `Invalid ${key} time. Use e.g. 1:30 PM or 13:30` };
+    }
+    payload[key] = toCanonical24(minutes);
+  }
+
+  return { ok: true as const };
+}
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -126,6 +189,14 @@ app.post('/api/admin/:collection', adminAuthMiddleware, asyncHandler(async (req,
 
   const payload = { ...req.body, addedBy: admin?.id };
 
+  if (key === 'prayer-times') {
+    const normalized = normalizePrayerPayload(payload);
+    if (!normalized.ok) {
+      res.status(400).json({ ok: false, message: normalized.message });
+      return;
+    }
+  }
+
   if (key === 'gallery') {
     const mediaUrl = String(payload.url || '').trim();
     if (!mediaUrl) {
@@ -180,6 +251,14 @@ app.patch('/api/admin/:collection/:id', adminAuthMiddleware, asyncHandler(async 
   }
 
   const payload = { ...req.body, addedBy: admin?.id };
+
+  if (key === 'prayer-times') {
+    const normalized = normalizePrayerPayload(payload);
+    if (!normalized.ok) {
+      res.status(400).json({ ok: false, message: normalized.message });
+      return;
+    }
+  }
 
   if (key === 'gallery' && Object.prototype.hasOwnProperty.call(payload, 'url')) {
     const mediaUrl = String(payload.url || '').trim();

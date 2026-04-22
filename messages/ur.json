@@ -24,6 +24,7 @@
     "logout": "لاگ آؤٹ",
     "languageEnglish": "انگریزی",
     "languageUrdu": "اردو",
+    "languageTheme": "زبان اور تھیم",
     "brandTop": "جامع مسجد",
     "brandBottom": "نورانی و مدرسہ",
     "liveSummary": "ایڈمن ریکارڈ سے براہِ راست خلاصہ",
@@ -77,6 +78,7 @@
     "marquee": "نماز کے اوقات ایڈمن پینل سے براہِ راست اپڈیٹ ہوتے ہیں۔ جمعہ کا وقت الگ دکھایا گیا ہے۔",
     "highlight": "اپنی استطاعت کے مطابق مسجد اور مدرسہ کی سرگرمیوں میں حصہ ڈالیں۔",
     "navigation": "نیویگیشن",
+    "viewAll": "سب دیکھیں",
     "projectsHeading": "پروجیکٹس",
     "activeProjectsHeading": "فعال پروجیکٹس",
     "galleryHeading": "گیلری",
@@ -113,7 +115,8 @@
     "projects": "پروجیکٹس",
     "gallery": "گیلری",
     "heroSlides": "ہیرو سلائیڈز",
-    "settings": "سیٹنگز"
+    "settings": "سیٹنگز",
+    "viewRecord": "ویو ریکارڈ"
   },
   "auth": {
     "email": "ای میل",

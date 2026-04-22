@@ -1,4 +1,5 @@
 import 'server-only';
+import { unstable_cache } from 'next/cache';
 
 import { connectToDatabase } from './db';
 import { HeroSlide } from '@/models/HeroSlide';
@@ -67,18 +68,22 @@ function isDatabaseConfigured() {
   return Boolean(process.env.MONGO_URI);
 }
 
+const getSiteSettingsCached = unstable_cache(async (): Promise<SiteSettings> => {
+  try {
+    await connectToDatabase();
+    const settings = await MasjidSettings.findOne().sort({ updatedAt: -1 }).lean<SiteSettings | null>();
+    return settings ? serialize(settings) : fallbackSettings;
+  } catch {
+    return fallbackSettings;
+  }
+}, ['public-site-settings'], { revalidate: 60 });
+
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (!isDatabaseConfigured()) {
     return fallbackSettings;
   }
 
-  try {
-    await connectToDatabase();
-    const settings = await MasjidSettings.findOne().lean<SiteSettings | null>();
-     return settings ? serialize(settings) : fallbackSettings;
-  } catch {
-    return fallbackSettings;
-  }
+  return getSiteSettingsCached();
 }
 
 export async function getHeroSlides() {
@@ -121,13 +126,17 @@ export async function getTodayPrayerTimes() {
     return fallbackPrayerTimes;
   }
 
-  try {
-    await connectToDatabase();
-    const prayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
-     return prayerTimes ? serialize(prayerTimes) : fallbackPrayerTimes;
-  } catch {
-    return fallbackPrayerTimes;
-  }
+  const getTodayPrayerTimesCached = unstable_cache(async () => {
+    try {
+      await connectToDatabase();
+      const prayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
+      return prayerTimes ? serialize(prayerTimes) : fallbackPrayerTimes;
+    } catch {
+      return fallbackPrayerTimes;
+    }
+  }, ['public-prayer-times', todayKey], { revalidate: 60 });
+
+  return getTodayPrayerTimesCached();
 }
 
 export async function getSummaryMetrics() {
@@ -136,33 +145,45 @@ export async function getSummaryMetrics() {
       totalIncome: 65000,
       yearlyExpense: 21000,
       totalDonation: 12000,
-      activeProjects: 1
+      activeProjects: 1,
+      totalShop: 0,
+      totalFitrah: 0
     };
   }
 
-  try {
-    await connectToDatabase();
-    const [incomeAgg, expenseAgg, donationAgg, projectCount] = await Promise.all([
-      IncomeRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
-      ExpenseRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Donation.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Project.countDocuments({ status: 'Incomplete' })
-    ]);
+  const getSummaryMetricsCached = unstable_cache(async () => {
+    try {
+      await connectToDatabase();
+      const [incomeAgg, expenseAgg, donationAgg, projectCount, shopAgg, fitrahAgg] = await Promise.all([
+        IncomeRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+        ExpenseRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+        Donation.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+        Project.countDocuments(),
+        ShopRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+        FitrahRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }])
+      ]);
 
-     return serialize({
-      totalIncome: incomeAgg[0]?.total ?? 0,
-      yearlyExpense: expenseAgg[0]?.total ?? 0,
-      totalDonation: donationAgg[0]?.total ?? 0,
-      activeProjects: projectCount
-     });
-  } catch {
-    return {
-      totalIncome: 65000,
-      yearlyExpense: 21000,
-      totalDonation: 12000,
-      activeProjects: 1
-    };
-  }
+      return serialize({
+        totalIncome: incomeAgg[0]?.total ?? 0,
+        yearlyExpense: expenseAgg[0]?.total ?? 0,
+        totalDonation: donationAgg[0]?.total ?? 0,
+        activeProjects: projectCount,
+        totalShop: shopAgg[0]?.total ?? 0,
+        totalFitrah: fitrahAgg[0]?.total ?? 0
+      });
+    } catch {
+      return {
+        totalIncome: 65000,
+        yearlyExpense: 21000,
+        totalDonation: 12000,
+        activeProjects: 1,
+        totalShop: 0,
+        totalFitrah: 0
+      };
+    }
+  }, ['public-summary-metrics'], { revalidate: 60 });
+
+  return getSummaryMetricsCached();
 }
 
 export async function getProjects() {
@@ -170,13 +191,17 @@ export async function getProjects() {
     return [];
   }
 
-  try {
-    await connectToDatabase();
-    const projects = await Project.find().sort({ createdAt: -1 }).lean();
-     return serialize(projects);
-  } catch {
-    return [];
-  }
+  const getProjectsCached = unstable_cache(async () => {
+    try {
+      await connectToDatabase();
+      const projects = await Project.find().sort({ createdAt: -1 }).lean();
+      return serialize(projects);
+    } catch {
+      return [];
+    }
+  }, ['public-projects'], { revalidate: 90 });
+
+  return getProjectsCached();
 }
 
 export async function getGallery() {
@@ -184,13 +209,17 @@ export async function getGallery() {
     return [];
   }
 
-  try {
-    await connectToDatabase();
-    const items = await GalleryItem.find().sort({ order: 1, createdAt: -1 }).lean();
-     return serialize(items);
-  } catch {
-    return [];
-  }
+  const getGalleryCached = unstable_cache(async () => {
+    try {
+      await connectToDatabase();
+      const items = await GalleryItem.find().sort({ order: 1, createdAt: -1 }).lean();
+      return serialize(items);
+    } catch {
+      return [];
+    }
+  }, ['public-gallery'], { revalidate: 90 });
+
+  return getGalleryCached();
 }
 
 export async function getIncomeRecords() {
