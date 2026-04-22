@@ -137,22 +137,18 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <NavGrid labels={labels} counts={counts} showMoreLabel={tCommon('showMore')} />
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
-<<<<<<< HEAD
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-=======
-        <div className="mb-5 flex items-end justify-between gap-4">
->>>>>>> 0fbbe8e3e1d839ae139bf16eb02cbd3294de528f
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-emerald-700">{tHome('projectsHeading')}</p>
-            <h2 className="mt-2 text-3xl font-black">{tHome('activeProjectsHeading')}</h2>
-          </div>
-          <Link href="/projects" className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:bg-slate-950 dark:text-emerald-300 dark:hover:bg-slate-900">
-            {tHome('viewAll')}
-          </Link>
-        </div>
-        <ProjectCards projects={projectPreview as never} />
-      </section>
+    <section className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+  <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p className="text-sm uppercase tracking-[0.3em] text-emerald-700">{tHome('projectsHeading')}</p>
+      <h2 className="mt-2 text-3xl font-black">{tHome('activeProjectsHeading')}</h2>
+    </div>
+    <Link href="/projects" className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:bg-slate-950 dark:text-emerald-300 dark:hover:bg-slate-900">
+      {tHome('viewAll')}
+    </Link>
+  </div>
+  <ProjectCards projects={projectPreview as never} />
+</section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
