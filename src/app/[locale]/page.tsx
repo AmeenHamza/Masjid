@@ -138,7 +138,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <Card className="border-amber-300 bg-amber-100/90 dark:border-amber-400/30 dark:bg-amber-400/10">
+          <p className="text-center text-lg font-bold text-slate-900 dark:text-white">{tCommon('showMore')} - {settings.notice || tHome('defaultNotice')}</p>
+        </Card>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+        <div className="mb-5 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-emerald-700">{tHome('projectsHeading')}</p>
             <h2 className="mt-2 text-3xl font-black">{tHome('activeProjectsHeading')}</h2>
