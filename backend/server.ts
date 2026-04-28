@@ -88,6 +88,59 @@ function normalizePrayerPayload(payload: Record<string, unknown>) {
   return { ok: true as const };
 }
 
+function normalizeShopPayload(payload: Record<string, unknown>) {
+  if (Object.prototype.hasOwnProperty.call(payload, 'shopName')) {
+    payload.shopName = String(payload.shopName ?? '').trim();
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'ownerName')) {
+    payload.ownerName = String(payload.ownerName ?? '').trim();
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'contactNumber')) {
+    payload.contactNumber = String(payload.contactNumber ?? '').trim();
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'buyDate')) {
+    const date = new Date(String(payload.buyDate ?? ''));
+    if (Number.isNaN(date.getTime())) {
+      return { ok: false as const, message: 'Invalid buy date' };
+    }
+    payload.buyDate = date;
+  }
+
+  for (const key of ['buyRate', 'debtAmount', 'monthlyRent', 'monthsDue'] as const) {
+    if (!Object.prototype.hasOwnProperty.call(payload, key)) {
+      continue;
+    }
+
+    const value = Number(payload[key]);
+    if (Number.isNaN(value)) {
+      return { ok: false as const, message: `Invalid ${key}` };
+    }
+    payload[key] = value;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'paymentStatus')) {
+    const paymentStatus = String(payload.paymentStatus ?? 'Clear').trim();
+    payload.paymentStatus = paymentStatus || 'Clear';
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'note')) {
+    payload.note = String(payload.note ?? '').trim();
+  }
+
+  if (!payload.monthsDue) {
+    payload.monthsDue = 0;
+  }
+
+  if (!payload.paymentStatus) {
+    payload.paymentStatus = 'Clear';
+  }
+
+  return { ok: true as const };
+}
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -216,6 +269,14 @@ app.post('/api/admin/:collection', adminAuthMiddleware, asyncHandler(async (req,
     }
   }
 
+  if (key === 'shop-records') {
+    const normalized = normalizeShopPayload(payload);
+    if (!normalized.ok) {
+      res.status(400).json({ ok: false, message: normalized.message });
+      return;
+    }
+  }
+
   if (key === 'settings') {
     const existing = await model.findOne().sort({ updatedAt: -1, createdAt: -1 });
     if (existing) {
@@ -276,6 +337,14 @@ app.patch('/api/admin/:collection/:id', adminAuthMiddleware, asyncHandler(async 
     }
   }
 
+  if (key === 'shop-records') {
+    const normalized = normalizeShopPayload(payload);
+    if (!normalized.ok) {
+      res.status(400).json({ ok: false, message: normalized.message });
+      return;
+    }
+  }
+
   const updated = await model.findByIdAndUpdate(req.params.id, payload, { new: true });
   res.json({ ok: true, item: updated });
 }));
@@ -294,6 +363,14 @@ app.delete('/api/admin/:collection/:id', adminAuthMiddleware, asyncHandler(async
 }));
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (error && typeof error === 'object') {
+    const name = 'name' in error ? String((error as { name?: unknown }).name || '') : '';
+    if (name === 'ValidationError' || name === 'CastError') {
+      res.status(400).json({ ok: false, message: 'Validation failed', details: error });
+      return;
+    }
+  }
+
   const message = error instanceof Error ? error.message : 'Unexpected backend error';
   res.status(500).json({ ok: false, message });
 });

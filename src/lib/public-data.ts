@@ -154,12 +154,12 @@ export async function getSummaryMetrics() {
   const getSummaryMetricsCached = unstable_cache(async () => {
     try {
       await connectToDatabase();
-      const [incomeAgg, expenseAgg, donationAgg, projectCount, shopAgg, fitrahAgg] = await Promise.all([
+      const [incomeAgg, expenseAgg, donationAgg, projectCount, shopCount, fitrahAgg] = await Promise.all([
         IncomeRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
         ExpenseRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
         Donation.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
         Project.countDocuments(),
-        ShopRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+        ShopRecord.countDocuments(),
         FitrahRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }])
       ]);
 
@@ -168,7 +168,7 @@ export async function getSummaryMetrics() {
         yearlyExpense: expenseAgg[0]?.total ?? 0,
         totalDonation: donationAgg[0]?.total ?? 0,
         activeProjects: projectCount,
-        totalShop: shopAgg[0]?.total ?? 0,
+        totalShop: shopCount,
         totalFitrah: fitrahAgg[0]?.total ?? 0
       });
     } catch {

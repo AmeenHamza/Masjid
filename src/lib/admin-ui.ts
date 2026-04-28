@@ -69,13 +69,28 @@ export const adminResources: ResourceConfig[] = [
     key: 'shop-records',
     title: 'Shop Records',
     apiPath: `${apiBase}/admin/shop-records`,
-    searchKeys: ['itemName', 'note'],
+    searchKeys: ['shopName', 'ownerName', 'contactNumber', 'note'],
     fields: [
-      { name: 'itemName', label: 'Item Name', type: 'text' },
-      { name: 'quantity', label: 'Quantity', type: 'number' },
-      { name: 'amount', label: 'Amount', type: 'number' },
-      { name: 'month', label: 'Month', type: 'number' },
-      { name: 'year', label: 'Year', type: 'number' },
+      { name: 'shopName', label: 'Shop Name', type: 'text' },
+      { name: 'ownerName', label: 'Owner Name', type: 'text' },
+      { name: 'contactNumber', label: 'Contact Number', type: 'text' },
+      { name: 'buyDate', label: 'Buy Date', type: 'date' },
+      { name: 'buyRate', label: 'Buy Rate (Rs)', type: 'number' },
+      { name: 'debtAmount', label: 'Debt Amount', type: 'number' },
+      { name: 'monthlyRent', label: 'Monthly Rent (Rs)', type: 'number' },
+      {
+        name: 'monthsDue',
+        label: 'Rent Due After Months',
+        type: 'select',
+        options: [
+          { label: 'No', value: '0' },
+          { label: '1 Month', value: '1' },
+          { label: '3 Months', value: '3' },
+          { label: '6 Months', value: '6' },
+          { label: '12 Months', value: '12' }
+        ]
+      },
+      { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: [{ label: 'Clear', value: 'Clear' }, { label: 'Due', value: 'Due' }, { label: 'Partial', value: 'Partial' }] },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]
   },

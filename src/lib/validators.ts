@@ -30,11 +30,15 @@ export const expenseRecordSchema = z.object({
 });
 
 export const shopRecordSchema = z.object({
-  itemName: z.string().min(1),
-  quantity: z.number().min(0),
-  amount: z.number().min(0),
-  month: z.number().int().min(1).max(12),
-  year: z.number().int(),
+  shopName: z.string().min(1),
+  ownerName: z.string().min(1),
+  contactNumber: z.string().optional(),
+  buyDate: z.coerce.date(),
+  buyRate: z.number().min(0),
+  debtAmount: z.number().min(0),
+  monthlyRent: z.number().min(0),
+  monthsDue: z.coerce.number().int().min(0),
+  paymentStatus: z.enum(['Clear', 'Due', 'Partial']),
   note: z.string().optional()
 });
 

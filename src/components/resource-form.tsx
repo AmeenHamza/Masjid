@@ -21,25 +21,58 @@ function buildEmptyValues(fields: FieldConfig[]): Record<string, unknown> {
   return Object.fromEntries(fields.map((field) => [field.name, field.type === 'checkbox' ? false : '']));
 }
 
+function normalizeDateValue(value: unknown) {
+  if (!value) {
+    return '';
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 10);
+}
+
+function normalizeDefaultValues(fields: FieldConfig[], defaultValues?: Record<string, unknown>) {
+  if (!defaultValues) {
+    return undefined;
+  }
+
+  return Object.fromEntries(fields.map((field) => {
+    const value = defaultValues[field.name];
+
+    if (field.type === 'checkbox') {
+      return [field.name, Boolean(value)];
+    }
+
+    if (field.type === 'date') {
+      return [field.name, normalizeDateValue(value)];
+    }
+
+    if (field.type === 'select') {
+      return [field.name, value == null ? '' : String(value)];
+    }
+
+    return [field.name, value ?? ''];
+  }));
+}
+
 export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'Save', isSubmitting = false, resetToken = 0 }: Props) {
   const { register, handleSubmit, reset, setValue, watch } = useForm<Record<string, unknown>>({ defaultValues });
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
 
   const emptyValues = useMemo(() => buildEmptyValues(fields), [fields]);
+  const normalizedDefaultValues = useMemo(() => normalizeDefaultValues(fields, defaultValues), [defaultValues, fields]);
 
   const mediaType = String(watch('mediaType') ?? defaultValues?.mediaType ?? 'image');
 
   useEffect(() => {
-    const hasDefaults = Boolean(defaultValues && Object.keys(defaultValues).length > 0);
-    reset(hasDefaults ? { ...emptyValues, ...defaultValues } : emptyValues);
+    const hasDefaults = Boolean(normalizedDefaultValues && Object.keys(normalizedDefaultValues).length > 0);
+    reset(hasDefaults ? { ...emptyValues, ...normalizedDefaultValues } : emptyValues);
     setUploadErrors({});
-  }, [defaultValues, emptyValues, reset]);
-
-  useEffect(() => {
-    reset(emptyValues);
-    setUploadErrors({});
-  }, [emptyValues, reset, resetToken]);
+  }, [emptyValues, normalizedDefaultValues, reset, resetToken]);
 
   async function handleMediaUpload(fieldName: string, file: File | null) {
     if (!file) {

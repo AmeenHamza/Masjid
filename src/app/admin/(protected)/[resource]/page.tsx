@@ -11,6 +11,24 @@ import { getResourceConfig } from '@/lib/admin-ui';
 import { ResourceForm } from '@/components/resource-form';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/lib/utils';
+
+function formatDateValue(value: unknown) {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(date);
+}
 
 export default function AdminResourcePage() {
   const params = useParams<{ resource: string }>();
@@ -50,8 +68,39 @@ export default function AdminResourcePage() {
   }, [resource]);
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
-    if (!items[0]) return [];
+    if (!resource || !items[0]) return [];
     const hiddenKeys = new Set(['_id', '__v', 'addedBy', 'createdAt', 'updatedAt']);
+
+    if (resource.key === 'shop-records') {
+      return [
+        {
+          id: 'serial',
+          header: '#',
+          cell: ({ row }) => row.index + 1
+        },
+        ...resource.fields.map((field) => ({
+          accessorKey: field.name,
+          header: field.label,
+          cell: ({ getValue }) => {
+            const value = getValue();
+
+            if (field.name === 'buyDate') {
+              return <span className="block max-w-[260px] break-words">{formatDateValue(value)}</span>;
+            }
+
+            if (field.name === 'buyRate' || field.name === 'debtAmount' || field.name === 'monthlyRent') {
+              return <span className="block max-w-[260px] break-words">{formatCurrency(Number(value ?? 0))}</span>;
+            }
+
+            if (field.name === 'monthsDue') {
+              return <span className="block max-w-[260px] break-words">{String(value ?? 0)}</span>;
+            }
+
+            return <span className="block max-w-[260px] break-words">{String(value ?? '') || '-'}</span>;
+          }
+        }))
+      ];
+    }
 
     return Object.keys(items[0]).filter((key) => !hiddenKeys.has(key)).map((key) => ({
       accessorKey: key,
@@ -71,7 +120,7 @@ export default function AdminResourcePage() {
         return <span className="block max-w-[260px] break-words">{value}</span>;
       }
     }));
-  }, [items]);
+  }, [items, resource]);
 
   if (!resource) {
     return <Card>{t('unknownResource')}</Card>;

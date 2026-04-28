@@ -5,33 +5,62 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { SectionPage } from '@/components/section-page';
 import { getTranslations } from 'next-intl/server';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
+
+function formatDate(value: unknown, locale: 'en' | 'ur') {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat(locale === 'ur' ? 'ur-PK' : 'en-PK', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(date);
+}
+
+function addMonths(value: unknown, months: number, locale: 'en' | 'ur') {
+  if (!value) {
+    return '-';
+  }
+
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  const nextDate = new Date(date);
+  nextDate.setMonth(nextDate.getMonth() + months);
+  return formatDate(nextDate, locale);
+}
 
 export default async function ShopPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const resolvedLocale = locale as 'en' | 'ur';
   const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' }), getShopRecords()]);
+  const numberFormatter = new Intl.NumberFormat(resolvedLocale === 'ur' ? 'ur-PK' : 'en-PK');
 
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const monthly = records.filter((item: any) => item.month === currentMonth && item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-  const yearly = records.filter((item: any) => item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  const totalShops = records.length;
+  const clearShops = records.filter((item: any) => String(item.paymentStatus || '').toLowerCase() === 'clear').length;
+  const totalMonthlyRent = records.reduce((sum: number, item: any) => sum + Number(item.monthlyRent || 0), 0);
 
-  const rows = records.map((item: any) => ({
-    date: `${item.month || '-'}-${item.year || '-'}`,
-    item: String(item.itemName || '-'),
-    quantity: formatNumber(Number(item.quantity || 0)),
-    amount: formatCurrency(Number(item.amount || 0))
+  const rows = records.map((item: any, index: number) => ({
+    [common('serial')]: numberFormatter.format(index + 1),
+    [common('shopName')]: String(item.shopName || item.itemName || '-'),
+    [common('ownerName')]: String(item.ownerName || '-'),
+    [common('contactNumber')]: String(item.contactNumber || '-'),
+    [common('monthlyRent')]: formatCurrency(Number(item.monthlyRent || 0), 'PKR', resolvedLocale),
+    [common('paymentStatus')]: String(item.paymentStatus || '-').toLowerCase() === 'clear' ? common('clear') : String(item.paymentStatus || '-').toLowerCase() === 'due' ? common('due') : String(item.paymentStatus || '-').toLowerCase() === 'partial' ? common('partial') : '-'
   }));
 
-  const columns = [common('date'), common('item'), common('quantity'), common('amount')];
+  const columns = [common('serial'), common('shopName'), common('ownerName'), common('contactNumber'), common('monthlyRent'), common('paymentStatus')];
 
-  const normalizedRows = rows.map((item) => ({
-    [common('date')]: item.date,
-    [common('item')]: item.item,
-    [common('quantity')]: item.quantity,
-    [common('amount')]: item.amount
-  }));
+  const normalizedRows = rows;
 
   return (
     <>
@@ -41,9 +70,9 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}
         summary={[
-          { label: common('monthly'), value: formatCurrency(monthly) },
-          { label: common('yearly'), value: formatCurrency(yearly) },
-          { label: common('entries'), value: formatNumber(records.length) }
+          { label: common('entries'), value: numberFormatter.format(totalShops) },
+          { label: common('clearShops'), value: numberFormatter.format(clearShops) },
+          { label: common('monthlyRentTotal'), value: formatCurrency(totalMonthlyRent, 'PKR', resolvedLocale) }
         ]}
         columns={columns}
         rows={normalizedRows}

@@ -86,11 +86,15 @@ export async function ensureDefaultContent() {
 
   if ((await resourceModels['shop-records'].countDocuments()) === 0) {
     await resourceModels['shop-records'].create({
-      itemName: 'Books',
-      quantity: 35,
-      amount: 14000,
-      month,
-      year,
+      shopName: 'Books Shop',
+      ownerName: 'Sample Owner',
+      contactNumber: '+92 300 0000000',
+      buyDate: new Date(),
+      buyRate: 14000,
+      debtAmount: 0,
+      monthlyRent: 12000,
+      monthsDue: 0,
+      paymentStatus: 'Clear',
       note: 'Sample entry'
     });
   }

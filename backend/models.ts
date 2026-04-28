@@ -58,11 +58,15 @@ const expenseRecordSchema = new Schema(
 
 const shopRecordSchema = new Schema(
   {
-    itemName: { type: String, required: true },
-    quantity: { type: Number, required: true, min: 0 },
-    amount: { type: Number, required: true, min: 0 },
-    month: { type: Number, required: true, min: 1, max: 12 },
-    year: { type: Number, required: true },
+    shopName: { type: String, required: true },
+    ownerName: { type: String, required: true },
+    contactNumber: { type: String },
+    buyDate: { type: Date, required: true },
+    buyRate: { type: Number, required: true, min: 0 },
+    debtAmount: { type: Number, required: true, min: 0 },
+    monthlyRent: { type: Number, required: true, min: 0 },
+    monthsDue: { type: Number, required: true, min: 0, default: 0 },
+    paymentStatus: { type: String, required: true, enum: ['Clear', 'Due', 'Partial'], default: 'Clear' },
     note: { type: String },
     ...auditFields
   },
