@@ -81,7 +81,7 @@ export default function AdminResourcePage() {
         ...resource.fields.map((field) => ({
           accessorKey: field.name,
           header: field.label,
-          cell: ({ getValue }) => {
+          cell: ({ getValue }: { getValue: () => any }) => {
             const value = getValue();
 
             if (field.name === 'buyDate') {

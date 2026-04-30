@@ -24,21 +24,6 @@ function formatDate(value: unknown, locale: 'en' | 'ur') {
   }).format(date);
 }
 
-function addMonths(value: unknown, months: number, locale: 'en' | 'ur') {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) {
-    return '-';
-  }
-
-  const nextDate = new Date(date);
-  nextDate.setMonth(nextDate.getMonth() + months);
-  return formatDate(nextDate, locale);
-}
-
 export default async function ShopPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const resolvedLocale = locale as 'en' | 'ur';
@@ -47,18 +32,17 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
 
   const totalShops = records.length;
   const clearShops = records.filter((item: any) => String(item.paymentStatus || '').toLowerCase() === 'clear').length;
-  const totalMonthlyRent = records.reduce((sum: number, item: any) => sum + Number(item.monthlyRent || 0), 0);
+  const totalMonthlyRent = records.reduce((sum: number, item: any) => sum + (Number(item.monthlyRent || 0) || 0), 0);
 
   const rows = records.map((item: any, index: number) => ({
     [common('serial')]: numberFormatter.format(index + 1),
     [common('shopName')]: String(item.shopName || item.itemName || '-'),
     [common('ownerName')]: String(item.ownerName || '-'),
-    [common('contactNumber')]: String(item.contactNumber || '-'),
     [common('monthlyRent')]: formatCurrency(Number(item.monthlyRent || 0), 'PKR', resolvedLocale),
     [common('paymentStatus')]: String(item.paymentStatus || '-').toLowerCase() === 'clear' ? common('clear') : String(item.paymentStatus || '-').toLowerCase() === 'due' ? common('due') : String(item.paymentStatus || '-').toLowerCase() === 'partial' ? common('partial') : '-'
   }));
 
-  const columns = [common('serial'), common('shopName'), common('ownerName'), common('contactNumber'), common('monthlyRent'), common('paymentStatus')];
+  const columns = [common('serial'), common('shopName'), common('ownerName'), common('monthlyRent'), common('paymentStatus')];
 
   const normalizedRows = rows;
 

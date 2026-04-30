@@ -110,7 +110,7 @@ export async function getHeroSlides() {
   }
 }
 
-export async function getTodayPrayerTimes() {
+export async function getTodayPrayerTimes(): Promise<Record<string, string>> {
   const todayKey = getCurrentDateKey();
   const fallbackPrayerTimes = {
     dateKey: todayKey,
@@ -126,15 +126,19 @@ export async function getTodayPrayerTimes() {
     return fallbackPrayerTimes;
   }
 
-  const getTodayPrayerTimesCached = unstable_cache(async () => {
-    try {
-      await connectToDatabase();
-      const prayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
-      return prayerTimes ? serialize(prayerTimes) : fallbackPrayerTimes;
-    } catch {
-      return fallbackPrayerTimes;
-    }
-  }, ['public-prayer-times', todayKey], { revalidate: 60 });
+  const getTodayPrayerTimesCached = unstable_cache(
+    async (): Promise<Record<string, string>> => {
+      try {
+        await connectToDatabase();
+        const prayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
+        return prayerTimes ? (serialize(prayerTimes) as Record<string, string>) : fallbackPrayerTimes;
+      } catch {
+        return fallbackPrayerTimes;
+      }
+    },
+    ['public-prayer-times', todayKey],
+    { revalidate: 60 }
+  );
 
   return getTodayPrayerTimesCached();
 }

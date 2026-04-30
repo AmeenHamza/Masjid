@@ -71,11 +71,11 @@ export default function AdminLoginPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <label className="block">
             <div className="mb-2 text-sm font-semibold">{t('email')}</div>
-            <Input name="email" type="email" defaultValue="admin@masjid.com" className="border-white/20 bg-white/95 text-slate-900 placeholder:text-slate-400" />
+            <Input name="email" type="email" placeholder={t('enterEmail') || 'Enter your email'} className="border-white/20 bg-white/95 text-slate-900 placeholder:text-slate-400" />
           </label>
           <label className="block">
             <div className="mb-2 text-sm font-semibold">{t('password')}</div>
-            <Input name="password" type="password" defaultValue="admin123" className="border-white/20 bg-white/95 text-slate-900 placeholder:text-slate-400" />
+            <Input name="password" type="password" placeholder={t('enterPassword') || 'Enter your password'} className="border-white/20 bg-white/95 text-slate-900 placeholder:text-slate-400" />
           </label>
           {error ? <p className="text-sm text-rose-300">{error}</p> : null}
           <Button type="submit" disabled={loading} className="h-11 w-full rounded-xl bg-amber-400 text-base font-bold text-slate-950 hover:bg-amber-300">

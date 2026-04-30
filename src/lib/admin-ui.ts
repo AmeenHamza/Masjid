@@ -1,6 +1,6 @@
 import { backendApiUrl } from './backend-url';
 
-export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'url' | 'date' | 'checkbox' | 'media-upload';
+export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'url' | 'date' | 'checkbox' | 'media-upload' | 'time';
 
 export type FieldConfig = {
   name: string;
@@ -28,12 +28,12 @@ export const adminResources: ResourceConfig[] = [
     searchKeys: ['dateKey', 'notes'],
     fields: [
       { name: 'dateKey', label: 'Date Key', type: 'date' },
-      { name: 'fajr', label: 'Fajr (4:15 AM or 04:15)', type: 'text' },
-      { name: 'zohar', label: 'Zohar (1:15 PM or 13:15)', type: 'text' },
-      { name: 'asr', label: 'Asr (4:15 PM or 16:15)', type: 'text' },
-      { name: 'maghrib', label: 'Maghrib (7:00 PM or 19:00)', type: 'text' },
-      { name: 'isha', label: 'Isha (8:15 PM or 20:15)', type: 'text' },
-      { name: 'juma', label: 'Juma (1:30 PM or 13:30)', type: 'text' },
+      { name: 'fajr', label: 'Fajr', type: 'time' },
+      { name: 'zohar', label: 'Zohar', type: 'time' },
+      { name: 'asr', label: 'Asr', type: 'time' },
+      { name: 'maghrib', label: 'Maghrib', type: 'time' },
+      { name: 'isha', label: 'Isha', type: 'time' },
+      { name: 'juma', label: 'Juma', type: 'time' },
       { name: 'notes', label: 'Notes', type: 'textarea' }
     ]
   },

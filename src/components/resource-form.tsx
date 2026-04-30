@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Select } from './ui/select';
+import { TimePicker } from './ui/time-picker';
 import type { FieldConfig } from '@/lib/admin-ui';
 
 type Props = {
@@ -179,6 +180,22 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
                   )}
                 </div>
               ) : null}
+            </label>
+          );
+        }
+
+        if (field.type === 'time') {
+          return (
+            <label key={field.name} className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">{field.label}</div>
+              <div className="relative">
+                <TimePicker
+                  value={String(watch(field.name) ?? '')}
+                  onChange={(value) => setValue(field.name, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+                  className="w-full"
+                />
+                <input type="hidden" {...register(field.name)} />
+              </div>
             </label>
           );
         }

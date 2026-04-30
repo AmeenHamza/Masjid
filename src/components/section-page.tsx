@@ -35,31 +35,66 @@ export function SectionPage({ brandLabel, title, subtitle, summary, rows, column
         </div>
       </div>
 
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-slate-200/80 px-5 py-4 dark:border-white/10">
-          <h2 className="text-lg font-bold">{recordsLabel}</h2>
+      <Card className="overflow-hidden border-slate-200/80 p-0 dark:border-white/10">
+        <div className="border-b border-slate-200/80 bg-slate-50 px-6 py-5 dark:border-white/10 dark:bg-white/5">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">{recordsLabel}</h2>
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="border-b-2 border-slate-200/80 bg-slate-50 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5">
                 {columns.map((column) => (
-                  <TableHead key={column}>{column}</TableHead>
+                  <TableHead key={column} className="px-6 py-4 text-left font-bold text-slate-700 dark:text-slate-300">
+                    {column}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length ? (
-                rows.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {columns.map((column) => (
-                      <TableCell key={column}>{row[column] || '-'}</TableCell>
-                    ))}
-                  </TableRow>
-                ))
+                rows.map((row, rowIndex) => {
+                  const isEvenRow = rowIndex % 2 === 0;
+                  return (
+                    <TableRow
+                      key={rowIndex}
+                      className={`border-b border-slate-100 transition-colors dark:border-white/5 ${isEvenRow ? 'bg-white dark:bg-slate-950/30' : 'bg-slate-50/50 dark:bg-white/[0.02]'} hover:bg-blue-50/50 dark:hover:bg-white/5`}
+                    >
+                      {columns.map((column) => {
+                        const cellValue = row[column] || '-';
+                        const isStatusCell = column.toLowerCase().includes('status') || column.toLowerCase().includes('payment');
+                        
+                        // Determine badge color based on status value
+                        let badgeClass = '';
+                        if (isStatusCell) {
+                          const statusLower = String(cellValue).toLowerCase();
+                          if (statusLower === 'clear') {
+                            badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
+                          } else if (statusLower === 'due') {
+                            badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300';
+                          } else if (statusLower === 'partial') {
+                            badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700 dark:bg-sky-950/40 dark:text-sky-300';
+                          }
+                        }
+
+                        return (
+                          <TableCell
+                            key={column}
+                            className={`px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-100 ${column.toLowerCase().includes('serial') ? 'w-12 text-center text-slate-600 dark:text-slate-400' : ''}`}
+                          >
+                            {badgeClass ? (
+                              <span className={badgeClass}>{cellValue}</span>
+                            ) : (
+                              cellValue
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="py-10 text-center text-slate-500 dark:text-slate-400">
+                  <TableCell colSpan={columns.length} className="py-12 text-center text-slate-500 dark:text-slate-400">
                     {noRecordsLabel}
                   </TableCell>
                 </TableRow>

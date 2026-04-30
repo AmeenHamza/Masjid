@@ -131,6 +131,8 @@ export default function AdminResourcePage() {
     fetch(resource.apiPath, { credentials: 'include' }).then((response) => response.json()).then((data) => {
       const nextItems = data.items || [];
       setItems(nextItems);
+      setSelected(undefined);
+      setSaveError(null);
       if (resource.key === 'settings') {
         setSelected(nextItems[0] || {});
       }
@@ -263,7 +265,18 @@ export default function AdminResourcePage() {
         {!isSettingsResource ? (
           <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-white/5">
             {isShopRecordsResource ? (
-              <Button variant={shopView === 'details' ? 'default' : 'ghost'} size="sm" disabled={shopView === 'details'} onClick={openShopDetails}>
+              <Button
+                variant={shopView === 'details' ? 'default' : 'ghost'}
+                size="sm"
+                disabled={shopView === 'details'}
+                onClick={() => {
+                  if (shopView === 'details') {
+                    return;
+                  }
+
+                  openShopDetails();
+                }}
+              >
                 View Details
               </Button>
             ) : null}
