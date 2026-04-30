@@ -1,5 +1,3 @@
-import { backendApiUrl } from './backend-url';
-
 export type FieldType = 'text' | 'number' | 'textarea' | 'select' | 'url' | 'date' | 'checkbox' | 'media-upload' | 'time';
 
 export type FieldConfig = {
@@ -18,7 +16,7 @@ export type ResourceConfig = {
   searchKeys: string[];
 };
 
-const apiBase = backendApiUrl;
+const apiBase = '/api';
 
 export const adminResources: ResourceConfig[] = [
   {

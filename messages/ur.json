@@ -136,7 +136,9 @@
   },
   "auth": {
     "email": "ای میل",
+    "enterEmail": "اپنا ای میل درج کریں",
     "password": "پاس ورڈ",
+    "enterPassword": "اپنا پاس ورڈ درج کریں",
     "signInTitle": "ایڈمن سائن اِن",
     "signInSubtitle": "جامع مسجد اسٹاف کیلئے محفوظ رسائی",
     "signingIn": "سائن اِن ہو رہا ہے...",

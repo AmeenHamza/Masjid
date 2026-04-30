@@ -7,7 +7,6 @@ import { Menu, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { backendApiUrl } from '@/lib/backend-url';
 
 const links = [
   { href: '/admin', icon: LayoutDashboard, key: 'dashboard' },
@@ -29,7 +28,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const tComponents = useTranslations('components');
 
   async function logout() {
-    await fetch(`${backendApiUrl}/auth/logout`, { method: 'POST', credentials: 'include' });
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     window.location.assign('/admin/login');
   }
 

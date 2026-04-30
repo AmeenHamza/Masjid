@@ -5,7 +5,7 @@ Production-ready bilingual Next.js 15 application for the masjid and madrasa in 
 ## Stack
 
 - Next.js 15 App Router
-- Node.js + Express.js backend
+- Next.js API routes
 - TypeScript strict mode
 - Tailwind CSS
 - shadcn/ui style component setup
@@ -18,10 +18,10 @@ Production-ready bilingual Next.js 15 application for the masjid and madrasa in 
 
 1. Copy `.env.example` to `.env.local` and fill in the values.
 2. Install dependencies with `npm install`.
-3. Start frontend + backend together:
-   - `npm run dev:full`
+3. Start the app with:
+   - `npm run dev`
 
-Backend startup automatically creates one admin if it does not exist.
+The app initializes its data and auth through Next.js API routes.
 
 ## Admin Login
 
@@ -43,9 +43,6 @@ Backend startup automatically creates one admin if it does not exist.
 - Admin login: `src/app/[locale]/admin/login/page.tsx`
 - Protected admin dashboard: `src/app/[locale]/admin/(protected)/page.tsx`
 - Generic admin CRUD page: `src/app/[locale]/admin/(protected)/[resource]/page.tsx`
-- Express server entry: `backend/server.ts`
-- Express models map: `backend/models.ts`
-- Express auth helper: `backend/auth.ts`
 - Models: `src/models/*`
 - Translation files: `messages/en.json`, `messages/ur.json`
 

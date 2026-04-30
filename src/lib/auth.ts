@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { backendApiUrl } from './backend-url';
+import { verifyAuthToken } from './jwt';
 
 const TOKEN_COOKIE = 'jm_auth';
 
@@ -11,20 +11,16 @@ export async function getServerSession() {
   }
 
   try {
-    const response = await fetch(`${backendApiUrl}/auth/me`, {
-      method: 'GET',
-      headers: {
-        Cookie: `${TOKEN_COOKIE}=${token}`
-      },
-      cache: 'no-store'
-    });
-
-    if (!response.ok) {
+    const payload = await verifyAuthToken(token);
+    if (payload.role !== 'admin') {
       return null;
     }
 
-    const data = (await response.json()) as { ok: boolean; admin?: { id: string; email: string; role: 'admin' } };
-    return data.admin ?? null;
+    return {
+      id: payload.id,
+      email: payload.email,
+      role: payload.role
+    };
   } catch {
     return null;
   }

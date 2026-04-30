@@ -76,12 +76,12 @@ export default function AdminResourcePage() {
         {
           id: 'serial',
           header: '#',
-          cell: ({ row }) => row.index + 1
+          cell: ({ row }: { row: { index: number } }) => row.index + 1
         },
         ...resource.fields.map((field) => ({
           accessorKey: field.name,
           header: field.label,
-          cell: ({ getValue }: { getValue: () => any }) => {
+          cell: ({ getValue }: { getValue: () => unknown }) => {
             const value = getValue();
 
             if (field.name === 'buyDate') {
@@ -105,7 +105,7 @@ export default function AdminResourcePage() {
     return Object.keys(items[0]).filter((key) => !hiddenKeys.has(key)).map((key) => ({
       accessorKey: key,
       header: key,
-      cell: ({ getValue }) => {
+      cell: ({ getValue }: { getValue: () => unknown }) => {
         const value = String(getValue() ?? '');
 
         if (key.toLowerCase().includes('url')) {

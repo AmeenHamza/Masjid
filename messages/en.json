@@ -147,7 +147,9 @@
   },
   "auth": {
     "email": "Email",
+    "enterEmail": "Enter your email",
     "password": "Password",
+    "enterPassword": "Enter your password",
     "signInTitle": "Admin sign in",
     "signInSubtitle": "Secure access for Jami Masjid staff",
     "signingIn": "Signing in...",
