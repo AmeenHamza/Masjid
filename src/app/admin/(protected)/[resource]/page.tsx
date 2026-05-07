@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ColumnDef } from '@tanstack/react-table';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/data-table';
 import { getResourceConfig } from '@/lib/admin-ui';
@@ -12,6 +12,7 @@ import { ResourceForm } from '@/components/resource-form';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
+import { ShopDetailsModal } from '@/components/shop-details-modal';
 
 function formatDateValue(value: unknown) {
   if (!value) {
@@ -42,6 +43,8 @@ export default function AdminResourcePage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formResetToken, setFormResetToken] = useState(0);
+  const [shopDetailsOpen, setShopDetailsOpen] = useState(false);
+  const [selectedShopForDetails, setSelectedShopForDetails] = useState<Record<string, unknown> | null>(null);
 
   async function loadItems() {
     if (!resource) return;
@@ -78,27 +81,47 @@ export default function AdminResourcePage() {
           header: '#',
           cell: ({ row }: { row: { index: number } }) => row.index + 1
         },
-        ...resource.fields.map((field) => ({
-          accessorKey: field.name,
-          header: field.label,
+        {
+          accessorKey: 'shopName',
+          header: 'Shop Name',
+          cell: ({ getValue }: { getValue: () => unknown }) => (
+            <span className="block max-w-[260px] break-words">{String(getValue() ?? '')}</span>
+          )
+        },
+        {
+          accessorKey: 'ownerName',
+          header: 'Owner Name',
+          cell: ({ getValue }: { getValue: () => unknown }) => (
+            <span className="block max-w-[260px] break-words">{String(getValue() ?? '')}</span>
+          )
+        },
+        {
+          accessorKey: 'monthlyRent',
+          header: 'Monthly Rent',
+          cell: ({ getValue }: { getValue: () => unknown }) => (
+            <span className="block max-w-[260px] break-words">{formatCurrency(Number(getValue() ?? 0))}</span>
+          )
+        },
+        {
+          accessorKey: 'paymentStatus',
+          header: 'Payment Status',
           cell: ({ getValue }: { getValue: () => unknown }) => {
-            const value = getValue();
-
-            if (field.name === 'buyDate') {
-              return <span className="block max-w-[260px] break-words">{formatDateValue(value)}</span>;
-            }
-
-            if (field.name === 'buyRate' || field.name === 'debtAmount' || field.name === 'monthlyRent') {
-              return <span className="block max-w-[260px] break-words">{formatCurrency(Number(value ?? 0))}</span>;
-            }
-
-            if (field.name === 'monthsDue') {
-              return <span className="block max-w-[260px] break-words">{String(value ?? 0)}</span>;
-            }
-
-            return <span className="block max-w-[260px] break-words">{String(value ?? '') || '-'}</span>;
+            const status = String(getValue() ?? '');
+            return (
+              <span
+                className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                  status === 'Clear'
+                    ? 'bg-green-100 text-green-800'
+                    : status === 'Due'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
+                {status}
+              </span>
+            );
           }
-        }))
+        }
       ];
     }
 
@@ -236,30 +259,53 @@ export default function AdminResourcePage() {
           </div>
         </Card>
       ) : !isSettingsResource && columns.length ? (
-        <DataTable
-          columns={[
-            ...columns,
-            {
-              id: 'actions',
-              header: t('actions'),
-              cell: ({ row }) => (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>{tCommon('edit')}</Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={deletingId === String(row.original._id)}
-                    onClick={() => remove(String(row.original._id))}
-                  >
-                    {deletingId === String(row.original._id) ? t('deleting') : tCommon('delete')}
-                  </Button>
-                </div>
-              )
-            }
-          ]}
-          data={items}
-          searchKey={currentResource.searchKeys[0]}
-        />
+        <>
+          <DataTable
+            columns={[
+              ...columns,
+              {
+                id: 'actions',
+                header: t('actions'),
+                cell: ({ row }) => (
+                  <div className="flex gap-2">
+                    {resource?.key === 'shop-records' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedShopForDetails(row.original);
+                          setShopDetailsOpen(true);
+                        }}
+                        className="gap-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View Details
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>{tCommon('edit')}</Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deletingId === String(row.original._id)}
+                      onClick={() => remove(String(row.original._id))}
+                    >
+                      {deletingId === String(row.original._id) ? t('deleting') : tCommon('delete')}
+                    </Button>
+                  </div>
+                )
+              }
+            ]}
+            data={items}
+            searchKey={currentResource.searchKeys[0]}
+          />
+          {resource?.key === 'shop-records' && (
+            <ShopDetailsModal
+              open={shopDetailsOpen}
+              onOpenChange={setShopDetailsOpen}
+              shopData={selectedShopForDetails as any}
+            />
+          )}
+        </>
       ) : !isSettingsResource ? (
         <Card className="py-10 text-center text-slate-600">{t('noRecordsFound')}</Card>
       ) : null}
