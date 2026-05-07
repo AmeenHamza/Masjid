@@ -7,9 +7,18 @@ export function MasonryGallery({ items }: { items: Array<{ mediaType: 'image' | 
       {items.map((item) => (
         <Card key={item.url} className="group break-inside-avoid overflow-hidden p-0 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
           {item.mediaType === 'video' ? (
-            <video controls className="h-auto w-full object-cover">
-              <source src={item.url} />
-            </video>
+            <div className="relative aspect-[4/3] w-full">
+              <video
+                src={item.url}
+                controls
+                muted
+                autoPlay
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
+            </div>
           ) : (
             <div className="relative aspect-[4/3] w-full">
               <Image src={item.url} alt={item.title} fill className="object-cover" />

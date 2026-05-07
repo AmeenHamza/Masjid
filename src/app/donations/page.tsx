@@ -1,6 +1,6 @@
 import LocaleDonationsPage from '../[locale]/donations/page';
 import { renderLocalePage } from '../locale-page-wrapper';
 
-export default async function DonationsPage() {
-  return renderLocalePage(LocaleDonationsPage);
+export default async function DonationsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  return renderLocalePage(LocaleDonationsPage, searchParams);
 }

@@ -35,7 +35,7 @@ export default async function ExpensePage({ params }: { params: Promise<{ locale
 
   return (
     <>
-      <SiteHeader phone={settings.phone} />
+      <SiteHeader phone={settings.phone} masjidName={settings.masjidName} />
       <SectionPage
         brandLabel={`${common('brandTop')} ${common('brandBottom')}`}
         title={t('expense.title')}

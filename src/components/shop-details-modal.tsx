@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Download, Printer, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,13 @@ interface ShopDetailsModalProps {
   shopData: ShopRecord | null;
 }
 
+type SiteSettings = {
+  masjidName: string;
+  madrasaName?: string;
+  address?: string;
+  phone?: string;
+};
+
 function formatDate(value: unknown) {
   if (!value) return '-';
   const date = new Date(String(value));
@@ -42,12 +49,42 @@ function formatDate(value: unknown) {
 
 export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsModalProps) {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let mounted = true;
+    fetch('/api/public/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (mounted) setSettings(data as SiteSettings);
+      })
+      .catch(() => {
+        if (mounted) setSettings(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
+
+  async function fetchSettingsAsync() {
+    try {
+      const res = await fetch('/api/public/settings');
+      if (!res.ok) return null;
+      const data = await res.json();
+      setSettings(data as SiteSettings);
+      return data as SiteSettings;
+    } catch {
+      return null;
+    }
+  }
 
   if (!shopData) return null;
 
   async function generatePDF() {
     setIsLoadingPdf(true);
     try {
+      const finalSettings = settings ?? (await fetchSettingsAsync());
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -63,9 +100,15 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
 
       let yPosition = marginTop;
 
-      // Header
-      pdf.setFontSize(16);
+      // Header (site name + title)
+      const siteTitle = (finalSettings && finalSettings.masjidName) ? finalSettings.masjidName : 'Masjid';
+      pdf.setFontSize(18);
       pdf.setFont('helvetica', 'bold');
+      pdf.text(siteTitle, marginLeft, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'normal');
       pdf.text('Shop Record', marginLeft, yPosition);
       yPosition += 10;
 
@@ -110,11 +153,18 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
         yPosition += lineHeight * splitText.length + 2;
       });
 
-      // Footer
-      yPosition = pageHeight - marginTop - 5;
-      pdf.setFontSize(8);
+      // Footer (address + generated on)
+      yPosition = pageHeight - marginTop - 12;
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'italic');
-      pdf.setTextColor(128, 128, 128);
+      pdf.setTextColor(100, 100, 100);
+      const footerLeft = finalSettings?.address ? finalSettings.address : '';
+      if (footerLeft) {
+        const splitFooter = pdf.splitTextToSize(footerLeft, pageWidth - marginLeft - marginRight - 40);
+        pdf.text(splitFooter as string[], marginLeft, yPosition);
+        yPosition += 4 * splitFooter.length;
+      }
+
       pdf.text(
         `Generated on ${new Date().toLocaleDateString('en-GB', {
           day: '2-digit',
@@ -123,8 +173,8 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
           hour: '2-digit',
           minute: '2-digit'
         })}`,
-        marginLeft,
-        yPosition
+        pageWidth - marginRight - 60,
+        pageHeight - marginTop - 5
       );
 
       // Download
@@ -138,7 +188,12 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
     }
   }
 
-  function handlePrint() {
+  async function handlePrint() {
+    // ensure we have settings before printing
+    const finalSettings = settings ?? (await fetchSettingsAsync());
+    const siteTitle = (finalSettings && finalSettings.masjidName) ? finalSettings.masjidName : 'Masjid';
+    const siteAddress = finalSettings?.address || '';
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -154,98 +209,87 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
             margin: 0;
             padding: 20px;
             background: white;
+            color: #222;
+          }
+          .print-header {
+            text-align: center;
+            margin-bottom: 10px;
+          }
+          .site-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f766e;
+          }
+          .site-address {
+            font-size: 12px;
+            color: #444;
+            margin-top: 4px;
           }
           .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            padding: 18px;
+            border-radius: 6px;
           }
           h1 {
-            color: #166534;
-            border-bottom: 2px solid #166534;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            color: #075985;
+            margin: 8px 0 16px 0;
+            font-size: 16px;
           }
           .details-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 16px;
           }
-          .detail-item {
-            break-inside: avoid;
-          }
-          .detail-label {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 4px;
-          }
-          .detail-value {
-            color: #666;
-            padding-left: 10px;
-            border-left: 2px solid #ddd;
-          }
-          .notes-section {
-            grid-column: 1 / -1;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-          }
-          .footer {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px solid #ddd;
-            font-size: 12px;
-            color: #999;
-            text-align: right;
-          }
-          @media print {
-            .container {
-              border: none;
-              box-shadow: none;
-            }
-          }
+          .detail-label { font-weight: 600; color: #333; margin-bottom: 4px; }
+          .detail-value { color: #444; padding-left: 8px; }
+          .notes-section { grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+          .print-footer { margin-top: 18px; font-size: 12px; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+          @media print { .container { border: none; } }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="print-header">
+            <div class="site-name">${siteTitle}</div>
+            ${siteAddress ? `<div class="site-address">${siteAddress}</div>` : ''}
+          </div>
           <h1>Shop Record</h1>
           <div class="details-grid">
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Shop Name</div>
               <div class="detail-value">${shopData!.shopName}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Owner Name</div>
               <div class="detail-value">${shopData!.ownerName}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Contact Number</div>
               <div class="detail-value">${shopData!.contactNumber || '-'}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Buy Date</div>
               <div class="detail-value">${formatDate(shopData!.buyDate)}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Buy Rate</div>
               <div class="detail-value">${formatCurrency(shopData!.buyRate)}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Debt Amount</div>
               <div class="detail-value">${formatCurrency(shopData!.debtAmount)}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Monthly Rent</div>
               <div class="detail-value">${formatCurrency(shopData!.monthlyRent)}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Rent Due After Months</div>
               <div class="detail-value">${shopData!.monthsDue}</div>
             </div>
-            <div class="detail-item">
+            <div>
               <div class="detail-label">Payment Status</div>
               <div class="detail-value">${shopData!.paymentStatus}</div>
             </div>
@@ -254,14 +298,9 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
               <div class="detail-value">${shopData!.note || '-'}</div>
             </div>
           </div>
-          <div class="footer">
-            Generated on ${new Date().toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+          <div class="print-footer">
+            ${siteAddress ? `<div>${siteAddress}</div>` : ''}
+            <div>Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
           </div>
         </div>
       </body>

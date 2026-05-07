@@ -21,7 +21,7 @@ export const resourceMap = {
   donations: { model: Donation, schema: donationSchema, title: 'Donations' },
   'ramadan-donations': { model: RamadanDonation, schema: ramadanDonationSchema, title: 'Ramadan Donations' },
   'ramadan-expenses': { model: RamadanExpense, schema: ramadanExpenseSchema, title: 'Ramadan Expenses' },
-  'fitrah-records': { model: FitrahRecord, schema: fitrahRecordSchema, title: 'Fitrah Records' },
+  'fitrah-records': { model: FitrahRecord, schema: fitrahRecordSchema, title: 'Ramadan Records' },
   projects: { model: Project, schema: projectSchema, title: 'Projects' },
   gallery: { model: GalleryItem, schema: galleryItemSchema, title: 'Gallery' },
   'hero-slides': { model: HeroSlide, schema: heroSlideSchema, title: 'Hero Slides' },

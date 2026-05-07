@@ -83,7 +83,10 @@
     "income": { "title": "Income", "subtitle": "Monthly and yearly income records from the admin panel." },
     "expense": { "title": "Expense", "subtitle": "Monthly and yearly expense records from the admin panel." },
     "shop": { "title": "Shop", "subtitle": "Shop records with ownership, rent, debt, and payment status details." },
-    "donations": { "title": "Donations", "subtitle": "Friday, box, Ramadan, general, and project donations." },
+    "donations": { "title": "Donations", "subtitle": "Switch between Friday and Box donation records." },
+    "ramadan": { "title": "Ramadan", "subtitle": "Switch between Ramadan donations, Ramadan expenses, and fitrah records." },
+    "ramadanDonation": { "title": "Ramadan Donation", "subtitle": "Ramadan donation records connected to the admin panel." },
+    "ramadanExpense": { "title": "Ramadan Expense", "subtitle": "Ramadan expense records connected to the admin panel." },
     "fitrah": { "title": "Fitrah", "subtitle": "Fitrah records and family entries." },
     "projects": { "title": "Projects", "subtitle": "Active, upcoming, and completed masjid projects." },
     "gallery": { "title": "Gallery", "subtitle": "Images and videos uploaded by the admin team." }

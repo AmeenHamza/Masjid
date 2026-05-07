@@ -126,7 +126,6 @@ export const adminResources: ResourceConfig[] = [
     fields: [
       { name: 'donorName', label: 'Donor Name', type: 'text' },
       { name: 'amount', label: 'Amount', type: 'number' },
-      { name: 'month', label: 'Month', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]
@@ -139,14 +138,13 @@ export const adminResources: ResourceConfig[] = [
     fields: [
       { name: 'title', label: 'Title', type: 'text' },
       { name: 'amount', label: 'Amount', type: 'number' },
-      { name: 'month', label: 'Month', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]
   },
   {
     key: 'fitrah-records',
-    title: 'Fitrah Records',
+    title: 'Ramadan Records',
     apiPath: `${apiBase}/admin/fitrah-records`,
     searchKeys: ['familyName', 'note'],
     fields: [
@@ -183,9 +181,8 @@ export const adminResources: ResourceConfig[] = [
     fields: [
       { name: 'title', label: 'Title', type: 'text' },
       { name: 'mediaType', label: 'Media Type', type: 'select', options: [{ label: 'Image', value: 'image' }, { label: 'Video', value: 'video' }] },
-      { name: 'url', label: 'Upload Media', type: 'media-upload', accept: 'image/*' },
-      { name: 'caption', label: 'Caption', type: 'textarea' },
-      { name: 'order', label: 'Order', type: 'number' }
+      { name: 'url', label: 'Upload Media', type: 'media-upload', accept: 'image/*,video/*' },
+      { name: 'caption', label: 'Caption', type: 'textarea' }
     ]
   },
   {
@@ -214,9 +211,7 @@ export const adminResources: ResourceConfig[] = [
       { name: 'phone', label: 'Phone', type: 'text' },
       { name: 'notice', label: 'Notice', type: 'textarea' },
       { name: 'prayerMarquee', label: 'Prayer Marquee', type: 'textarea' },
-      { name: 'logoUrl', label: 'Logo URL', type: 'url' },
-      { name: 'heroHeading', label: 'Hero Heading', type: 'text' },
-      { name: 'heroSubheading', label: 'Hero Subheading', type: 'textarea' }
+      // Removed logoUrl, heroHeading, heroSubheading per admin UI simplification
     ]
   }
 ];

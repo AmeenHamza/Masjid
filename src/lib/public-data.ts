@@ -10,6 +10,8 @@ import { GalleryItem } from '@/models/GalleryItem';
 import { IncomeRecord } from '@/models/IncomeRecord';
 import { ExpenseRecord } from '@/models/ExpenseRecord';
 import { Donation } from '@/models/Donation';
+import { RamadanDonation } from '@/models/RamadanDonation';
+import { RamadanExpense } from '@/models/RamadanExpense';
 import { ShopRecord } from '@/models/ShopRecord';
 import { FitrahRecord } from '@/models/FitrahRecord';
 
@@ -269,6 +271,30 @@ export async function getDonationRecords() {
     await connectToDatabase();
      const records = await Donation.find().sort({ createdAt: -1 }).limit(200).lean();
      return serialize(records);
+  } catch {
+    return [];
+  }
+}
+
+export async function getRamadanDonationRecords() {
+  if (!isDatabaseConfigured()) return [];
+
+  try {
+    await connectToDatabase();
+    const records = await RamadanDonation.find().sort({ createdAt: -1 }).limit(200).lean();
+    return serialize(records);
+  } catch {
+    return [];
+  }
+}
+
+export async function getRamadanExpenseRecords() {
+  if (!isDatabaseConfigured()) return [];
+
+  try {
+    await connectToDatabase();
+    const records = await RamadanExpense.find().sort({ createdAt: -1 }).limit(200).lean();
+    return serialize(records);
   } catch {
     return [];
   }

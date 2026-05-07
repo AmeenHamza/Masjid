@@ -15,7 +15,7 @@ const links = [
   { href: '/admin/expense-records', icon: Globe, key: 'expenseRecords' },
   { href: '/admin/shop-records', icon: Globe, key: 'shopRecords' },
   { href: '/admin/donations', icon: Globe, key: 'donations' },
-  { href: '/admin/fitrah-records', icon: Globe, key: 'fitrah' },
+  { href: '/admin/ramadan', icon: Globe, key: 'ramadan' },
   { href: '/admin/projects', icon: Globe, key: 'projects' },
   { href: '/admin/gallery', icon: Globe, key: 'gallery' },
   { href: '/admin/settings', icon: Settings, key: 'settings' }

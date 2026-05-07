@@ -15,7 +15,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ locale
   return (
     <main>
       <AutoRefresh />
-      <SiteHeader phone={settings.phone} />
+      <SiteHeader phone={settings.phone} masjidName={settings.masjidName} />
       <section className="mx-auto max-w-7xl px-4 py-10 lg:px-6">
         <h1 className="text-4xl font-black">{t('gallery.title')}</h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">{t('gallery.subtitle')}</p>

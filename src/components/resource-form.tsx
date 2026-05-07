@@ -80,13 +80,18 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
       return;
     }
 
-    if (mediaType !== 'image') {
-      setUploadErrors((prev) => ({ ...prev, [fieldName]: 'Video upload will be available soon. Please select Image for now.' }));
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      setUploadErrors((prev) => ({ ...prev, [fieldName]: 'Please select an image file.' }));
+    if (mediaType === 'image') {
+      if (!file.type.startsWith('image/')) {
+        setUploadErrors((prev) => ({ ...prev, [fieldName]: 'Please select an image file.' }));
+        return;
+      }
+    } else if (mediaType === 'video') {
+      if (!file.type.startsWith('video/')) {
+        setUploadErrors((prev) => ({ ...prev, [fieldName]: 'Please select a video file.' }));
+        return;
+      }
+    } else {
+      setUploadErrors((prev) => ({ ...prev, [fieldName]: 'Unsupported media type' }));
       return;
     }
 
@@ -173,11 +178,19 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
               {uploadErrors[field.name] ? <p className="mt-2 text-xs text-rose-600 dark:text-rose-300">{uploadErrors[field.name]}</p> : null}
               {mediaUrl ? (
                 <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-slate-900/40">
-                  {mediaType === 'image' ? (
-                    <img src={mediaUrl} alt="Uploaded media preview" className="h-44 w-full rounded-lg object-cover sm:h-56" />
-                  ) : (
-                    <p className="text-xs text-slate-500 dark:text-slate-300">Video preview will be enabled when video upload support is released.</p>
-                  )}
+                      {mediaType === 'image' ? (
+                        <img src={mediaUrl} alt="Uploaded media preview" className="h-44 w-full rounded-lg object-cover sm:h-56" />
+                      ) : (
+                        <video
+                          src={mediaUrl}
+                          className="h-44 w-full rounded-lg object-cover sm:h-56"
+                          controls
+                          muted
+                          autoPlay
+                          loop
+                          playsInline
+                        />
+                      )}
                 </div>
               ) : null}
             </label>

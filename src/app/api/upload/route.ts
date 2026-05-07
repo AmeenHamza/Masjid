@@ -3,7 +3,7 @@ import { getServerSession } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
-const MAX_FILE_SIZE = 8 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // allow up to 50MB for video uploads
 
 type CloudinaryUploadResult = {
   secure_url: string;
@@ -38,16 +38,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: 'File is required' }, { status: 400 });
     }
 
-    if (mediaType !== 'image') {
-      return NextResponse.json({ ok: false, message: 'Video upload support is coming soon' }, { status: 400 });
-    }
-
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ ok: false, message: 'Only image uploads are supported right now' }, { status: 400 });
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ ok: false, message: 'Image size must be 8MB or less' }, { status: 400 });
+    if (mediaType === 'image') {
+      if (!file.type.startsWith('image/')) {
+        return NextResponse.json({ ok: false, message: 'Only image uploads are supported as image type' }, { status: 400 });
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ ok: false, message: 'Image size must be 50MB or less' }, { status: 400 });
+      }
+    } else if (mediaType === 'video') {
+      if (!file.type.startsWith('video/')) {
+        return NextResponse.json({ ok: false, message: 'Only video uploads are supported as video type' }, { status: 400 });
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ ok: false, message: 'Video size must be 50MB or less' }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ ok: false, message: 'Unsupported mediaType' }, { status: 400 });
     }
 
     const env = getCloudinaryEnv();
@@ -70,7 +76,7 @@ export async function POST(request: Request) {
       const upload = cloudinary.uploader.upload_stream(
         {
           folder: env.folder,
-          resource_type: 'image',
+          resource_type: mediaType === 'video' ? 'video' : 'image',
           overwrite: false,
           unique_filename: true
         },
@@ -96,7 +102,7 @@ export async function POST(request: Request) {
       ok: true,
       url: result.secure_url,
       publicId: result.public_id,
-      mediaType: 'image'
+      mediaType: mediaType
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed';
