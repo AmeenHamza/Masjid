@@ -64,6 +64,56 @@ export const adminResources: ResourceConfig[] = [
     ]
   },
   {
+    key: 'madrasa-records',
+    title: 'Madrasa Records',
+    apiPath: `${apiBase}/admin/madrasa-records`,
+    searchKeys: ['title', 'studentCount', 'teacherCount', 'note'],
+    fields: [
+      { name: 'title', label: 'Title', type: 'text' },
+      { name: 'studentCount', label: 'Student Count', type: 'number' },
+      { name: 'teacherCount', label: 'Teacher Count', type: 'number' },
+      { name: 'month', label: 'Month', type: 'number' },
+      { name: 'year', label: 'Year', type: 'number' },
+      { name: 'note', label: 'Note', type: 'textarea' }
+    ]
+  },
+  {
+    key: 'mosque-bedding',
+    title: 'Mosque History',
+    apiPath: `${apiBase}/admin/mosque-bedding`,
+    searchKeys: ['itemName', 'category', 'note'],
+    fields: [
+      { name: 'itemName', label: 'Item Name', type: 'text' },
+      { name: 'category', label: 'Category', type: 'select', options: [
+        { label: 'Bedding', value: 'Bedding' },
+        { label: 'Foundation', value: 'Foundation' },
+        { label: 'Expansion', value: 'Expansion' },
+        { label: 'Repairs', value: 'Repairs' },
+        { label: 'Other', value: 'Other' }
+      ] },
+      { name: 'quantity', label: 'Quantity', type: 'number' },
+      { name: 'note', label: 'Note', type: 'textarea' }
+    ]
+  },
+  {
+    key: 'staff-records',
+    title: 'Imam / Muazzin & Staff',
+    apiPath: `${apiBase}/admin/staff-records`,
+    searchKeys: ['staffName', 'role', 'attendance', 'agreement', 'violations', 'note'],
+    fields: [
+      { name: 'staffName', label: 'Staff Name', type: 'text' },
+      { name: 'role', label: 'Role', type: 'text' },
+      { name: 'attendance', label: 'Prayer Attendance', type: 'textarea' },
+      { name: 'reportPeriod', label: 'Report Period', type: 'select', options: [{ label: 'Monthly', value: 'Monthly' }, { label: 'Yearly', value: 'Yearly' }] },
+      { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'month', label: 'Month', type: 'number' },
+      { name: 'year', label: 'Year', type: 'number' },
+      { name: 'agreement', label: 'Agreement', type: 'textarea' },
+      { name: 'violations', label: 'Violations', type: 'textarea' },
+      { name: 'note', label: 'Note', type: 'textarea' }
+    ]
+  },
+  {
     key: 'shop-records',
     title: 'Shop Records',
     apiPath: `${apiBase}/admin/shop-records`,

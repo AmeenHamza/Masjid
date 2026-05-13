@@ -127,6 +127,9 @@
     "prayerTimes": "نماز کے اوقات",
     "incomeRecords": "آمدنی ریکارڈ",
     "expenseRecords": "اخراجات ریکارڈ",
+    "madrasaRecords": "مدرسہ ریکارڈ",
+    "mosqueBedding": "مسجد کی تاریخ",
+    "staffRecords": "امام / مؤذن اور دیگر عملہ",
     "shopRecords": "دکان ریکارڈ",
     "donations": "عطیات",
     "ramadan": "رمضان",
@@ -135,7 +138,8 @@
     "gallery": "گیلری",
     "heroSlides": "ہیرو سلائیڈز",
     "settings": "سیٹنگز",
-    "viewRecord": "ویو ریکارڈ"
+    "viewRecord": "ویو ریکارڈ",
+    "viewDetails": "تفصیل دیکھیں"
   },
   "auth": {
     "email": "ای میل",

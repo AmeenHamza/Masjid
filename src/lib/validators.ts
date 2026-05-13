@@ -29,6 +29,35 @@ export const expenseRecordSchema = z.object({
   note: z.string().optional()
 });
 
+export const madrasaRecordSchema = z.object({
+  title: z.string().min(1),
+  studentCount: z.number().int().min(0),
+  teacherCount: z.number().int().min(0),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+  note: z.string().optional()
+});
+
+export const mosqueBeddingSchema = z.object({
+  itemName: z.string().min(1),
+  category: z.enum(['Bedding', 'Foundation', 'Expansion', 'Repairs', 'Other']),
+  quantity: z.number().int().min(0),
+  note: z.string().optional()
+});
+
+export const staffRecordSchema = z.object({
+  staffName: z.string().min(1),
+  role: z.string().min(1),
+  attendance: z.string().optional(),
+  reportPeriod: z.enum(['Monthly', 'Yearly']),
+  amount: z.number().min(0),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
+  agreement: z.string().optional(),
+  violations: z.string().optional(),
+  note: z.string().optional()
+});
+
 export const shopRecordSchema = z.object({
   shopName: z.string().min(1),
   ownerName: z.string().min(1),

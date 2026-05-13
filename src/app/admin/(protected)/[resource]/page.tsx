@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
 import { ShopDetailsModal } from '@/components/shop-details-modal';
+import { RecordDetailsModal } from '@/components/record-details-modal';
 
 function formatDateValue(value: unknown) {
   if (!value) {
@@ -45,6 +46,8 @@ export default function AdminResourcePage() {
   const [formResetToken, setFormResetToken] = useState(0);
   const [shopDetailsOpen, setShopDetailsOpen] = useState(false);
   const [selectedShopForDetails, setSelectedShopForDetails] = useState<Record<string, unknown> | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedForDetails, setSelectedForDetails] = useState<Record<string, unknown> | null>(null);
 
   async function loadItems() {
     if (!resource) return;
@@ -268,7 +271,7 @@ export default function AdminResourcePage() {
                 header: t('actions'),
                 cell: ({ row }) => (
                   <div className="flex gap-2">
-                    {resource?.key === 'shop-records' && (
+                    {resource?.key === 'shop-records' ? (
                       <Button
                         variant="outline"
                         size="sm"
@@ -280,6 +283,19 @@ export default function AdminResourcePage() {
                       >
                         <Eye className="h-4 w-4" />
                         View Details
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedForDetails(row.original);
+                          setDetailsOpen(true);
+                        }}
+                        className="gap-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {t('viewDetails')}
                       </Button>
                     )}
                     <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>{tCommon('edit')}</Button>
@@ -303,6 +319,15 @@ export default function AdminResourcePage() {
               open={shopDetailsOpen}
               onOpenChange={setShopDetailsOpen}
               shopData={selectedShopForDetails as any}
+            />
+          )}
+          {resource?.key !== 'shop-records' && (
+            <RecordDetailsModal
+              open={detailsOpen}
+              onOpenChange={setDetailsOpen}
+              title={`${currentResource.title} Details`}
+              record={selectedForDetails}
+              fields={currentResource.fields}
             />
           )}
         </>

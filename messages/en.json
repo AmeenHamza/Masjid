@@ -127,6 +127,9 @@
     "prayerTimes": "Prayer Times",
     "incomeRecords": "Income Records",
     "expenseRecords": "Expense Records",
+    "madrasaRecords": "Madrasa Records",
+    "mosqueBedding": "Mosque History",
+    "staffRecords": "Imam / Muazzin & Staff",
     "shopRecords": "Shop Records",
     "donations": "Donations",
     "ramadan": "Ramadan",
@@ -146,7 +149,8 @@
     "deleting": "Deleting...",
     "noRecordsFound": "No records found yet.",
     "saving": "Saving...",
-    "update": "Update"
+    "update": "Update",
+    "viewDetails": "View Details"
   },
   "auth": {
     "email": "Email",

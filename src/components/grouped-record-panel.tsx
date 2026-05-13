@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
+import { Eye } from 'lucide-react';
 import { DataTable } from './data-table';
 import { ResourceForm } from './resource-form';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { getResourceConfig, type FieldConfig } from '@/lib/admin-ui';
+import { RecordDetailsModal } from './record-details-modal';
 
 type GroupTab = {
   key: string;
@@ -64,6 +66,8 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key ?? '');
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [selected, setSelected] = useState<Record<string, unknown> | undefined>();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedForDetails, setSelectedForDetails] = useState<Record<string, unknown> | null>(null);
   const [formResetToken, setFormResetToken] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -164,6 +168,8 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
             onClick={() => {
               setActiveTabKey(tab.key);
               setSelected(undefined);
+              setSelectedForDetails(null);
+              setDetailsOpen(false);
               setSaveError(null);
             }}
             className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${activeTab.key === tab.key ? 'bg-emerald-700 text-white' : 'bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'}`}
@@ -205,6 +211,18 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
                   header: 'Actions',
                   cell: ({ row }) => (
                     <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedForDetails(row.original);
+                          setDetailsOpen(true);
+                        }}
+                        className="gap-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View Details
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>Edit</Button>
                       <Button variant="destructive" size="sm" onClick={() => remove(String(row.original._id))}>Delete</Button>
                     </div>
@@ -219,6 +237,14 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
           )}
         </div>
       </Card>
+
+        <RecordDetailsModal
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          title={`${activeTab.label} Details`}
+          record={selectedForDetails}
+          fields={fields}
+        />
     </div>
   );
 }
