@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { Eye } from 'lucide-react';
 import { DataTable } from './data-table';
 import { ResourceForm } from './resource-form';
@@ -45,8 +45,8 @@ function buildColumns(items: Record<string, unknown>[]) {
     .map((key) => ({
       accessorKey: key,
       header: key,
-      cell: ({ getValue }) => {
-        const value = String(getValue() ?? '');
+      cell: (cell: CellContext<Record<string, unknown>, unknown>) => {
+        const value = String(cell.getValue() ?? '');
 
         if (key.toLowerCase().includes('url')) {
           const displayText = value.length > 65 ? `${value.slice(0, 65)}...` : value;
@@ -84,11 +84,12 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
 
   useEffect(() => {
     if (!resource) return;
+    const currentResource = resource;
     let cancelled = false;
 
     async function load() {
       setSaveError(null);
-      const response = await fetch(resource.apiPath, { credentials: 'include' });
+      const response = await fetch(currentResource.apiPath, { credentials: 'include' });
       const payload = (await response.json()) as { items?: Record<string, unknown>[] };
 
       if (cancelled) {
@@ -108,6 +109,7 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
 
   async function save(values: Record<string, unknown>) {
     if (!resource) return;
+    const currentResource = resource;
 
     setIsSubmitting(true);
     setSaveError(null);
@@ -119,7 +121,7 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
     };
 
     const method = selected?._id ? 'PATCH' : 'POST';
-    const path = selected?._id ? `${resource.apiPath}/${selected._id}` : resource.apiPath;
+    const path = selected?._id ? `${currentResource.apiPath}/${selected._id}` : currentResource.apiPath;
     const response = await fetch(path, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -134,7 +136,7 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
       return;
     }
 
-    const refreshed = await fetch(resource.apiPath, { credentials: 'include' }).then((response) => response.json()) as { items?: Record<string, unknown>[] };
+    const refreshed = await fetch(currentResource.apiPath, { credentials: 'include' }).then((response) => response.json()) as { items?: Record<string, unknown>[] };
     setItems(refreshed.items || []);
     setSelected(undefined);
     setFormResetToken((current) => current + 1);
@@ -143,9 +145,10 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
 
   async function remove(id: string) {
     if (!resource) return;
+    const currentResource = resource;
 
-    await fetch(`${resource.apiPath}/${id}`, { method: 'DELETE', credentials: 'include' });
-    const refreshed = await fetch(resource.apiPath, { credentials: 'include' }).then((response) => response.json()) as { items?: Record<string, unknown>[] };
+    await fetch(`${currentResource.apiPath}/${id}`, { method: 'DELETE', credentials: 'include' });
+    const refreshed = await fetch(currentResource.apiPath, { credentials: 'include' }).then((response) => response.json()) as { items?: Record<string, unknown>[] };
     setItems(refreshed.items || []);
   }
 
@@ -209,13 +212,13 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
                 {
                   id: 'actions',
                   header: 'Actions',
-                  cell: ({ row }) => (
+                  cell: (cell: CellContext<Record<string, unknown>, unknown>) => (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setSelectedForDetails(row.original);
+                          setSelectedForDetails(cell.row.original);
                           setDetailsOpen(true);
                         }}
                         className="gap-1"
@@ -223,8 +226,8 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
                         <Eye className="h-4 w-4" />
                         View Details
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>Edit</Button>
-                      <Button variant="destructive" size="sm" onClick={() => remove(String(row.original._id))}>Delete</Button>
+                      <Button variant="outline" size="sm" onClick={() => setSelected(cell.row.original)}>Edit</Button>
+                      <Button variant="destructive" size="sm" onClick={() => remove(String(cell.row.original._id))}>Delete</Button>
                     </div>
                   )
                 }
