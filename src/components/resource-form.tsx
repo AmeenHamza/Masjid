@@ -16,6 +16,7 @@ type Props = {
   submitLabel?: string;
   isSubmitting?: boolean;
   resetToken?: number;
+  disabledFields?: string[];
 };
 
 function buildEmptyValues(fields: FieldConfig[]): Record<string, unknown> {
@@ -59,7 +60,7 @@ function normalizeDefaultValues(fields: FieldConfig[], defaultValues?: Record<st
   }));
 }
 
-export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'Save', isSubmitting = false, resetToken = 0 }: Props) {
+export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'Save', isSubmitting = false, resetToken = 0, disabledFields = [] }: Props) {
   const { register, handleSubmit, reset, setValue, watch } = useForm<Record<string, unknown>>({ defaultValues });
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
@@ -127,11 +128,13 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
   return (
     <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
       {fields.map((field) => {
+        const isDisabled = disabledFields.includes(field.name);
+
         if (field.type === 'textarea') {
           return (
             <label key={field.name} className="sm:col-span-2">
               <div className="mb-2 text-sm font-semibold">{field.label}</div>
-              <Textarea {...register(field.name)} className="min-h-[110px]" />
+              <Textarea {...register(field.name)} className="min-h-[110px]" disabled={isDisabled} />
             </label>
           );
         }
@@ -140,7 +143,7 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
           return (
             <label key={field.name} className="min-w-0">
               <div className="mb-2 text-sm font-semibold">{field.label}</div>
-              <Select {...register(field.name)} className="w-full">
+              <Select {...register(field.name)} className="w-full" disabled={isDisabled}>
                 <option value="">Select...</option>
                 {field.options?.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -153,7 +156,7 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
         if (field.type === 'checkbox') {
           return (
             <label key={field.name} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:col-span-2">
-              <input type="checkbox" className="h-5 w-5" {...register(field.name)} />
+              <input type="checkbox" className="h-5 w-5" {...register(field.name)} disabled={isDisabled} />
               <span className="text-sm font-semibold">{field.label}</span>
             </label>
           );
@@ -169,9 +172,13 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
                 type="file"
                 accept={field.accept || 'image/*'}
                 onChange={(event) => {
+                  if (isDisabled) {
+                    return;
+                  }
                   void handleMediaUpload(field.name, event.target.files?.[0] ?? null);
                 }}
                 className="w-full"
+                disabled={isDisabled}
               />
               <input type="hidden" {...register(field.name)} />
               {uploadingField === field.name ? <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">Uploading image...</p> : null}
@@ -204,7 +211,12 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
               <div className="relative">
                 <TimePicker
                   value={String(watch(field.name) ?? '')}
-                  onChange={(value) => setValue(field.name, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+                  onChange={(value) => {
+                    if (isDisabled) {
+                      return;
+                    }
+                    setValue(field.name, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                  }}
                   className="w-full"
                 />
                 <input type="hidden" {...register(field.name)} />
@@ -216,7 +228,7 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
         return (
           <label key={field.name} className="min-w-0">
             <div className="mb-2 text-sm font-semibold">{field.label}</div>
-            <Input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'} {...register(field.name)} className="w-full" />
+            <Input type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'url' ? 'url' : 'text'} {...register(field.name)} className="w-full" disabled={isDisabled} />
           </label>
         );
       })}

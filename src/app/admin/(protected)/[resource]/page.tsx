@@ -48,6 +48,8 @@ export default function AdminResourcePage() {
   const [selectedShopForDetails, setSelectedShopForDetails] = useState<Record<string, unknown> | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedForDetails, setSelectedForDetails] = useState<Record<string, unknown> | null>(null);
+  const [detailsHistoryRecords, setDetailsHistoryRecords] = useState<Record<string, unknown>[]>([]);
+  const [disabledFields, setDisabledFields] = useState<string[]>([]);
 
   async function loadItems() {
     if (!resource) return;
@@ -192,17 +194,19 @@ export default function AdminResourcePage() {
       });
 
       if (!response.ok) {
-        throw new Error('Save failed');
+        const errorPayload = await response.json().catch(() => null) as { message?: string } | null;
+        throw new Error(errorPayload?.message || 'Save failed');
       }
 
       setSelected(undefined);
+      setDisabledFields([]);
       await loadItems();
       if (!isSettingsResource) {
         setFormResetToken((current) => current + 1);
       }
       toast.success(isUpdate ? tToast('updatedSuccessfully') : tToast('savedSuccessfully'));
-    } catch {
-      toast.error(tToast('unableToSaveRecord'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : tToast('unableToSaveRecord'));
     } finally {
       setSaving(false);
     }
@@ -233,7 +237,15 @@ export default function AdminResourcePage() {
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{resource.title}</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">{t('managingResources').replace('{{resource}}', currentResource.title.toLowerCase())}</p>
         </div>
-        {!isSettingsResource ? <Button onClick={() => setSelected({})} className="w-full sm:w-auto">{t('newRecord')}</Button> : null}
+        {!isSettingsResource ? <Button onClick={() => {
+          if (currentResource.key === 'staff-records') {
+            setSelected({ dateKey: new Date().toISOString().slice(0, 10) });
+            setDisabledFields([]);
+            return;
+          }
+          setSelected({});
+          setDisabledFields([]);
+        }} className="w-full sm:w-auto">{t('newRecord')}</Button> : null}
       </div>
 
       <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
@@ -251,6 +263,7 @@ export default function AdminResourcePage() {
           onSubmit={save}
           isSubmitting={saving}
           resetToken={formResetToken}
+          disabledFields={disabledFields}
           submitLabel={isSettingsResource ? t('update') : (selected?._id ? t('update') : tCommon('save'))}
         />
       </Card>
@@ -290,6 +303,16 @@ export default function AdminResourcePage() {
                         size="sm"
                         onClick={() => {
                           setSelectedForDetails(row.original);
+                          if (resource?.key === 'staff-records') {
+                            const staffName = String(row.original.staffName ?? '');
+                            const role = String(row.original.role ?? '');
+                            const history = items
+                              .filter((entry) => String(entry.staffName ?? '') === staffName && String(entry.role ?? '') === role)
+                              .sort((a, b) => new Date(String(b.dateKey ?? b.createdAt ?? 0)).getTime() - new Date(String(a.dateKey ?? a.createdAt ?? 0)).getTime());
+                            setDetailsHistoryRecords(history);
+                          } else {
+                            setDetailsHistoryRecords([]);
+                          }
                           setDetailsOpen(true);
                         }}
                         className="gap-1"
@@ -298,7 +321,33 @@ export default function AdminResourcePage() {
                         {t('viewDetails')}
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={() => setSelected(row.original)}>{tCommon('edit')}</Button>
+                    {resource?.key === 'staff-records' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelected({
+                            staffName: row.original.staffName,
+                            role: row.original.role,
+                            dateKey: new Date().toISOString().slice(0, 10),
+                            fajrAttendance: 'Present',
+                            zoharAttendance: 'Present',
+                            asrAttendance: 'Present',
+                            maghribAttendance: 'Present',
+                            ishaAttendance: 'Present',
+                            note: ''
+                          });
+                          setDisabledFields(['staffName', 'role']);
+                        }}
+                      >
+                        Add Attendance
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelected(row.original);
+                        setDisabledFields([]);
+                      }}>{tCommon('edit')}</Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
@@ -328,6 +377,7 @@ export default function AdminResourcePage() {
               title={`${currentResource.title} Details`}
               record={selectedForDetails}
               fields={currentResource.fields}
+              historyRecords={resource?.key === 'staff-records' ? detailsHistoryRecords : []}
             />
           )}
         </>

@@ -47,14 +47,13 @@ export const mosqueBeddingSchema = z.object({
 
 export const staffRecordSchema = z.object({
   staffName: z.string().min(1),
-  role: z.string().min(1),
-  attendance: z.string().optional(),
-  reportPeriod: z.enum(['Monthly', 'Yearly']),
-  amount: z.number().min(0),
-  month: z.number().int().min(1).max(12),
-  year: z.number().int(),
-  agreement: z.string().optional(),
-  violations: z.string().optional(),
+  role: z.enum(['Imam', 'Muazzin', 'Khadim']),
+  dateKey: z.coerce.date().default(() => new Date()),
+  fajrAttendance: z.enum(['Present', 'Absent']),
+  zoharAttendance: z.enum(['Present', 'Absent']),
+  asrAttendance: z.enum(['Present', 'Absent']),
+  maghribAttendance: z.enum(['Present', 'Absent']),
+  ishaAttendance: z.enum(['Present', 'Absent']),
   note: z.string().optional()
 });
 

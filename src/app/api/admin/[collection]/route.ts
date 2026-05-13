@@ -69,6 +69,14 @@ export async function POST(request: Request, { params }: Params) {
     return apiError('Invalid request body', 400);
   }
 
+  if (collection === 'staff-records') {
+    const candidate = body as Record<string, unknown>;
+    const rawDateKey = candidate.dateKey;
+    if (rawDateKey == null || String(rawDateKey).trim() === '') {
+      delete candidate.dateKey;
+    }
+  }
+
   if (collection === 'prayer-times') {
     const normalized = normalizePrayerTimesBody(body as Record<string, unknown>);
     if (!normalized.ok) {
@@ -83,6 +91,31 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   await connectToDatabase();
-  const created = await resource.model.create({ ...parsed.data, addedBy: session.id });
-  return json({ ok: true, item: created }, { status: 201 });
+
+  if (collection === 'staff-records') {
+    const input = parsed.data as { staffName: string; role: string; dateKey: Date };
+    const currentDate = new Date(input.dateKey);
+    const startOfDay = new Date(currentDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(currentDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const duplicate = await resource.model.findOne({
+      staffName: input.staffName,
+      role: input.role,
+      dateKey: { $gte: startOfDay, $lte: endOfDay }
+    }).lean();
+
+    if (duplicate) {
+      return apiError('Attendance for this staff and date is already added. Please edit existing record.', 409);
+    }
+  }
+
+  try {
+    const created = await resource.model.create({ ...parsed.data, addedBy: session.id });
+    return json({ ok: true, item: created }, { status: 201 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to create record';
+    return apiError(message, 400);
+  }
 }

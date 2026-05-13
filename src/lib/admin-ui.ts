@@ -99,17 +99,25 @@ export const adminResources: ResourceConfig[] = [
     key: 'staff-records',
     title: 'Imam / Muazzin & Staff',
     apiPath: `${apiBase}/admin/staff-records`,
-    searchKeys: ['staffName', 'role', 'attendance', 'agreement', 'violations', 'note'],
+    searchKeys: ['staffName', 'role', 'note'],
     fields: [
       { name: 'staffName', label: 'Staff Name', type: 'text' },
-      { name: 'role', label: 'Role', type: 'text' },
-      { name: 'attendance', label: 'Prayer Attendance', type: 'textarea' },
-      { name: 'reportPeriod', label: 'Report Period', type: 'select', options: [{ label: 'Monthly', value: 'Monthly' }, { label: 'Yearly', value: 'Yearly' }] },
-      { name: 'amount', label: 'Amount', type: 'number' },
-      { name: 'month', label: 'Month', type: 'number' },
-      { name: 'year', label: 'Year', type: 'number' },
-      { name: 'agreement', label: 'Agreement', type: 'textarea' },
-      { name: 'violations', label: 'Violations', type: 'textarea' },
+      {
+        name: 'role',
+        label: 'Role',
+        type: 'select',
+        options: [
+          { label: 'Imam', value: 'Imam' },
+          { label: 'Muazzin', value: 'Muazzin' },
+          { label: 'Khadim', value: 'Khadim' }
+        ]
+      },
+      { name: 'dateKey', label: 'Date', type: 'date' },
+      { name: 'fajrAttendance', label: 'Fajr Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'zoharAttendance', label: 'Zohar Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'asrAttendance', label: 'Asr Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'maghribAttendance', label: 'Maghrib Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'ishaAttendance', label: 'Isha Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]
   },

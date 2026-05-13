@@ -123,6 +123,12 @@ export default function AdminResourcePage() {
       };
     }
 
+    if (resourceKey === 'staff-records') {
+      return {
+        dateKey: todayKey
+      };
+    }
+
     return {};
   }
 
@@ -194,7 +200,7 @@ export default function AdminResourcePage() {
         }
 
         if (field.type === 'date') {
-          return [field.name, value ? String(value).slice(0, 10) : ''];
+          return [field.name, value ? String(value).slice(0, 10) : undefined];
         }
 
         if (field.type === 'select') {

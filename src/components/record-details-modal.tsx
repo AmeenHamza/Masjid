@@ -14,6 +14,7 @@ type Props = {
   title: string;
   record: Record<string, unknown> | null;
   fields?: FieldConfig[];
+  historyRecords?: Record<string, unknown>[];
 };
 
 type DetailItem = {
@@ -131,7 +132,7 @@ function buildSections(items: DetailItem[]): DetailSection[] {
   ].filter((section) => section.items.length > 0);
 }
 
-function buildPdf(title: string, items: DetailItem[]) {
+function buildPdf(title: string, items: DetailItem[], historyRecords: Record<string, unknown>[]) {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -189,6 +190,33 @@ function buildPdf(title: string, items: DetailItem[]) {
     yPosition += 4;
   }
 
+  if (historyRecords.length > 0) {
+    if (yPosition > pageHeight - 30) {
+      pdf.addPage();
+      yPosition = marginTop;
+    }
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.text('Daily Attendance History', marginLeft, yPosition);
+    yPosition += 8;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+
+    for (const entry of historyRecords) {
+      if (yPosition > pageHeight - 35) {
+        pdf.addPage();
+        yPosition = marginTop;
+      }
+
+      const line = `${formatHistoryDate(entry.dateKey ?? entry.createdAt)} | Fajr: ${String(entry.fajrAttendance ?? '-')} | Zohar: ${String(entry.zoharAttendance ?? '-')} | Asr: ${String(entry.asrAttendance ?? '-')} | Maghrib: ${String(entry.maghribAttendance ?? '-')} | Isha: ${String(entry.ishaAttendance ?? '-')}`;
+      const wrapped = pdf.splitTextToSize(line, contentWidth);
+      pdf.text(wrapped as string[], marginLeft, yPosition);
+      yPosition += Math.max(1, wrapped.length) * lineHeight;
+    }
+  }
+
   pdf.setFontSize(9);
   pdf.setTextColor(100, 100, 100);
   pdf.text(`Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, marginLeft, pageHeight - 10);
@@ -196,7 +224,18 @@ function buildPdf(title: string, items: DetailItem[]) {
   return pdf;
 }
 
-export function RecordDetailsModal({ open, onOpenChange, title, record, fields }: Props) {
+function formatHistoryDate(value: unknown) {
+  if (!value) return '-';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(date);
+}
+
+export function RecordDetailsModal({ open, onOpenChange, title, record, fields, historyRecords = [] }: Props) {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const items = useMemo(() => {
     if (!record) return [] as DetailItem[];
@@ -278,6 +317,23 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields }
               </div>
             `)
             .join('')}
+          ${historyRecords.length > 0 ? `
+            <div class="section">
+              <div class="section-title">Daily Attendance History</div>
+              <div class="details-grid" style="grid-template-columns: 1fr;">
+                ${historyRecords
+                  .map((entry) => `
+                    <div>
+                      <div class="detail-label">${formatHistoryDate(entry.dateKey ?? entry.createdAt)}</div>
+                      <div class="detail-value">
+                        Fajr: ${String(entry.fajrAttendance ?? '-')} | Zohar: ${String(entry.zoharAttendance ?? '-')} | Asr: ${String(entry.asrAttendance ?? '-')} | Maghrib: ${String(entry.maghribAttendance ?? '-')} | Isha: ${String(entry.ishaAttendance ?? '-')}
+                      </div>
+                    </div>
+                  `)
+                  .join('')}
+              </div>
+            </div>
+          ` : ''}
           <div class="print-footer">Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
         </div>
       </body>
@@ -297,7 +353,7 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields }
   async function generatePDF() {
     setIsLoadingPdf(true);
     try {
-      const pdf = buildPdf(title, items);
+      const pdf = buildPdf(title, items, historyRecords);
       pdf.save(`${title.replace(/\s+/g, '-').toLowerCase()}.pdf`);
     } finally {
       setIsLoadingPdf(false);
@@ -333,6 +389,28 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields }
               )}
             </Card>
           ))}
+
+          {historyRecords.length > 0 ? (
+            <Card className="border-amber-200 bg-amber-50 p-6">
+              <h3 className="mb-4 text-lg font-semibold text-amber-900">Daily Attendance History</h3>
+              <div className="space-y-3">
+                {historyRecords.map((entry) => (
+                  <div key={String(entry._id ?? Math.random())} className="rounded-xl border border-amber-200 bg-white p-3">
+                    <div className="text-sm font-semibold text-slate-800">
+                      {formatHistoryDate(entry.dateKey ?? entry.createdAt)}
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-700 md:grid-cols-5">
+                      <span>Fajr: {String(entry.fajrAttendance ?? '-')}</span>
+                      <span>Zohar: {String(entry.zoharAttendance ?? '-')}</span>
+                      <span>Asr: {String(entry.asrAttendance ?? '-')}</span>
+                      <span>Maghrib: {String(entry.maghribAttendance ?? '-')}</span>
+                      <span>Isha: {String(entry.ishaAttendance ?? '-')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : null}
         </div>
 
         <DialogFooter className="sticky bottom-0 mt-6 gap-2 border-t bg-white pt-4">
