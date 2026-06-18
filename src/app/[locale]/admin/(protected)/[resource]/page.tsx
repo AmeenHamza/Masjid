@@ -89,6 +89,10 @@ export default function AdminResourcePage() {
     const todayKey = now.toISOString().slice(0, 10);
 
     if (resourceKey === 'income-records' || resourceKey === 'expense-records' || resourceKey === 'donations' || resourceKey === 'ramadan-donations' || resourceKey === 'ramadan-expenses') {
+      if (resourceKey === 'income-records' || resourceKey === 'donations' || resourceKey === 'ramadan-donations' || resourceKey === 'ramadan-expenses') {
+        return { date: todayKey, month: currentMonth, year: currentYear, amount: 0 };
+      }
+
       return { month: currentMonth, year: currentYear, amount: 0 };
     }
 
@@ -114,12 +118,15 @@ export default function AdminResourcePage() {
 
     if (resourceKey === 'shop-records') {
       return {
+        date: todayKey,
         buyDate: todayKey,
         monthsDue: 0,
         paymentStatus: 'Clear',
         buyRate: 0,
         debtAmount: 0,
-        monthlyRent: 0
+        monthlyRent: 0,
+        month: currentMonth,
+        year: currentYear
       };
     }
 
@@ -442,7 +449,7 @@ export default function AdminResourcePage() {
                         </div>
                       </div>
                       <div className="mt-4 flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => editShopRecord(record)}>Edit</Button>
+                        <Button variant="outline" size="sm" onClick={() => editShopRecord(record)}>Update Record</Button>
                         <Button variant="destructive" size="sm" onClick={() => remove(String(record._id))}>Delete</Button>
                       </div>
                     </CardContent>

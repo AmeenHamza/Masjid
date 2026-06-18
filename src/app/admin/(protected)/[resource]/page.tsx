@@ -32,6 +32,67 @@ function formatDateValue(value: unknown) {
   }).format(date);
 }
 
+function getNewRecordDefaults(resourceKey: string) {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const todayKey = now.toISOString().slice(0, 10);
+
+  if (resourceKey === 'income-records' || resourceKey === 'expense-records' || resourceKey === 'donations' || resourceKey === 'ramadan-donations' || resourceKey === 'ramadan-expenses') {
+    if (resourceKey === 'income-records') {
+      return { date: todayKey, month: currentMonth, year: currentYear, amount: 0 };
+    }
+
+    if (resourceKey === 'donations' || resourceKey === 'ramadan-donations' || resourceKey === 'ramadan-expenses') {
+      return { date: todayKey, month: currentMonth, year: currentYear, amount: 0 };
+    }
+
+    return { month: currentMonth, year: currentYear, amount: 0 };
+  }
+
+  if (resourceKey === 'fitrah-records') {
+    return { year: currentYear, amount: 0, membersCount: 1 };
+  }
+
+  if (resourceKey === 'prayer-times') {
+    return { dateKey: todayKey };
+  }
+
+  if (resourceKey === 'projects') {
+    return { status: 'Incomplete', targetAmount: 0, collectedAmount: 0 };
+  }
+
+  if (resourceKey === 'gallery') {
+    return { mediaType: 'image', order: 0 };
+  }
+
+  if (resourceKey === 'hero-slides') {
+    return { order: 0, active: true };
+  }
+
+  if (resourceKey === 'shop-records') {
+    return {
+      date: todayKey,
+      buyDate: todayKey,
+      monthsDue: 0,
+      paymentStatus: 'Clear',
+      buyRate: 0,
+      debtAmount: 0,
+      monthlyRent: 0,
+      month: currentMonth,
+      year: currentYear
+    };
+  }
+
+  if (resourceKey === 'staff-records') {
+    return {
+      dateKey: todayKey
+    };
+  }
+
+  return {};
+}
+
 export default function AdminResourcePage() {
   const params = useParams<{ resource: string }>();
   const resource = getResourceConfig(params.resource);
@@ -239,11 +300,10 @@ export default function AdminResourcePage() {
         </div>
         {!isSettingsResource ? <Button onClick={() => {
           if (currentResource.key === 'staff-records') {
-            setSelected({ dateKey: new Date().toISOString().slice(0, 10) });
-            setDisabledFields([]);
-            return;
+            setSelected(getNewRecordDefaults('staff-records'));
+          } else {
+            setSelected(getNewRecordDefaults(currentResource.key));
           }
-          setSelected({});
           setDisabledFields([]);
         }} className="w-full sm:w-auto">{t('newRecord')}</Button> : null}
       </div>

@@ -39,10 +39,11 @@ export const adminResources: ResourceConfig[] = [
     key: 'income-records',
     title: 'Income Records',
     apiPath: `${apiBase}/admin/income-records`,
-    searchKeys: ['title', 'source', 'note'],
+    searchKeys: ['title', 'source', 'date', 'note'],
     fields: [
       { name: 'title', label: 'Title', type: 'text' },
       { name: 'source', label: 'Source', type: 'text' },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'amount', label: 'Amount', type: 'number' },
       { name: 'month', label: 'Month', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
@@ -125,11 +126,12 @@ export const adminResources: ResourceConfig[] = [
     key: 'shop-records',
     title: 'Shop Records',
     apiPath: `${apiBase}/admin/shop-records`,
-    searchKeys: ['shopName', 'ownerName', 'contactNumber', 'note'],
+    searchKeys: ['shopName', 'ownerName', 'contactNumber', 'date', 'month', 'year', 'note'],
     fields: [
       { name: 'shopName', label: 'Shop Name', type: 'text' },
       { name: 'ownerName', label: 'Owner Name', type: 'text' },
       { name: 'contactNumber', label: 'Contact Number', type: 'text' },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'buyDate', label: 'Buy Date', type: 'date' },
       { name: 'buyRate', label: 'Buy Rate (Rs)', type: 'number' },
       { name: 'debtAmount', label: 'Debt Amount', type: 'number' },
@@ -146,6 +148,8 @@ export const adminResources: ResourceConfig[] = [
           { label: '12 Months', value: '12' }
         ]
       },
+      { name: 'month', label: 'Month', type: 'number' },
+      { name: 'year', label: 'Year', type: 'number' },
       { name: 'paymentStatus', label: 'Payment Status', type: 'select', options: [{ label: 'Clear', value: 'Clear' }, { label: 'Due', value: 'Due' }, { label: 'Partial', value: 'Partial' }] },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]
@@ -154,7 +158,7 @@ export const adminResources: ResourceConfig[] = [
     key: 'donations',
     title: 'Donations',
     apiPath: `${apiBase}/admin/donations`,
-    searchKeys: ['donorName', 'note'],
+    searchKeys: ['donorName', 'date', 'note'],
     fields: [
       { name: 'donorName', label: 'Donor Name', type: 'text' },
       {
@@ -170,6 +174,7 @@ export const adminResources: ResourceConfig[] = [
           { label: 'Project', value: 'Project' }
         ]
       },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'amount', label: 'Amount', type: 'number' },
       { name: 'month', label: 'Month', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
@@ -180,10 +185,12 @@ export const adminResources: ResourceConfig[] = [
     key: 'ramadan-donations',
     title: 'Ramadan Donations',
     apiPath: `${apiBase}/admin/ramadan-donations`,
-    searchKeys: ['donorName', 'note'],
+    searchKeys: ['donorName', 'date', 'note'],
     fields: [
       { name: 'donorName', label: 'Donor Name', type: 'text' },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'month', label: 'Month', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]
@@ -192,10 +199,12 @@ export const adminResources: ResourceConfig[] = [
     key: 'ramadan-expenses',
     title: 'Ramadan Expenses',
     apiPath: `${apiBase}/admin/ramadan-expenses`,
-    searchKeys: ['title', 'note'],
+    searchKeys: ['title', 'date', 'note'],
     fields: [
       { name: 'title', label: 'Title', type: 'text' },
+      { name: 'date', label: 'Date', type: 'date' },
       { name: 'amount', label: 'Amount', type: 'number' },
+      { name: 'month', label: 'Month', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]

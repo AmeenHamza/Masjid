@@ -132,8 +132,17 @@ export async function getTodayPrayerTimes(): Promise<Record<string, string>> {
     async (): Promise<Record<string, string>> => {
       try {
         await connectToDatabase();
-        const prayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
-        return prayerTimes ? (serialize(prayerTimes) as Record<string, string>) : fallbackPrayerTimes;
+        const todayPrayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
+        if (todayPrayerTimes) {
+          return serialize(todayPrayerTimes) as Record<string, string>;
+        }
+
+        const latestPrayerTimes = await PrayerTimes.findOne({ dateKey: { $lte: todayKey } }).sort({ dateKey: -1, createdAt: -1 }).lean();
+        if (latestPrayerTimes) {
+          return serialize(latestPrayerTimes) as Record<string, string>;
+        }
+
+        return fallbackPrayerTimes;
       } catch {
         return fallbackPrayerTimes;
       }
@@ -233,7 +242,7 @@ export async function getIncomeRecords() {
 
   try {
     await connectToDatabase();
-     const records = await IncomeRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+    const records = await IncomeRecord.find().sort({ createdAt: -1 }).limit(200).lean();
      return serialize(records);
   } catch {
     return [];
@@ -257,7 +266,7 @@ export async function getShopRecords() {
 
   try {
     await connectToDatabase();
-     const records = await ShopRecord.find().sort({ createdAt: -1 }).limit(200).lean();
+     const records = await ShopRecord.find().sort({ year: -1, month: -1, date: -1, createdAt: -1 }).limit(200).lean();
      return serialize(records);
   } catch {
     return [];

@@ -47,7 +47,9 @@ export async function GET(_request: Request, { params }: Params) {
   if (!session) return apiError('Unauthorized', 401);
 
   await connectToDatabase();
-  const items = await resource.model.find().sort({ createdAt: -1 }).lean();
+    const items = await (collection === 'shop-records'
+      ? resource.model.find().sort({ year: -1, month: -1, date: -1, createdAt: -1 }).lean()
+      : resource.model.find().sort({ createdAt: -1 }).lean());
   return json({ ok: true, items });
 }
 
@@ -81,6 +83,21 @@ export async function POST(request: Request, { params }: Params) {
     const normalized = normalizePrayerTimesBody(body as Record<string, unknown>);
     if (!normalized.ok) {
       return apiError(normalized.message, 400);
+    }
+  }
+
+  if (collection === 'income-records') {
+    const candidate = body as Record<string, unknown>;
+    if (candidate.date == null || String(candidate.date).trim() === '') {
+      candidate.date = new Date().toISOString().slice(0, 10);
+    }
+  }
+
+  // 👇 YEH VALA CODE AAPNE BILKUL ISKE NICHE ADD KARNA HAI 👇
+  if (collection === 'rent-records') {
+    const candidate = body as Record<string, unknown>;
+    if (candidate.receivedDate == null || String(candidate.receivedDate).trim() === '') {
+      candidate.receivedDate = new Date().toISOString().slice(0, 10);
     }
   }
 

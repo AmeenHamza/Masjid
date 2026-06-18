@@ -14,6 +14,7 @@ export const prayerTimesSchema = z.object({
 export const incomeRecordSchema = z.object({
   title: z.string().min(1),
   source: z.string().min(1),
+  date: z.string().optional(),
   amount: z.number().min(0),
   month: z.number().int().min(1).max(12),
   year: z.number().int(),
@@ -62,10 +63,13 @@ export const shopRecordSchema = z.object({
   ownerName: z.string().min(1),
   contactNumber: z.string().optional(),
   buyDate: z.coerce.date(),
+  date: z.string().optional(),
   buyRate: z.number().min(0),
   debtAmount: z.number().min(0),
   monthlyRent: z.number().min(0),
   monthsDue: z.coerce.number().int().min(0),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int(),
   paymentStatus: z.enum(['Clear', 'Due', 'Partial']),
   note: z.string().optional()
 });
@@ -73,6 +77,7 @@ export const shopRecordSchema = z.object({
 export const donationSchema = z.object({
   donorName: z.string().min(1),
   type: z.enum(['Friday', 'Box', 'Ramadan', 'Fitrah', 'General', 'Project']),
+  date: z.string().optional(),
   amount: z.number().min(0),
   month: z.number().int().min(1).max(12),
   year: z.number().int(),
@@ -81,6 +86,7 @@ export const donationSchema = z.object({
 
 export const ramadanDonationSchema = z.object({
   donorName: z.string().min(1),
+  date: z.string().optional(),
   amount: z.number().min(0),
   month: z.number().int().min(1).max(12),
   year: z.number().int(),
@@ -90,6 +96,7 @@ export const ramadanDonationSchema = z.object({
 export const ramadanExpenseSchema = z.object({
   title: z.string().min(1),
   amount: z.number().min(0),
+  date: z.string().optional(),
   month: z.number().int().min(1).max(12),
   year: z.number().int(),
   note: z.string().optional()

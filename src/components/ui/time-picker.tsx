@@ -12,40 +12,28 @@ export function TimePicker({ value, onChange, className = '' }: TimePickerProps)
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
   const [isOpen, setIsOpen] = useState(false);
 
-  // Parse input value (e.g., "01:30" or "13:30") on mount or value change
   useEffect(() => {
-    if (value && typeof value === 'string' && value.includes(':')) {
-      const [h, m] = value.split(':');
-      const hour24 = parseInt(h, 10);
-      const minute = parseInt(m, 10);
+    if (!value || typeof value !== 'string' || !value.includes(':')) {
+      setHours('12');
+      setMinutes('00');
+      setPeriod('AM');
+      return;
+    }
 
-      if (!isNaN(hour24) && !isNaN(minute)) {
-        // Convert to 12-hour format
-        const isPM = hour24 >= 12;
-        let hour12 = hour24 % 12;
-        if (hour12 === 0) hour12 = 12;
+    const [h, m] = value.split(':');
+    const hour24 = parseInt(h, 10);
+    const minute = parseInt(m, 10);
 
-        setHours(String(hour12).padStart(2, '0'));
-        setMinutes(String(minute).padStart(2, '0'));
-        setPeriod(isPM ? 'PM' : 'AM');
-      }
+    if (!isNaN(hour24) && !isNaN(minute)) {
+      const isPM = hour24 >= 12;
+      let hour12 = hour24 % 12;
+      if (hour12 === 0) hour12 = 12;
+
+      setHours(String(hour12).padStart(2, '0'));
+      setMinutes(String(minute).padStart(2, '0'));
+      setPeriod(isPM ? 'PM' : 'AM');
     }
   }, [value]);
-
-  // Auto-detect device time on component mount
-  useEffect(() => {
-    const now = new Date();
-    const deviceHour = now.getHours();
-    const deviceMinutes = now.getMinutes();
-    const deviceIsPM = deviceHour >= 12;
-
-    let deviceHour12 = deviceHour % 12;
-    if (deviceHour12 === 0) deviceHour12 = 12;
-
-    setHours(String(deviceHour12).padStart(2, '0'));
-    setMinutes(String(deviceMinutes).padStart(2, '0'));
-    setPeriod(deviceIsPM ? 'PM' : 'AM');
-  }, []);
 
   const handleConfirm = () => {
     // Convert 12-hour format to 24-hour format
@@ -78,14 +66,14 @@ export function TimePicker({ value, onChange, className = '' }: TimePickerProps)
   };
 
   const incrementMinutes = () => {
-    let m = (parseInt(minutes, 10) + 1) % 60;
-    if (m === 0) m = 60;
+    const currentMinutes = parseInt(minutes, 10);
+    const m = Number.isNaN(currentMinutes) ? 0 : (currentMinutes + 1) % 60;
     setMinutes(String(m).padStart(2, '0'));
   };
 
   const decrementMinutes = () => {
-    let m = parseInt(minutes, 10) - 1;
-    if (m < 1) m = 60;
+    const currentMinutes = parseInt(minutes, 10);
+    const m = Number.isNaN(currentMinutes) ? 59 : (currentMinutes + 59) % 60;
     setMinutes(String(m).padStart(2, '0'));
   };
 
@@ -136,7 +124,7 @@ export function TimePicker({ value, onChange, className = '' }: TimePickerProps)
             {/* Minute Picker */}
             <div>
               <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                Minutes (1-60)
+                Minutes (00-59)
               </div>
               <div className="flex items-center justify-between rounded-lg bg-slate-100 p-2 dark:bg-slate-900">
                 <button

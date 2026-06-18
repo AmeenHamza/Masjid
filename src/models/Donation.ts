@@ -9,6 +9,7 @@ const DonationSchema = new Schema(
       enum: ['Friday', 'Box', 'Ramadan', 'Fitrah', 'General', 'Project'],
       required: true
     },
+    date: { type: String },
     amount: { type: Number, required: true, min: 0 },
     month: { type: Number, required: true },
     year: { type: Number, required: true },

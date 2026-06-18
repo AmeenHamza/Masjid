@@ -5,6 +5,7 @@ const IncomeRecordSchema = new Schema(
   {
     title: { type: String, required: true },
     source: { type: String, required: true },
+    date: { type: String },
     amount: { type: Number, required: true, min: 0 },
     month: { type: Number, required: true, min: 1, max: 12 },
     year: { type: Number, required: true },

@@ -4,6 +4,7 @@ import { createModel, auditedFields } from './_shared';
 const RamadanDonationSchema = new Schema(
   {
     donorName: { type: String, required: true },
+    date: { type: String },
     amount: { type: Number, required: true, min: 0 },
     month: { type: Number, required: true },
     year: { type: Number, required: true },

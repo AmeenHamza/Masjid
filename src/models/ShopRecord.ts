@@ -7,10 +7,13 @@ const ShopRecordSchema = new Schema(
     ownerName: { type: String, required: true },
     contactNumber: { type: String },
     buyDate: { type: Date, required: true },
+    date: { type: String },
     buyRate: { type: Number, required: true, min: 0 },
     debtAmount: { type: Number, required: true, min: 0 },
     monthlyRent: { type: Number, required: true, min: 0 },
     monthsDue: { type: Number, required: true, min: 0, default: 6 },
+    month: { type: Number, required: true, min: 1, max: 12 },
+    year: { type: Number, required: true },
     paymentStatus: { type: String, required: true, enum: ['Clear', 'Due', 'Partial'] },
     note: { type: String },
     addedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }
