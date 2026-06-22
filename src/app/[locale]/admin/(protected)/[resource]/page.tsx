@@ -495,7 +495,7 @@ export default function AdminResourcePage() {
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
                       <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Last Recorded Month</div>
-                      <div className="mt-2 font-medium text-slate-900 dark:text-white">{items.find((record) => String(record._id || '') === paymentShopId)?.month ?? '-'}/{items.find((record) => String(record._id || '') === paymentShopId)?.year ?? '-'}</div>
+                      <div className="mt-2 font-medium text-slate-900 dark:text-white">{String(items.find((record) => String(record._id || '') === paymentShopId)?.month ?? '-')}/{String(items.find((record) => String(record._id || '') === paymentShopId)?.year ?? '-')}</div>
                     </div>
                   </div>
 
