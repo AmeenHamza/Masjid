@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/data-table';
@@ -81,6 +81,14 @@ export default function AdminResourcePage() {
   const [formResetToken, setFormResetToken] = useState(0);
   const [shopView, setShopView] = useState<'details' | 'form'>('details');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [paymentShopId, setPaymentShopId] = useState<string>('');
+  const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
+  const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentStatusForShop, setPaymentStatusForShop] = useState<'Clear' | 'Due' | 'Partial'>('Clear');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
 
   function getNewRecordDefaults(resourceKey: string) {
     const now = new Date();
@@ -261,6 +269,81 @@ export default function AdminResourcePage() {
     setShopView('details');
   }
 
+  function handlePaymentShopChange(shopId: string) {
+    setPaymentShopId(shopId);
+    const shop = items.find((record) => String(record._id || '') === shopId);
+    setPaymentAmount(shop ? String(shop.monthlyRent ?? '') : '');
+    setPaymentStatusForShop(shop ? (String(shop.paymentStatus || 'Clear') as 'Clear' | 'Due' | 'Partial') : 'Clear');
+    setPaymentNote('');
+    setPaymentMonth(new Date().getMonth() + 1);
+    setPaymentYear(new Date().getFullYear());
+    setPaymentError(null);
+  }
+
+  async function saveShopPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPaymentError(null);
+    setIsPaymentSubmitting(true);
+
+    const shop = items.find((record) => String(record._id || '') === paymentShopId);
+    if (!shop) {
+      setPaymentError('Please select a valid shop.');
+      setIsPaymentSubmitting(false);
+      return;
+    }
+
+    const currentDebt = Number(shop.debtAmount || 0);
+    const paidAmount = Number(paymentAmount || 0);
+
+    if (paymentStatusForShop === 'Partial' && (Number.isNaN(paidAmount) || paidAmount <= 0)) {
+      setPaymentError('Please enter a valid payment amount for partial status.');
+      setIsPaymentSubmitting(false);
+      return;
+    }
+
+    const newDebt = paymentStatusForShop === 'Clear'
+      ? 0
+      : paymentStatusForShop === 'Partial'
+        ? Math.max(0, currentDebt - paidAmount)
+        : currentDebt;
+
+    const payload = {
+      month: paymentMonth,
+      year: paymentYear,
+      paymentStatus: paymentStatusForShop,
+      debtAmount: newDebt,
+      note: paymentNote?.trim() ? String(paymentNote).trim() : String(shop.note ?? ''),
+      date: new Date().toISOString().slice(0, 10)
+    };
+
+    try {
+      const response = await fetch(`${currentResource.apiPath}/${paymentShopId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+        setPaymentError(payload?.message || 'Unable to update shop payment.');
+        return;
+      }
+
+      const refreshed = await fetch(currentResource.apiPath, { credentials: 'include' }).then((response) => response.json());
+      setItems(refreshed.items || []);
+      setPaymentShopId('');
+      setPaymentAmount('');
+      setPaymentStatusForShop('Clear');
+      setPaymentNote('');
+      setPaymentError(null);
+    } catch (error) {
+      setPaymentError('Unable to update shop payment.');
+    } finally {
+      setIsPaymentSubmitting(false);
+    }
+  }
+
   const totalShopAmount = items.reduce((sum, record) => sum + Number(record.buyRate || 0), 0);
   const totalDebtAmount = items.reduce((sum, record) => sum + Number(record.debtAmount || 0), 0);
   const totalMonthlyRentAmount = items.reduce((sum, record) => sum + Number(record.monthlyRent || 0), 0);
@@ -370,6 +453,127 @@ export default function AdminResourcePage() {
               </CardContent>
             </Card>
           </div>
+
+          {shopView === 'details' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Update Shop Rent Payment</CardTitle>
+                <CardDescription>Choose an existing shop, enter this month's payment details, and update due status.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {paymentError ? <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-200">{paymentError}</div> : null}
+                <form className="space-y-4" onSubmit={saveShopPayment}>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="min-w-0">
+                      <div className="mb-2 text-sm font-semibold">Select Shop</div>
+                      <select
+                        value={paymentShopId}
+                        onChange={(event) => handlePaymentShopChange(event.target.value)}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                      >
+                        <option value="">Select a shop</option>
+                        {items.map((shop) => (
+                          <option key={String(shop._id)} value={String(shop._id)}>{String(shop.shopName || '-')}{shop.ownerName ? ` — ${String(shop.ownerName)}` : ''}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Previous Due</div>
+                      <div className="mt-2 text-xl font-black text-slate-900 dark:text-white">{formatCurrency(Number(items.find((record) => String(record._id || '') === paymentShopId)?.debtAmount || 0), 'PKR', 'en')}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Current Status</div>
+                      <div className="mt-2 font-medium text-slate-900 dark:text-white">{String(items.find((record) => String(record._id || '') === paymentShopId)?.paymentStatus || '-')}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Monthly Rent</div>
+                      <div className="mt-2 font-medium text-slate-900 dark:text-white">{formatCurrency(Number(items.find((record) => String(record._id || '') === paymentShopId)?.monthlyRent || 0), 'PKR', 'en')}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Last Recorded Month</div>
+                      <div className="mt-2 font-medium text-slate-900 dark:text-white">{items.find((record) => String(record._id || '') === paymentShopId)?.month ?? '-'}/{items.find((record) => String(record._id || '') === paymentShopId)?.year ?? '-'}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="min-w-0">
+                      <div className="mb-2 text-sm font-semibold">Payment Amount (Rs)</div>
+                      <input
+                        value={paymentAmount}
+                        onChange={(event) => setPaymentAmount(event.target.value)}
+                        type="number"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                        required={paymentStatusForShop === 'Partial'}
+                      />
+                    </label>
+
+                    <label className="min-w-0">
+                      <div className="mb-2 text-sm font-semibold">Month</div>
+                      <select
+                        value={paymentMonth}
+                        onChange={(event) => setPaymentMonth(Number(event.target.value))}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                      >
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en-US', { month: 'long' })}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="min-w-0">
+                      <div className="mb-2 text-sm font-semibold">Year</div>
+                      <input
+                        value={paymentYear}
+                        onChange={(event) => setPaymentYear(Number(event.target.value))}
+                        type="number"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                      />
+                    </label>
+
+                    <label className="min-w-0">
+                      <div className="mb-2 text-sm font-semibold">Payment Status</div>
+                      <select
+                        value={paymentStatusForShop}
+                        onChange={(event) => setPaymentStatusForShop(event.target.value as 'Clear' | 'Due' | 'Partial')}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                      >
+                        <option value="Clear">Clear</option>
+                        <option value="Partial">Partial</option>
+                        <option value="Due">Due</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="block">
+                    <div className="mb-2 text-sm font-semibold">Note</div>
+                    <textarea
+                      value={paymentNote}
+                      onChange={(event) => setPaymentNote(event.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                      rows={4}
+                    />
+                  </label>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <Button type="submit" disabled={isPaymentSubmitting}>
+                      {isPaymentSubmitting ? 'Updating...' : 'Save Payment Update'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handlePaymentShopChange('')}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {shopView === 'form' ? (
             <Card>

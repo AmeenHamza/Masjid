@@ -34,6 +34,15 @@ function normalizeYear(value: unknown, fallback: number) {
   return Number.isInteger(parsed) && parsed >= 1900 ? parsed : fallback;
 }
 
+function normalizeShopName(value: unknown, fallback: string | null) {
+  if (Array.isArray(value)) {
+    return String(value[0] ?? '') || fallback;
+  }
+
+  const normalized = String(value ?? '').trim();
+  return normalized ? normalized : fallback;
+}
+
 function getShopRecordMonth(record: Record<string, unknown>) {
   const directMonth = Number(record.month);
   if (Number.isInteger(directMonth) && directMonth >= 1 && directMonth <= 12) {
@@ -63,13 +72,21 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   const allRecords = await getShopRecords();
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
+  const selectedShopName = normalizeShopName(resolvedSearchParams?.shopName, null);
   const selectedMonth = normalizeMonth(resolvedSearchParams?.month, currentMonth);
   const selectedYear = normalizeYear(resolvedSearchParams?.year, currentYear);
   const [settings, t, common] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' })]);
   const numberFormatter = new Intl.NumberFormat(resolvedLocale === 'ur' ? 'ur-PK' : 'en-PK');
 
-  const years = Array.from(new Set(allRecords.map((item: any) => getShopRecordYear(item) || new Date().getFullYear()))).filter((year) => Number.isInteger(year)).sort((a, b) => b - a);
-  const records = allRecords.filter((item: any) => getShopRecordMonth(item) === selectedMonth && getShopRecordYear(item) === selectedYear);
+  const shopNames = Array.from(new Set(allRecords.map((item: any) => String(item.shopName || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const years = Array.from(new Set(allRecords
+    .filter((item: any) => !selectedShopName || String(item.shopName || '').trim() === selectedShopName)
+    .map((item: any) => getShopRecordYear(item) || new Date().getFullYear()))).filter((year) => Number.isInteger(year)).sort((a, b) => b - a);
+  const records = allRecords.filter((item: any) =>
+    (!selectedShopName || String(item.shopName || '').trim() === selectedShopName) &&
+    getShopRecordMonth(item) === selectedMonth &&
+    getShopRecordYear(item) === selectedYear
+  );
 
   const totalShops = records.length;
   const clearShops = records.filter((item: any) => String(item.paymentStatus || '').toLowerCase() === 'clear').length;
@@ -94,7 +111,16 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
     <>
       <SiteHeader phone={settings.phone} masjidName={settings.masjidName} />
       <main className="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
-        <form className="mb-6 grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+        <form className="mb-6 grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+          <label className="min-w-0">
+            <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{common('shop')}</div>
+            <select name="shopName" defaultValue={selectedShopName ?? ''} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-white">
+              <option value="">{t('allShops')}</option>
+              {shopNames.map((shopName) => (
+                <option key={shopName} value={shopName}>{shopName}</option>
+              ))}
+            </select>
+          </label>
           <label className="min-w-0">
             <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{common('month')}</div>
             <select name="month" defaultValue={String(selectedMonth)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-white">

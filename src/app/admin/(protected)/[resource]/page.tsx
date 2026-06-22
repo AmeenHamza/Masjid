@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ColumnDef } from '@tanstack/react-table';
@@ -111,6 +111,14 @@ export default function AdminResourcePage() {
   const [selectedForDetails, setSelectedForDetails] = useState<Record<string, unknown> | null>(null);
   const [detailsHistoryRecords, setDetailsHistoryRecords] = useState<Record<string, unknown>[]>([]);
   const [disabledFields, setDisabledFields] = useState<string[]>([]);
+  const [paymentShopId, setPaymentShopId] = useState<string>('');
+  const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
+  const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentStatusForShop, setPaymentStatusForShop] = useState<'Clear' | 'Due' | 'Partial'>('Clear');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
 
   async function loadItems() {
     if (!resource) return;
@@ -128,6 +136,83 @@ export default function AdminResourcePage() {
       toast.error(tToast('failedToLoadData'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handlePaymentShopChange(shopId: string) {
+    setPaymentShopId(shopId);
+    const shop = items.find((record) => String(record._id ?? '') === shopId);
+    setPaymentAmount(shop ? String(shop.monthlyRent ?? '') : '');
+    setPaymentStatusForShop(shop ? (String(shop.paymentStatus || 'Clear') as 'Clear' | 'Due' | 'Partial') : 'Clear');
+    setPaymentNote('');
+    setPaymentMonth(new Date().getMonth() + 1);
+    setPaymentYear(new Date().getFullYear());
+    setPaymentError(null);
+  }
+
+  async function saveShopPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPaymentError(null);
+    setIsPaymentSubmitting(true);
+
+    const shop = items.find((record) => String(record._id ?? '') === paymentShopId);
+    if (!shop) {
+      setPaymentError('Please select a valid shop.');
+      setIsPaymentSubmitting(false);
+      return;
+    }
+
+    const currentDebt = Number(shop.debtAmount ?? 0);
+    const paidAmount = Number(paymentAmount || 0);
+
+    if (paymentStatusForShop === 'Partial' && (Number.isNaN(paidAmount) || paidAmount <= 0)) {
+      setPaymentError('Please enter a valid payment amount for partial status.');
+      setIsPaymentSubmitting(false);
+      return;
+    }
+
+    const newDebt = paymentStatusForShop === 'Clear'
+      ? 0
+      : paymentStatusForShop === 'Partial'
+        ? Math.max(0, currentDebt - paidAmount)
+        : currentDebt;
+
+    const payload = {
+      month: paymentMonth,
+      year: paymentYear,
+      paymentStatus: paymentStatusForShop,
+      debtAmount: newDebt,
+      note: paymentNote?.trim() ? String(paymentNote).trim() : String(shop.note ?? ''),
+      date: new Date().toISOString().slice(0, 10)
+    };
+
+    try {
+      const response = await fetch(`${currentResource.apiPath}/${paymentShopId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include'
+      });
+
+      const responseData = await response.json().catch(() => null) as { ok?: boolean; item?: Record<string, unknown>; message?: string } | null;
+      if (!response.ok || !responseData?.ok) {
+        setPaymentError(responseData?.message || 'Unable to update shop payment.');
+        return;
+      }
+
+      await loadItems();
+      setSelectedShopForDetails(responseData.item ?? shop);
+      setShopDetailsOpen(true);
+      setPaymentShopId('');
+      setPaymentAmount('');
+      setPaymentStatusForShop('Clear');
+      setPaymentNote('');
+      setPaymentError(null);
+      toast.success(tToast('updatedSuccessfully'));
+    } catch {
+      setPaymentError('Unable to update shop payment.');
+    } finally {
+      setIsPaymentSubmitting(false);
     }
   }
 
@@ -217,6 +302,7 @@ export default function AdminResourcePage() {
 
   const currentResource = resource;
   const isSettingsResource = currentResource.key === 'settings';
+  const selectedPaymentShop = items.find((record) => String(record._id ?? '') === paymentShopId);
 
   async function save(values: Record<string, unknown>) {
     setSaving(true);
@@ -307,6 +393,127 @@ export default function AdminResourcePage() {
           setDisabledFields([]);
         }} className="w-full sm:w-auto">{t('newRecord')}</Button> : null}
       </div>
+
+      {currentResource.key === 'shop-records' ? (
+        <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Update Shop Rent Payment</h2>
+            {isPaymentSubmitting ? (
+              <span className="inline-flex items-center gap-2 text-sm text-emerald-700">
+                <Loader2 className="h-4 w-4 animate-spin" /> Updating...
+              </span>
+            ) : null}
+          </div>
+          {paymentError ? <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{paymentError}</div> : null}
+          <form className="space-y-4" onSubmit={saveShopPayment}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="min-w-0">
+                <div className="mb-2 text-sm font-semibold">Select Shop</div>
+                <select
+                  value={paymentShopId}
+                  onChange={(event) => handlePaymentShopChange(event.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="">Select a shop</option>
+                  {items.map((shop) => (
+                    <option key={String(shop._id)} value={String(shop._id)}>{String(shop.shopName || '-')}{shop.ownerName ? ` — ${String(shop.ownerName)}` : ''}</option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Previous Due</div>
+                <div className="mt-2 text-xl font-black text-slate-900">{formatCurrency(Number(selectedPaymentShop?.debtAmount ?? 0))}</div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Current Status</div>
+                <div className="mt-2 font-medium text-slate-900">{String(selectedPaymentShop?.paymentStatus ?? '-')}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Monthly Rent</div>
+                <div className="mt-2 font-medium text-slate-900">{formatCurrency(Number(selectedPaymentShop?.monthlyRent ?? 0))}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Last Recorded Month</div>
+                <div className="mt-2 font-medium text-slate-900">{String(selectedPaymentShop?.month ?? '-')} / {String(selectedPaymentShop?.year ?? '-')}</div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="min-w-0">
+                <div className="mb-2 text-sm font-semibold">Payment Amount (Rs)</div>
+                <input
+                  value={paymentAmount}
+                  onChange={(event) => setPaymentAmount(event.target.value)}
+                  type="number"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                  required={paymentStatusForShop === 'Partial'}
+                />
+              </label>
+
+              <label className="min-w-0">
+                <div className="mb-2 text-sm font-semibold">Month</div>
+                <select
+                  value={paymentMonth}
+                  onChange={(event) => setPaymentMonth(Number(event.target.value))}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en-US', { month: 'long' })}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="min-w-0">
+                <div className="mb-2 text-sm font-semibold">Year</div>
+                <input
+                  value={paymentYear}
+                  onChange={(event) => setPaymentYear(Number(event.target.value))}
+                  type="number"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                />
+              </label>
+
+              <label className="min-w-0">
+                <div className="mb-2 text-sm font-semibold">Payment Status</div>
+                <select
+                  value={paymentStatusForShop}
+                  onChange={(event) => setPaymentStatusForShop(event.target.value as 'Clear' | 'Due' | 'Partial')}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="Clear">Clear</option>
+                  <option value="Partial">Partial</option>
+                  <option value="Due">Due</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="block">
+              <div className="mb-2 text-sm font-semibold">Note</div>
+              <textarea
+                value={paymentNote}
+                onChange={(event) => setPaymentNote(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                rows={4}
+              />
+            </label>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <Button type="submit" disabled={isPaymentSubmitting}>
+                {isPaymentSubmitting ? 'Updating...' : 'Save Payment Update'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => handlePaymentShopChange('')}>
+                Reset
+              </Button>
+            </div>
+          </form>
+        </Card>
+      ) : null}
 
       <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
         <div className="mb-4 flex items-center justify-between gap-3">
