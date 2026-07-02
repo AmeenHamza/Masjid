@@ -15,6 +15,8 @@ const ShopRecordSchema = new Schema(
     month: { type: Number, required: true, min: 1, max: 12 },
     year: { type: Number, required: true },
     paymentStatus: { type: String, required: true, enum: ['Clear', 'Due', 'Partial'] },
+    paymentAmount: { type: Number, default: 0, min: 0 },
+    rentHistory: { type: Map, of: Schema.Types.Mixed, default: {} },
     note: { type: String },
     addedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }
   },

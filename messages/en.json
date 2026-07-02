@@ -145,7 +145,7 @@
     "editRecord": "Edit Record",
     "viewRecord": "View Record",
     "createRecord": "Create Record",
-    "managingResources": "Manage {{resource}} with live create, update and delete actions.",
+    "managingResources": "Manage {resource} with live create, update and delete actions.",
     "loadingRecords": "Loading records...",
     "actions": "Actions",
     "deleting": "Deleting...",

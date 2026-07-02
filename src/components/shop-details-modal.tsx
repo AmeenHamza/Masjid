@@ -19,6 +19,10 @@ type ShopRecord = {
   debtAmount: number;
   monthlyRent: number;
   monthsDue: number;
+  month?: number;
+  year?: number;
+  date?: string | Date;
+  paymentAmount?: number;
   paymentStatus: string;
   note: string;
 };
@@ -27,6 +31,7 @@ interface ShopDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shopData: ShopRecord | null;
+  history?: ShopRecord[];
 }
 
 type SiteSettings = {
@@ -47,7 +52,7 @@ function formatDate(value: unknown) {
   }).format(date);
 }
 
-export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsModalProps) {
+export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }: ShopDetailsModalProps) {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
 
@@ -185,6 +190,58 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
       toast.error('Failed to generate PDF');
     } finally {
       setIsLoadingPdf(false);
+    }
+  }
+
+  function printSlipForRecord(record: ShopRecord) {
+    const siteTitle = (settings && settings.masjidName) ? settings.masjidName : 'Masjid';
+    const siteAddress = settings?.address || '';
+    const recordMonth = record.month ? new Date(0, record.month - 1).toLocaleString('en-US', { month: 'long' }) : '-';
+    const recordYear = record.year || '-';
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Rent Slip - ${record.shopName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: white; color: #222; }
+          .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 20px; max-width: 700px; margin: 0 auto; }
+          .title { font-size: 20px; font-weight: 700; color: #0f766e; text-align: center; margin-bottom: 8px; }
+          .subtitle { font-size: 12px; color: #64748b; text-align: center; margin-bottom: 16px; }
+          .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; }
+          .label { font-weight: 600; color: #334155; }
+          .value { color: #0f172a; }
+          .footer { margin-top: 16px; text-align: center; font-size: 12px; color: #64748b; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="title">${siteTitle}</div>
+          <div class="subtitle">Rent Payment Slip</div>
+          <div class="row"><span class="label">Shop Name</span><span class="value">${record.shopName}</span></div>
+          <div class="row"><span class="label">Owner Name</span><span class="value">${record.ownerName}</span></div>
+          <div class="row"><span class="label">Month</span><span class="value">${recordMonth} ${recordYear}</span></div>
+          <div class="row"><span class="label">Payment Date</span><span class="value">${formatDate(record.date || record.buyDate)}</span></div>
+          <div class="row"><span class="label">Payment Status</span><span class="value">${record.paymentStatus}</span></div>
+          <div class="row"><span class="label">Paid Amount</span><span class="value">${formatCurrency(record.paymentAmount || 0)}</span></div>
+          <div class="row"><span class="label">Remaining Balance</span><span class="value">${formatCurrency(record.debtAmount || 0)}</span></div>
+          <div class="row"><span class="label">Monthly Rent</span><span class="value">${formatCurrency(record.monthlyRent || 0)}</span></div>
+          <div class="row"><span class="label">Note</span><span class="value">${record.note || '-'}</span></div>
+          ${siteAddress ? `<div class="footer">${siteAddress}</div>` : ''}
+          <div class="footer">Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '', 'width=800,height=700');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
     }
   }
 
@@ -369,6 +426,41 @@ export function ShopDetailsModal({ open, onOpenChange, shopData }: ShopDetailsMo
               </div>
             </div>
           </Card>
+
+          {history.length ? (
+            <Card className="p-6 border-amber-200 bg-amber-50">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="text-lg font-semibold text-amber-900">Monthly Payment History</h3>
+                <span className="text-sm font-medium text-amber-700">{history.length} record{history.length === 1 ? '' : 's'}</span>
+              </div>
+              <div className="space-y-3">
+                {[...history].sort((a, b) => ((Number(b.year || 0) * 100) + Number(b.month || 0)) - ((Number(a.year || 0) * 100) + Number(a.month || 0))).map((record) => (
+                  <div key={String(record._id)} className="rounded-2xl border border-amber-200 bg-white p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-slate-900">{record.month ? new Date(0, record.month - 1).toLocaleString('en-US', { month: 'long' }) : '-'} {record.year || '-'}</div>
+                        <div className="text-sm text-slate-500">Payment Date: {formatDate(record.date || record.buyDate)}</div>
+                      </div>
+                      <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${record.paymentStatus === 'Clear' ? 'bg-green-100 text-green-800' : record.paymentStatus === 'Due' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {record.paymentStatus}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <div><span className="font-medium text-slate-700">Paid Amount:</span> {formatCurrency(record.paymentAmount || 0)}</div>
+                      <div><span className="font-medium text-slate-700">Remaining Balance:</span> {formatCurrency(record.debtAmount || 0)}</div>
+                      <div><span className="font-medium text-slate-700">Monthly Rent:</span> {formatCurrency(record.monthlyRent || 0)}</div>
+                      <div><span className="font-medium text-slate-700">Note:</span> {record.note || '-'}</div>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button variant="outline" size="sm" onClick={() => printSlipForRecord(record)}>
+                        Print Slip
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : null}
 
           {/* Notes */}
           {shopData.note && (

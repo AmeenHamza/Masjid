@@ -128,6 +128,125 @@ export async function POST(request: Request, { params }: Params) {
     }
   }
 
+  if (collection === 'shop-records') {
+    const input = parsed.data as {
+      shopName: string;
+      ownerName: string;
+      month: number;
+      year: number;
+      paymentStatus: 'Clear' | 'Due' | 'Partial';
+      paymentAmount: number;
+      monthlyRent: number;
+      debtAmount: number;
+      buyDate?: string | Date;
+      rentHistory?: Record<string, Record<string, unknown>>;
+    };
+
+    const shopName = String(input.shopName ?? '').trim();
+    const ownerName = String(input.ownerName ?? '').trim();
+    const month = Number(input.month ?? 0);
+    const year = Number(input.year ?? 0);
+    const currentMonthlyRent = Number(input.monthlyRent ?? 0);
+    const paidAmount = Number(input.paymentAmount ?? 0);
+
+    if (!shopName || !ownerName) {
+      return apiError('Shop name and owner name are required.', 400);
+    }
+
+    const shopQuery = {
+      shopName: { $regex: `^${shopName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+      ownerName: { $regex: `^${ownerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+    };
+
+    const buyDate = input.buyDate ? new Date(String(input.buyDate)) : new Date();
+    if (!Number.isNaN(buyDate.getTime())) {
+      const startMonth = buyDate.getMonth() + 1;
+      const startYear = buyDate.getFullYear();
+      if (year < startYear || (year === startYear && month < startMonth)) {
+        return apiError('Selected month/year cannot be before the property start date.', 400);
+      }
+    }
+
+    const duplicate = await resource.model.findOne({
+      ...shopQuery,
+      month,
+      year
+    }).lean();
+
+    if (duplicate) {
+      return apiError(`A payment record for ${shopName} already exists for ${new Date(0, month - 1).toLocaleString('en-US', { month: 'long' })} ${year}.`, 409);
+    }
+
+    const priorRecords = await resource.model.find({
+      ...shopQuery,
+      $or: [
+        { year: { $lt: year } },
+        { year, month: { $lt: month } }
+      ]
+    }).sort({ year: 1, month: 1, createdAt: 1 }).lean() as Array<Record<string, unknown>>;
+
+    const rentHistoryEntries: Record<string, Record<string, unknown>> = {};
+
+    priorRecords.forEach((record) => {
+      const recordMonth = Number(record.month ?? 0);
+      const recordYear = Number(record.year ?? 0);
+      const key = `${recordYear}-${String(recordMonth).padStart(2, '0')}`;
+      rentHistoryEntries[key] = {
+        month: recordMonth,
+        year: recordYear,
+        rentAmount: Number(record.monthlyRent ?? 0),
+        paidAmount: Number(record.paymentAmount ?? 0),
+        remainingBalance: Number(record.debtAmount ?? 0),
+        status: String(record.paymentStatus ?? 'Due'),
+        paymentDate: String(record.date ?? record.buyDate ?? '')
+      };
+    });
+
+    const currentKey = `${year}-${String(month).padStart(2, '0')}`;
+    rentHistoryEntries[currentKey] = {
+      month,
+      year,
+      rentAmount: currentMonthlyRent,
+      paidAmount: 0,
+      remainingBalance: currentMonthlyRent,
+      status: 'Due',
+      paymentDate: new Date().toISOString().slice(0, 10)
+    };
+
+    const sortedHistoryKeys = Object.keys(rentHistoryEntries).sort((a, b) => a.localeCompare(b));
+    let remainingPayment = paidAmount;
+
+    sortedHistoryKeys.forEach((key) => {
+      const entry = rentHistoryEntries[key];
+      const rentAmount = Number(entry.rentAmount ?? 0);
+      const currentPaid = Number(entry.paidAmount ?? 0);
+      const outstanding = Math.max(0, rentAmount - currentPaid);
+
+      if (outstanding <= 0 || remainingPayment <= 0) {
+        return;
+      }
+
+      const appliedAmount = Math.min(outstanding, remainingPayment);
+      const nextPaid = currentPaid + appliedAmount;
+      const nextBalance = Math.max(0, rentAmount - nextPaid);
+      entry.paidAmount = nextPaid;
+      entry.remainingBalance = nextBalance;
+      entry.status = nextBalance === 0 ? 'Clear' : nextPaid > 0 ? 'Partial' : 'Due';
+      entry.paymentDate = String(entry.paymentDate || new Date().toISOString().slice(0, 10));
+      remainingPayment = Math.max(0, remainingPayment - appliedAmount);
+    });
+
+    const currentEntry = rentHistoryEntries[currentKey] as Record<string, unknown>;
+    const currentBalance = Number(currentEntry.remainingBalance ?? 0);
+    const currentStatus = currentBalance === 0 ? 'Clear' : (Number(currentEntry.paidAmount ?? 0) > 0 ? 'Partial' : 'Due');
+
+    (parsed.data as Record<string, unknown>).monthlyRent = currentMonthlyRent;
+    (parsed.data as Record<string, unknown>).debtAmount = currentBalance;
+    (parsed.data as Record<string, unknown>).paymentAmount = Number(currentEntry.paidAmount ?? 0);
+    (parsed.data as Record<string, unknown>).paymentStatus = currentStatus;
+    (parsed.data as Record<string, unknown>).rentHistory = rentHistoryEntries;
+  }
+
   try {
     const created = await resource.model.create({ ...parsed.data, addedBy: session.id });
     return json({ ok: true, item: created }, { status: 201 });

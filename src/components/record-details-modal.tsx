@@ -237,6 +237,17 @@ function formatHistoryDate(value: unknown) {
 
 export function RecordDetailsModal({ open, onOpenChange, title, record, fields, historyRecords = [] }: Props) {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const totals = useMemo(() => {
+    const t = { fajr: 0, zohar: 0, asr: 0, maghrib: 0, isha: 0 };
+    for (const entry of historyRecords) {
+      if (String(entry.fajrAttendance ?? '') === 'Present') t.fajr++;
+      if (String(entry.zoharAttendance ?? '') === 'Present') t.zohar++;
+      if (String(entry.asrAttendance ?? '') === 'Present') t.asr++;
+      if (String(entry.maghribAttendance ?? '') === 'Present') t.maghrib++;
+      if (String(entry.ishaAttendance ?? '') === 'Present') t.isha++;
+    }
+    return t;
+  }, [historyRecords]);
   const items = useMemo(() => {
     if (!record) return [] as DetailItem[];
 
@@ -410,7 +421,27 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
                 ))}
               </div>
             </Card>
-          ) : null}
+              ) : null}
+
+              {historyRecords.length > 0 ? (
+                <Card className="border-emerald-200 bg-emerald-50 p-6">
+                  <h3 className="mb-4 text-lg font-semibold text-emerald-900">Attendance Summary</h3>
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-5 text-sm text-slate-800">
+                    <div className="font-medium">Days Recorded</div>
+                    <div>{historyRecords.length}</div>
+                    <div className="font-medium">Fajr Present</div>
+                    <div>{totals.fajr}</div>
+                    <div className="font-medium">Zohar Present</div>
+                    <div>{totals.zohar}</div>
+                    <div className="font-medium">Asr Present</div>
+                    <div>{totals.asr}</div>
+                    <div className="font-medium">Maghrib Present</div>
+                    <div>{totals.maghrib}</div>
+                    <div className="font-medium">Isha Present</div>
+                    <div>{totals.isha}</div>
+                  </div>
+                </Card>
+              ) : null}
         </div>
 
         <DialogFooter className="sticky bottom-0 mt-6 gap-2 border-t bg-white pt-4">

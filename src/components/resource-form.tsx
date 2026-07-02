@@ -64,6 +64,8 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
   const { register, handleSubmit, reset, setValue, watch } = useForm<Record<string, unknown>>({ defaultValues });
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const [staffOptions, setStaffOptions] = useState<Array<{ name: string; role: string }>>([]);
+  const [showNewStaffInput, setShowNewStaffInput] = useState(false);
 
   const emptyValues = useMemo(() => buildEmptyValues(fields), [fields]);
   const normalizedDefaultValues = useMemo(() => normalizeDefaultValues(fields, defaultValues), [defaultValues, fields]);
@@ -75,6 +77,35 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
     reset(hasDefaults ? { ...emptyValues, ...normalizedDefaultValues } : emptyValues);
     setUploadErrors({});
   }, [emptyValues, normalizedDefaultValues, reset, resetToken]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadStaffs() {
+      try {
+        const res = await fetch('/api/admin/staff-records', { credentials: 'include' });
+        const payload = await res.json().catch(() => null) as { items?: Record<string, unknown>[] } | null;
+        if (!mounted || !payload?.items) return;
+
+        const map = new Map<string, string>();
+        for (const item of payload.items) {
+          const name = String(item.staffName ?? '').trim();
+          const role = String(item.role ?? '').trim();
+          if (!name) continue;
+          if (!map.has(name)) {
+            map.set(name, role || '');
+          }
+        }
+
+        const arr = Array.from(map.entries()).map(([name, role]) => ({ name, role }));
+        setStaffOptions(arr);
+      } catch {
+        setStaffOptions([]);
+      }
+    }
+
+    void loadStaffs();
+    return () => { mounted = false; };
+  }, []);
 
   async function handleMediaUpload(fieldName: string, file: File | null) {
     if (!file) {
@@ -221,6 +252,47 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
                 />
                 <input type="hidden" {...register(field.name)} />
               </div>
+            </label>
+          );
+        }
+
+        if (field.name === 'staffName' && field.type === 'text') {
+          return (
+            <label key={field.name} className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">{field.label}</div>
+              <select
+                {...register(field.name, {
+                  onChange: (e: any) => {
+                    const val = String(e.target.value ?? '');
+                    if (val === '__new__') {
+                      setShowNewStaffInput(true);
+                      setValue(field.name, '', { shouldDirty: true, shouldTouch: true });
+                      setValue('role', '', { shouldDirty: true, shouldTouch: true });
+                      return;
+                    }
+                    setShowNewStaffInput(false);
+                    setValue(field.name, val, { shouldDirty: true, shouldTouch: true });
+                    const found = staffOptions.find((s) => s.name === val);
+                    if (found && found.role) {
+                      setValue('role', found.role, { shouldDirty: true, shouldTouch: true });
+                    }
+                  }
+                })}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                disabled={isDisabled}
+              >
+                <option value="">Select...</option>
+                {staffOptions.map((opt) => (
+                  <option key={opt.name} value={opt.name}>{opt.name}{opt.role ? ` — ${opt.role}` : ''}</option>
+                ))}
+                <option value="__new__">Add new...</option>
+              </select>
+
+              {showNewStaffInput ? (
+                <div className="mt-2">
+                  <Input type="text" placeholder="Enter new staff name" {...register(field.name)} className="w-full" disabled={isDisabled} />
+                </div>
+              ) : null}
             </label>
           );
         }

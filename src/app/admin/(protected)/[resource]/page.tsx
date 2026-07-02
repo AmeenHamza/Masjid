@@ -32,6 +32,29 @@ function formatDateValue(value: unknown) {
   }).format(date);
 }
 
+function getShopKey(record: Record<string, unknown> | null | undefined) {
+  if (!record || typeof record !== 'object') {
+    return '';
+  }
+
+  const shopName = String((record as Record<string, unknown>).shopName ?? '').trim();
+  const ownerName = String((record as Record<string, unknown>).ownerName ?? '').trim();
+  return [shopName, ownerName].filter(Boolean).join('|');
+}
+
+function getLatestShopRecord(records: Record<string, unknown>[], shopKey: string) {
+  const matches = records.filter((record) => getShopKey(record) === shopKey);
+  return matches.sort((a, b) => ((Number(b.year || 0) * 100) + Number(b.month || 0)) - ((Number(a.year || 0) * 100) + Number(a.month || 0)))[0];
+}
+
+function getNextMonthYear(month: number, year: number) {
+  if (month === 12) {
+    return { month: 1, year: year + 1 };
+  }
+
+  return { month: month + 1, year };
+}
+
 function getNewRecordDefaults(resourceKey: string) {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -111,6 +134,7 @@ export default function AdminResourcePage() {
   const [selectedForDetails, setSelectedForDetails] = useState<Record<string, unknown> | null>(null);
   const [detailsHistoryRecords, setDetailsHistoryRecords] = useState<Record<string, unknown>[]>([]);
   const [disabledFields, setDisabledFields] = useState<string[]>([]);
+  const [newStaffMode, setNewStaffMode] = useState(false);
   const [paymentShopId, setPaymentShopId] = useState<string>('');
   const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
   const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
@@ -139,14 +163,19 @@ export default function AdminResourcePage() {
     }
   }
 
-  function handlePaymentShopChange(shopId: string) {
-    setPaymentShopId(shopId);
-    const shop = items.find((record) => String(record._id ?? '') === shopId);
+  function handlePaymentShopChange(shopKey: string) {
+    setPaymentShopId(shopKey);
+    const latestShopRecord = getLatestShopRecord(items, shopKey);
+    const shop = latestShopRecord as Record<string, unknown> | undefined;
     setPaymentAmount(shop ? String(shop.monthlyRent ?? '') : '');
     setPaymentStatusForShop(shop ? (String(shop.paymentStatus || 'Clear') as 'Clear' | 'Due' | 'Partial') : 'Clear');
     setPaymentNote('');
-    setPaymentMonth(new Date().getMonth() + 1);
-    setPaymentYear(new Date().getFullYear());
+    const now = new Date();
+    const defaultMonth = Number(shop?.month || now.getMonth() + 1);
+    const defaultYear = Number(shop?.year || now.getFullYear());
+    const nextMonthYear = getNextMonthYear(defaultMonth, defaultYear);
+    setPaymentMonth(shop ? nextMonthYear.month : now.getMonth() + 1);
+    setPaymentYear(shop ? nextMonthYear.year : now.getFullYear());
     setPaymentError(null);
   }
 
@@ -155,14 +184,17 @@ export default function AdminResourcePage() {
     setPaymentError(null);
     setIsPaymentSubmitting(true);
 
-    const shop = items.find((record) => String(record._id ?? '') === paymentShopId);
+    const latestShopRecord = getLatestShopRecord(items, paymentShopId);
+    const shop = latestShopRecord as Record<string, unknown> | undefined;
     if (!shop) {
       setPaymentError('Please select a valid shop.');
       setIsPaymentSubmitting(false);
       return;
     }
 
-    const currentDebt = Number(shop.debtAmount ?? 0);
+    const previousDebt = Number(shop.debtAmount ?? 0);
+    const currentMonthlyRent = Number(shop.monthlyRent || 0);
+    const totalDueBeforePayment = previousDebt + currentMonthlyRent;
     const paidAmount = Number(paymentAmount || 0);
 
     if (paymentStatusForShop === 'Partial' && (Number.isNaN(paidAmount) || paidAmount <= 0)) {
@@ -171,24 +203,50 @@ export default function AdminResourcePage() {
       return;
     }
 
-    const newDebt = paymentStatusForShop === 'Clear'
-      ? 0
-      : paymentStatusForShop === 'Partial'
-        ? Math.max(0, currentDebt - paidAmount)
-        : currentDebt;
+    let computedStatus: 'Clear' | 'Due' | 'Partial' = paymentStatusForShop;
+    let computedDebt = totalDueBeforePayment;
+    let paymentAmountToSave = 0;
+
+    if (paymentStatusForShop === 'Clear') {
+      computedStatus = 'Clear';
+      computedDebt = 0;
+      paymentAmountToSave = totalDueBeforePayment;
+    } else if (paymentStatusForShop === 'Partial') {
+      if (paidAmount >= totalDueBeforePayment) {
+        computedStatus = 'Clear';
+        computedDebt = 0;
+        paymentAmountToSave = totalDueBeforePayment;
+      } else {
+        computedStatus = 'Partial';
+        computedDebt = totalDueBeforePayment - paidAmount;
+        paymentAmountToSave = paidAmount;
+      }
+    } else {
+      computedStatus = 'Due';
+      computedDebt = totalDueBeforePayment;
+      paymentAmountToSave = 0;
+    }
 
     const payload = {
+      shopName: String(shop.shopName || ''),
+      ownerName: String(shop.ownerName || ''),
+      contactNumber: String(shop.contactNumber || ''),
+      buyDate: shop.buyDate ?? new Date().toISOString().slice(0, 10),
+      buyRate: Number(shop.buyRate || 0),
+      debtAmount: computedDebt,
+      monthlyRent: currentMonthlyRent,
+      monthsDue: Number(shop.monthsDue || 0),
       month: paymentMonth,
       year: paymentYear,
-      paymentStatus: paymentStatusForShop,
-      debtAmount: newDebt,
+      paymentStatus: computedStatus,
+      paymentAmount: paymentAmountToSave,
       note: paymentNote?.trim() ? String(paymentNote).trim() : String(shop.note ?? ''),
       date: new Date().toISOString().slice(0, 10)
     };
 
     try {
-      const response = await fetch(`${currentResource.apiPath}/${paymentShopId}`, {
-        method: 'PATCH',
+      const response = await fetch(currentResource.apiPath, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         credentials: 'include'
@@ -207,6 +265,8 @@ export default function AdminResourcePage() {
       setPaymentAmount('');
       setPaymentStatusForShop('Clear');
       setPaymentNote('');
+      setPaymentMonth(new Date().getMonth() + 1);
+      setPaymentYear(new Date().getFullYear());
       setPaymentError(null);
       toast.success(tToast('updatedSuccessfully'));
     } catch {
@@ -302,7 +362,53 @@ export default function AdminResourcePage() {
 
   const currentResource = resource;
   const isSettingsResource = currentResource.key === 'settings';
-  const selectedPaymentShop = items.find((record) => String(record._id ?? '') === paymentShopId);
+  const selectedPaymentShop = getLatestShopRecord(items, paymentShopId) as Record<string, unknown> | undefined;
+  const currentDueAmount = Number(selectedPaymentShop?.debtAmount ?? 0) + Number(selectedPaymentShop?.monthlyRent ?? 0);
+  const managingResourcesText = t('managingResources', { resource: currentResource.title.toLowerCase() });
+  const selectedPaymentMonthLabel = paymentMonth ? new Date(0, paymentMonth - 1).toLocaleString('en-US', { month: 'long' }) : '-';
+  const shopSummaryItems = useMemo(() => {
+    const grouped = new Map<string, Record<string, unknown>>();
+
+    items.forEach((record) => {
+      const key = getShopKey(record);
+      if (!key) return;
+
+      const existing = grouped.get(key);
+      const currentRank = Number(record.year || 0) * 100 + Number(record.month || 0);
+      const existingRank = existing ? Number(existing.year || 0) * 100 + Number(existing.month || 0) : -1;
+
+      if (!existing || currentRank > existingRank) {
+        grouped.set(key, record);
+      }
+    });
+
+    return Array.from(grouped.values()).sort((a, b) => {
+      const aRank = Number(a.year || 0) * 100 + Number(a.month || 0);
+      const bRank = Number(b.year || 0) * 100 + Number(b.month || 0);
+      return bRank - aRank;
+    });
+  }, [items]);
+
+  const staffSummaryItems = useMemo(() => {
+    const grouped = new Map<string, Record<string, unknown>>();
+
+    items.forEach((record) => {
+      const name = String(record.staffName ?? '').trim();
+      const role = String(record.role ?? '').trim();
+      if (!name) return;
+      const key = `${name}|${role}`;
+
+      const existing = grouped.get(key);
+      const currentRank = new Date(String(record.dateKey ?? record.createdAt ?? 0)).getTime();
+      const existingRank = existing ? new Date(String(existing.dateKey ?? existing.createdAt ?? 0)).getTime() : -1;
+
+      if (!existing || currentRank > existingRank) {
+        grouped.set(key, record);
+      }
+    });
+
+    return Array.from(grouped.values()).sort((a, b) => new Date(String(b.dateKey ?? b.createdAt ?? 0)).getTime() - new Date(String(a.dateKey ?? a.createdAt ?? 0)).getTime());
+  }, [items]);
 
   async function save(values: Record<string, unknown>) {
     setSaving(true);
@@ -347,6 +453,7 @@ export default function AdminResourcePage() {
 
       setSelected(undefined);
       setDisabledFields([]);
+      setNewStaffMode(false);
       await loadItems();
       if (!isSettingsResource) {
         setFormResetToken((current) => current + 1);
@@ -382,15 +489,20 @@ export default function AdminResourcePage() {
       <div className="flex flex-col gap-4 rounded-3xl border border-emerald-900/10 bg-white/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{resource.title}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600">{t('managingResources').replace('{{resource}}', currentResource.title.toLowerCase())}</p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600">{managingResourcesText}</p>
         </div>
         {!isSettingsResource ? <Button onClick={() => {
           if (currentResource.key === 'staff-records') {
-            setSelected(getNewRecordDefaults('staff-records'));
+            const defaults = getNewRecordDefaults('staff-records');
+            setSelected(defaults);
+            const toDisable = currentResource.fields.map((f) => f.name).filter((n) => !['staffName', 'role'].includes(n));
+            setDisabledFields(toDisable);
+            setNewStaffMode(true);
           } else {
             setSelected(getNewRecordDefaults(currentResource.key));
+            setDisabledFields([]);
+            setNewStaffMode(false);
           }
-          setDisabledFields([]);
         }} className="w-full sm:w-auto">{t('newRecord')}</Button> : null}
       </div>
 
@@ -415,15 +527,19 @@ export default function AdminResourcePage() {
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
                 >
                   <option value="">Select a shop</option>
-                  {items.map((shop) => (
-                    <option key={String(shop._id)} value={String(shop._id)}>{String(shop.shopName || '-')}{shop.ownerName ? ` — ${String(shop.ownerName)}` : ''}</option>
-                  ))}
+                  {Array.from(new Map(items.map((shop) => [getShopKey(shop), shop])).values()).map((shop) => {
+                    const shopKey = getShopKey(shop);
+                    return (
+                      <option key={shopKey} value={shopKey}>{String(shop.shopName || '-')}{shop.ownerName ? ` — ${String(shop.ownerName)}` : ''}</option>
+                    );
+                  })}
                 </select>
               </label>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Previous Due</div>
-                <div className="mt-2 text-xl font-black text-slate-900">{formatCurrency(Number(selectedPaymentShop?.debtAmount ?? 0))}</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Current Due</div>
+                <div className="mt-2 text-xl font-black text-slate-900">{formatCurrency(currentDueAmount)}</div>
+                <div className="mt-2 text-sm text-slate-600">Entry will be saved for {selectedPaymentMonthLabel} {paymentYear}</div>
               </div>
             </div>
 
@@ -556,6 +672,7 @@ export default function AdminResourcePage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
+                          const shopHistory = items.filter((record) => getShopKey(record) === getShopKey(row.original));
                           setSelectedShopForDetails(row.original);
                           setShopDetailsOpen(true);
                         }}
@@ -605,6 +722,7 @@ export default function AdminResourcePage() {
                             note: ''
                           });
                           setDisabledFields(['staffName', 'role']);
+                          setNewStaffMode(false);
                         }}
                       >
                         Add Attendance
@@ -613,6 +731,7 @@ export default function AdminResourcePage() {
                       <Button variant="outline" size="sm" onClick={() => {
                         setSelected(row.original);
                         setDisabledFields([]);
+                        setNewStaffMode(false);
                       }}>{tCommon('edit')}</Button>
                     )}
                     <Button
@@ -627,7 +746,13 @@ export default function AdminResourcePage() {
                 )
               }
             ]}
-            data={items}
+            data={
+              resource?.key === 'shop-records' ? shopSummaryItems : (
+                resource?.key === 'staff-records'
+                  ? (newStaffMode && selected ? [selected] : staffSummaryItems)
+                  : items
+              )
+            }
             searchKey={currentResource.searchKeys[0]}
           />
           {resource?.key === 'shop-records' && (
@@ -635,6 +760,7 @@ export default function AdminResourcePage() {
               open={shopDetailsOpen}
               onOpenChange={setShopDetailsOpen}
               shopData={selectedShopForDetails as any}
+              history={items.filter((record) => getShopKey(record) === getShopKey(selectedShopForDetails as Record<string, unknown>)) as any[]}
             />
           )}
           {resource?.key !== 'shop-records' && (
