@@ -120,6 +120,7 @@ export default function AdminResourcePage() {
       return { mediaType: 'image', order: 0 };
     }
 
+    
     if (resourceKey === 'hero-slides') {
       return { order: 0, active: true };
     }
