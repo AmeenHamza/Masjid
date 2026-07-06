@@ -132,8 +132,6 @@ export const adminResources: ResourceConfig[] = [
       { name: 'ownerName', label: 'Owner Name', type: 'text' },
       { name: 'contactNumber', label: 'Contact Number', type: 'text' },
       { name: 'date', label: 'Date', type: 'date' },
-      { name: 'buyDate', label: 'Buy Date', type: 'date' },
-      { name: 'buyRate', label: 'Buy Rate (Rs)', type: 'number' },
       { name: 'debtAmount', label: 'Debt Amount', type: 'number' },
       { name: 'monthlyRent', label: 'Monthly Rent (Rs)', type: 'number' },
       {

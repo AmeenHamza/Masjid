@@ -231,8 +231,6 @@ export default function AdminResourcePage() {
       shopName: String(shop.shopName || ''),
       ownerName: String(shop.ownerName || ''),
       contactNumber: String(shop.contactNumber || ''),
-      buyDate: shop.buyDate ?? new Date().toISOString().slice(0, 10),
-      buyRate: Number(shop.buyRate || 0),
       debtAmount: computedDebt,
       monthlyRent: currentMonthlyRent,
       monthsDue: Number(shop.monthsDue || 0),

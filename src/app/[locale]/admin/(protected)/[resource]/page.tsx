@@ -127,10 +127,8 @@ export default function AdminResourcePage() {
     if (resourceKey === 'shop-records') {
       return {
         date: todayKey,
-        buyDate: todayKey,
         monthsDue: 0,
         paymentStatus: 'Clear',
-        buyRate: 0,
         debtAmount: 0,
         monthlyRent: 0,
         month: currentMonth,
