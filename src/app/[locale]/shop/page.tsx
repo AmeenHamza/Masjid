@@ -35,11 +35,15 @@ function normalizeYear(value: unknown, fallback: number) {
     return fallback;
   }
 
+  if (parsed === 0) {
+    return 0;
+  }
+
   if (parsed >= 1900) {
     return parsed;
   }
 
-  if (parsed >= 0 && parsed < 100) {
+  if (parsed > 0 && parsed < 100) {
     return 2000 + parsed;
   }
 
