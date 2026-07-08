@@ -11,6 +11,7 @@ import { getResourceConfig } from '@/lib/admin-ui';
 import { ResourceForm } from '@/components/resource-form';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/utils';
 import { ShopDetailsModal } from '@/components/shop-details-modal';
 import { RecordDetailsModal } from '@/components/record-details-modal';
@@ -20,15 +21,19 @@ function formatDateValue(value: unknown) {
     return '-';
   }
 
-  const date = new Date(String(value));
+  const rawValue = String(value).trim();
+  const isDateKey = /^\d{4}-\d{2}-\d{2}$/.test(rawValue);
+  const date = isDateKey ? new Date(`${rawValue}T00:00:00Z`) : new Date(rawValue);
+
   if (Number.isNaN(date.getTime())) {
-    return String(value);
+    return rawValue;
   }
 
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: isDateKey ? 'UTC' : undefined
   }).format(date);
 }
 
@@ -47,6 +52,15 @@ function getLatestShopRecord(records: Record<string, unknown>[], shopKey: string
   return matches.sort((a, b) => ((Number(b.year || 0) * 100) + Number(b.month || 0)) - ((Number(a.year || 0) * 100) + Number(a.month || 0)))[0];
 }
 
+function getShopRecordForMonthYear(records: Record<string, unknown>[], shopKey: string, month: number, year: number) {
+  const matches = records.filter((record) =>
+    getShopKey(record) === shopKey &&
+    Number(record.month || 0) === month &&
+    Number(record.year || 0) === year
+  );
+  return matches.sort((a, b) => ((Number(b.year || 0) * 100) + Number(b.month || 0)) - ((Number(a.year || 0) * 100) + Number(a.month || 0)))[0];
+}
+
 function getNextMonthYear(month: number, year: number) {
   if (month === 12) {
     return { month: 1, year: year + 1 };
@@ -62,15 +76,11 @@ function getNewRecordDefaults(resourceKey: string) {
   const todayKey = now.toISOString().slice(0, 10);
 
   if (resourceKey === 'income-records' || resourceKey === 'expense-records' || resourceKey === 'donations' || resourceKey === 'ramadan-donations' || resourceKey === 'ramadan-expenses') {
-    if (resourceKey === 'income-records') {
+    if (resourceKey === 'income-records' || resourceKey === 'expense-records') {
       return { date: todayKey, month: currentMonth, year: currentYear, amount: 0 };
     }
 
-    if (resourceKey === 'donations' || resourceKey === 'ramadan-donations' || resourceKey === 'ramadan-expenses') {
-      return { date: todayKey, month: currentMonth, year: currentYear, amount: 0 };
-    }
-
-    return { month: currentMonth, year: currentYear, amount: 0 };
+    return { date: todayKey, month: currentMonth, year: currentYear, amount: 0 };
   }
 
   if (resourceKey === 'fitrah-records') {
@@ -116,6 +126,16 @@ function getNewRecordDefaults(resourceKey: string) {
   return {};
 }
 
+function prayerRecordSortRank(record: Record<string, unknown>) {
+  const dateKey = String(record.dateKey ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    return new Date(`${dateKey}T00:00:00Z`).getTime();
+  }
+
+  const createdAt = new Date(String(record.createdAt ?? 0)).getTime();
+  return Number.isNaN(createdAt) ? 0 : createdAt;
+}
+
 export default function AdminResourcePage() {
   const params = useParams<{ resource: string }>();
   const resource = getResourceConfig(params.resource);
@@ -128,6 +148,7 @@ export default function AdminResourcePage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formResetToken, setFormResetToken] = useState(0);
+  const [prayerTimesDialogOpen, setPrayerTimesDialogOpen] = useState(false);
   const [shopDetailsOpen, setShopDetailsOpen] = useState(false);
   const [selectedShopForDetails, setSelectedShopForDetails] = useState<Record<string, unknown> | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -139,7 +160,6 @@ export default function AdminResourcePage() {
   const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
   const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
   const [paymentAmount, setPaymentAmount] = useState<string>('');
-  const [paymentStatusForShop, setPaymentStatusForShop] = useState<'Clear' | 'Due' | 'Partial'>('Clear');
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
@@ -168,7 +188,6 @@ export default function AdminResourcePage() {
     const latestShopRecord = getLatestShopRecord(items, shopKey);
     const shop = latestShopRecord as Record<string, unknown> | undefined;
     setPaymentAmount(shop ? String(shop.monthlyRent ?? '') : '');
-    setPaymentStatusForShop(shop ? (String(shop.paymentStatus || 'Clear') as 'Clear' | 'Due' | 'Partial') : 'Clear');
     setPaymentNote('');
     const now = new Date();
     const defaultMonth = Number(shop?.month || now.getMonth() + 1);
@@ -197,40 +216,30 @@ export default function AdminResourcePage() {
     const totalDueBeforePayment = previousDebt + currentMonthlyRent;
     const paidAmount = Number(paymentAmount || 0);
 
-    if (paymentStatusForShop === 'Partial' && (Number.isNaN(paidAmount) || paidAmount <= 0)) {
-      setPaymentError('Please enter a valid payment amount for partial status.');
-      setIsPaymentSubmitting(false);
-      return;
-    }
-
-    let computedStatus: 'Clear' | 'Due' | 'Partial' = paymentStatusForShop;
+    let computedStatus: 'Clear' | 'Due' | 'Partial';
     let computedDebt = totalDueBeforePayment;
     let paymentAmountToSave = 0;
 
-    if (paymentStatusForShop === 'Clear') {
-      computedStatus = 'Clear';
-      computedDebt = 0;
-      paymentAmountToSave = totalDueBeforePayment;
-    } else if (paymentStatusForShop === 'Partial') {
-      if (paidAmount >= totalDueBeforePayment) {
-        computedStatus = 'Clear';
-        computedDebt = 0;
-        paymentAmountToSave = totalDueBeforePayment;
-      } else {
-        computedStatus = 'Partial';
-        computedDebt = totalDueBeforePayment - paidAmount;
-        paymentAmountToSave = paidAmount;
-      }
-    } else {
+    if (paidAmount <= 0) {
       computedStatus = 'Due';
       computedDebt = totalDueBeforePayment;
       paymentAmountToSave = 0;
+    } else if (paidAmount >= totalDueBeforePayment) {
+      computedStatus = 'Clear';
+      computedDebt = 0;
+      paymentAmountToSave = totalDueBeforePayment;
+    } else {
+      computedStatus = 'Partial';
+      computedDebt = totalDueBeforePayment - paidAmount;
+      paymentAmountToSave = paidAmount;
     }
 
     const payload = {
       shopName: String(shop.shopName || ''),
       ownerName: String(shop.ownerName || ''),
       contactNumber: String(shop.contactNumber || ''),
+      buyDate: String(shop.buyDate ?? shop.date ?? new Date().toISOString().slice(0, 10)),
+      buyRate: Number(shop.buyRate ?? 0),
       debtAmount: computedDebt,
       monthlyRent: currentMonthlyRent,
       monthsDue: Number(shop.monthsDue || 0),
@@ -239,7 +248,7 @@ export default function AdminResourcePage() {
       paymentStatus: computedStatus,
       paymentAmount: paymentAmountToSave,
       note: paymentNote?.trim() ? String(paymentNote).trim() : String(shop.note ?? ''),
-      date: new Date().toISOString().slice(0, 10)
+      date: String(shop.date ?? shop.buyDate ?? new Date().toISOString().slice(0, 10))
     };
 
     try {
@@ -261,7 +270,6 @@ export default function AdminResourcePage() {
       setShopDetailsOpen(true);
       setPaymentShopId('');
       setPaymentAmount('');
-      setPaymentStatusForShop('Clear');
       setPaymentNote('');
       setPaymentMonth(new Date().getMonth() + 1);
       setPaymentYear(new Date().getFullYear());
@@ -360,10 +368,18 @@ export default function AdminResourcePage() {
 
   const currentResource = resource;
   const isSettingsResource = currentResource.key === 'settings';
+  const isPrayerTimesResource = currentResource.key === 'prayer-times';
   const selectedPaymentShop = getLatestShopRecord(items, paymentShopId) as Record<string, unknown> | undefined;
   const currentDueAmount = Number(selectedPaymentShop?.debtAmount ?? 0) + Number(selectedPaymentShop?.monthlyRent ?? 0);
   const managingResourcesText = t('managingResources', { resource: currentResource.title.toLowerCase() });
   const selectedPaymentMonthLabel = paymentMonth ? new Date(0, paymentMonth - 1).toLocaleString('en-US', { month: 'long' }) : '-';
+  const latestPrayerTimesRecord = useMemo(() => {
+    if (!isPrayerTimesResource) {
+      return undefined;
+    }
+
+    return [...items].sort((a, b) => prayerRecordSortRank(b) - prayerRecordSortRank(a))[0];
+  }, [isPrayerTimesResource, items]);
   const shopSummaryItems = useMemo(() => {
     const grouped = new Map<string, Record<string, unknown>>();
 
@@ -434,6 +450,10 @@ export default function AdminResourcePage() {
       })
     );
 
+    if (currentResource.key === 'shop-records' && isUpdate && selected && !Object.prototype.hasOwnProperty.call(normalizedValues, 'buyDate') && selected.buyDate) {
+      (normalizedValues as Record<string, unknown>).buyDate = selected.buyDate;
+    }
+
     try {
       const method = isUpdate ? 'PATCH' : 'POST';
       const path = isUpdate ? `${currentResource.apiPath}/${selected?._id}` : currentResource.apiPath;
@@ -452,6 +472,7 @@ export default function AdminResourcePage() {
       setSelected(undefined);
       setDisabledFields([]);
       setNewStaffMode(false);
+      setPrayerTimesDialogOpen(false);
       await loadItems();
       if (!isSettingsResource) {
         setFormResetToken((current) => current + 1);
@@ -468,9 +489,30 @@ export default function AdminResourcePage() {
     setDeletingId(id);
 
     try {
-      const response = await fetch(`${currentResource.apiPath}/${id}`, { method: 'DELETE', credentials: 'include' });
-      if (!response.ok) {
-        throw new Error('Delete failed');
+      if (currentResource.key === 'shop-records') {
+        const shopRecord = items.find((item) => String(item._id ?? '') === id);
+        const shopKey = getShopKey(shopRecord);
+        const shopIds = shopKey
+          ? items
+              .filter((item) => getShopKey(item) === shopKey)
+              .map((item) => String(item._id ?? ''))
+              .filter(Boolean)
+          : [id];
+
+        const deleteResponses = await Promise.all(
+          shopIds.map((shopId) =>
+            fetch(`${currentResource.apiPath}/${shopId}`, { method: 'DELETE', credentials: 'include' })
+          )
+        );
+
+        if (deleteResponses.some((response) => !response.ok)) {
+          throw new Error('Delete failed');
+        }
+      } else {
+        const response = await fetch(`${currentResource.apiPath}/${id}`, { method: 'DELETE', credentials: 'include' });
+        if (!response.ok) {
+          throw new Error('Delete failed');
+        }
       }
 
       await loadItems();
@@ -489,20 +531,66 @@ export default function AdminResourcePage() {
           <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{resource.title}</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">{managingResourcesText}</p>
         </div>
-        {!isSettingsResource ? <Button onClick={() => {
-          if (currentResource.key === 'staff-records') {
-            const defaults = getNewRecordDefaults('staff-records');
-            setSelected(defaults);
-            const toDisable = currentResource.fields.map((f) => f.name).filter((n) => !['staffName', 'role'].includes(n));
-            setDisabledFields(toDisable);
-            setNewStaffMode(true);
-          } else {
-            setSelected(getNewRecordDefaults(currentResource.key));
-            setDisabledFields([]);
-            setNewStaffMode(false);
-          }
-        }} className="w-full sm:w-auto">{t('newRecord')}</Button> : null}
+        {!isSettingsResource ? (
+          isPrayerTimesResource ? (
+            <Button
+              onClick={() => {
+                setSelected(latestPrayerTimesRecord ?? getNewRecordDefaults(currentResource.key));
+                setPrayerTimesDialogOpen(true);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Change Period Time
+            </Button>
+          ) : (
+            <Button onClick={() => {
+              if (currentResource.key === 'staff-records') {
+                const defaults = getNewRecordDefaults('staff-records');
+                setSelected(defaults);
+                const toDisable = currentResource.fields.map((f) => f.name).filter((n) => !['staffName', 'role'].includes(n));
+                setDisabledFields(toDisable);
+                setNewStaffMode(true);
+              } else {
+                setSelected(getNewRecordDefaults(currentResource.key));
+                setDisabledFields([]);
+                setNewStaffMode(false);
+              }
+            }} className="w-full sm:w-auto">{t('newRecord')}</Button>
+          )
+        ) : null}
       </div>
+
+      {isPrayerTimesResource ? (
+        <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Current Prayer Times</h2>
+          </div>
+          {latestPrayerTimesRecord ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Date</div>
+                <div className="mt-2 text-xl font-black text-slate-900">{formatDateValue(latestPrayerTimesRecord.dateKey)}</div>
+              </div>
+              {(['fajr', 'zohar', 'asr', 'maghrib', 'isha', 'juma'] as const).map((key) => (
+                <div key={key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{key.toUpperCase()}</div>
+                  <div className="mt-2 text-xl font-black text-slate-900">{String(latestPrayerTimesRecord[key] ?? '-')}</div>
+                </div>
+              ))}
+              {latestPrayerTimesRecord.notes ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2 xl:col-span-3">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Notes</div>
+                  <div className="mt-2 whitespace-pre-wrap text-slate-900">{String(latestPrayerTimesRecord.notes)}</div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+              No prayer times saved yet. Use Change Period Time to create the first record.
+            </div>
+          )}
+        </Card>
+      ) : null}
 
       {currentResource.key === 'shop-records' ? (
         <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
@@ -564,10 +652,8 @@ export default function AdminResourcePage() {
                   onChange={(event) => setPaymentAmount(event.target.value)}
                   type="number"
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
-                  required={paymentStatusForShop === 'Partial'}
                 />
               </label>
-
               <label className="min-w-0">
                 <div className="mb-2 text-sm font-semibold">Month</div>
                 <select
@@ -593,18 +679,6 @@ export default function AdminResourcePage() {
                 />
               </label>
 
-              <label className="min-w-0">
-                <div className="mb-2 text-sm font-semibold">Payment Status</div>
-                <select
-                  value={paymentStatusForShop}
-                  onChange={(event) => setPaymentStatusForShop(event.target.value as 'Clear' | 'Due' | 'Partial')}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
-                >
-                  <option value="Clear">Clear</option>
-                  <option value="Partial">Partial</option>
-                  <option value="Due">Due</option>
-                </select>
-              </label>
             </div>
 
             <label className="block">
@@ -629,25 +703,47 @@ export default function AdminResourcePage() {
         </Card>
       ) : null}
 
-      <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">{isSettingsResource ? t('viewRecord') : (selected?._id ? t('editRecord') : t('createRecord'))}</h2>
-          {saving ? (
-            <span className="inline-flex items-center gap-2 text-sm text-emerald-700">
-              <Loader2 className="h-4 w-4 animate-spin" /> {t('saving')}
-            </span>
-          ) : null}
-        </div>
-        <ResourceForm
-          fields={currentResource.fields}
-          defaultValues={selected}
-          onSubmit={save}
-          isSubmitting={saving}
-          resetToken={formResetToken}
-          disabledFields={disabledFields}
-          submitLabel={isSettingsResource ? t('update') : (selected?._id ? t('update') : tCommon('save'))}
-        />
-      </Card>
+      {isPrayerTimesResource ? null : (
+        <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">{isSettingsResource ? t('viewRecord') : (selected?._id ? t('editRecord') : t('createRecord'))}</h2>
+            {saving ? (
+              <span className="inline-flex items-center gap-2 text-sm text-emerald-700">
+                <Loader2 className="h-4 w-4 animate-spin" /> {t('saving')}
+              </span>
+            ) : null}
+          </div>
+          <ResourceForm
+            fields={currentResource.fields}
+            defaultValues={selected}
+            onSubmit={save}
+            isSubmitting={saving}
+            resetToken={formResetToken}
+            disabledFields={disabledFields}
+            submitLabel={isSettingsResource ? t('update') : (selected?._id ? t('update') : tCommon('save'))}
+          />
+        </Card>
+      )}
+
+      {isPrayerTimesResource ? (
+        <Dialog open={prayerTimesDialogOpen} onOpenChange={setPrayerTimesDialogOpen}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{selected?._id ? 'Update Prayer Times' : 'Create Prayer Times'}</DialogTitle>
+              <DialogDescription>Update the single active prayer timing record for the site.</DialogDescription>
+            </DialogHeader>
+            <ResourceForm
+              fields={currentResource.fields}
+              defaultValues={selected}
+              onSubmit={save}
+              isSubmitting={saving}
+              resetToken={formResetToken}
+              disabledFields={disabledFields}
+              submitLabel={selected?._id ? 'Update' : 'Save'}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       {!isSettingsResource && loading ? (
         <Card className="flex items-center justify-center py-12">
@@ -655,7 +751,7 @@ export default function AdminResourcePage() {
             <Loader2 className="h-4 w-4 animate-spin" /> {t('loadingRecords')}
           </div>
         </Card>
-      ) : !isSettingsResource && columns.length ? (
+      ) : !isSettingsResource && !isPrayerTimesResource && columns.length ? (
         <>
           <DataTable
             columns={[

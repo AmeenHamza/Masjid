@@ -31,7 +31,19 @@ function normalizeMonth(value: unknown, fallback: number) {
 
 function normalizeYear(value: unknown, fallback: number) {
   const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 1900 ? parsed : fallback;
+  if (!Number.isInteger(parsed)) {
+    return fallback;
+  }
+
+  if (parsed >= 1900) {
+    return parsed;
+  }
+
+  if (parsed >= 0 && parsed < 100) {
+    return 2000 + parsed;
+  }
+
+  return fallback;
 }
 
 function normalizeShopName(value: unknown, fallback: string | null) {
@@ -80,8 +92,14 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
 
   const shopNames = Array.from(new Set(allRecords.map((item: any) => String(item.shopName || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
   const years = Array.from(new Set(allRecords
-    .filter((item: any) => !selectedShopName || String(item.shopName || '').trim() === selectedShopName)
+    .filter((item: any) =>
+      (!selectedShopName || String(item.shopName || '').trim() === selectedShopName)
+    )
     .map((item: any) => getShopRecordYear(item) || new Date().getFullYear()))).filter((year) => Number.isInteger(year)).sort((a, b) => b - a);
+  if (selectedYear && !years.includes(selectedYear)) {
+    years.push(selectedYear);
+    years.sort((a, b) => b - a);
+  }
   const records = allRecords.filter((item: any) =>
     (!selectedShopName || String(item.shopName || '').trim() === selectedShopName) &&
     getShopRecordMonth(item) === selectedMonth &&

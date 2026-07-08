@@ -52,6 +52,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
   await connectToDatabase();
   const updated = await resource.model.findByIdAndUpdate(id, { ...parsed.data, addedBy: session.id }, { new: true });
+
+  if (collection === 'prayer-times' && updated?._id) {
+    await resource.model.deleteMany({ _id: { $ne: updated._id } });
+  }
+
   return json({ ok: true, item: updated });
 }
 

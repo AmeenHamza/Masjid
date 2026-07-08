@@ -47,8 +47,10 @@ export async function GET(_request: Request, { params }: Params) {
   if (!session) return apiError('Unauthorized', 401);
 
   await connectToDatabase();
-    const items = await (collection === 'shop-records'
-      ? resource.model.find().sort({ year: -1, month: -1, date: -1, createdAt: -1 }).lean()
+  const items = await (collection === 'shop-records'
+    ? resource.model.find().sort({ year: -1, month: -1, date: -1, createdAt: -1 }).lean()
+    : collection === 'prayer-times'
+      ? resource.model.find().sort({ dateKey: -1, createdAt: -1 }).lean()
       : resource.model.find().sort({ createdAt: -1 }).lean());
   return json({ ok: true, items });
 }
@@ -128,16 +130,19 @@ export async function POST(request: Request, { params }: Params) {
     }
   }
 
+  let existingShopRecordId: unknown = null;
+
   if (collection === 'shop-records') {
     const input = parsed.data as {
       shopName: string;
       ownerName: string;
       month: number;
       year: number;
-      paymentStatus: 'Clear' | 'Due' | 'Partial';
-      paymentAmount: number;
+      paymentStatus?: 'Clear' | 'Due' | 'Partial';
+      paymentAmount?: number;
       monthlyRent: number;
-      debtAmount: number;
+      debtAmount?: number;
+      monthsDue?: number;
       buyDate?: string | Date;
       rentHistory?: Record<string, Record<string, unknown>>;
     };
@@ -167,14 +172,14 @@ export async function POST(request: Request, { params }: Params) {
       }
     }
 
-    const duplicate = await resource.model.findOne({
+    const existingRecord = await resource.model.findOne({
       ...shopQuery,
       month,
       year
-    }).lean();
+    }).lean() as Record<string, unknown> | null;
 
-    if (duplicate) {
-      return apiError(`A payment record for ${shopName} already exists for ${new Date(0, month - 1).toLocaleString('en-US', { month: 'long' })} ${year}.`, 409);
+    if (existingRecord) {
+      existingShopRecordId = existingRecord._id;
     }
 
     const priorRecords = await resource.model.find({
@@ -202,6 +207,7 @@ export async function POST(request: Request, { params }: Params) {
       };
     });
 
+    const shopData = parsed.data as Record<string, unknown>;
     const currentKey = `${year}-${String(month).padStart(2, '0')}`;
     rentHistoryEntries[currentKey] = {
       month,
@@ -210,7 +216,7 @@ export async function POST(request: Request, { params }: Params) {
       paidAmount: 0,
       remainingBalance: currentMonthlyRent,
       status: 'Due',
-      paymentDate: new Date().toISOString().slice(0, 10)
+      paymentDate: String(shopData.date ?? existingRecord?.date ?? new Date().toISOString().slice(0, 10))
     };
 
     const sortedHistoryKeys = Object.keys(rentHistoryEntries).sort((a, b) => a.localeCompare(b));
@@ -245,10 +251,78 @@ export async function POST(request: Request, { params }: Params) {
     (parsed.data as Record<string, unknown>).paymentAmount = Number(currentEntry.paidAmount ?? 0);
     (parsed.data as Record<string, unknown>).paymentStatus = currentStatus;
     (parsed.data as Record<string, unknown>).rentHistory = rentHistoryEntries;
+
+    const priorRecordUpdates: Array<Promise<unknown>> = [];
+
+    priorRecords.forEach((record) => {
+      const recordMonth = Number(record.month ?? 0);
+      const recordYear = Number(record.year ?? 0);
+      const recordKey = `${recordYear}-${String(recordMonth).padStart(2, '0')}`;
+      const entry = rentHistoryEntries[recordKey];
+      if (!entry) return;
+
+      const updatedPaymentAmount = Number(entry.paidAmount ?? 0);
+      const updatedDebtAmount = Number(entry.remainingBalance ?? 0);
+      const updatedStatus = String(entry.status ?? 'Due');
+      const changes: Record<string, unknown> = {};
+
+      if (updatedPaymentAmount !== Number(record.paymentAmount ?? 0)) {
+        changes.paymentAmount = updatedPaymentAmount;
+      }
+      if (updatedDebtAmount !== Number(record.debtAmount ?? 0)) {
+        changes.debtAmount = updatedDebtAmount;
+      }
+      if (updatedStatus !== String(record.paymentStatus ?? 'Due')) {
+        changes.paymentStatus = updatedStatus;
+      }
+
+      if (Object.keys(changes).length > 0 && record._id) {
+        priorRecordUpdates.push(resource.model.findByIdAndUpdate(record._id, changes).exec());
+      }
+    });
+
+    if (existingRecord) {
+      shopData.buyDate = existingRecord.buyDate ?? shopData.buyDate;
+      shopData.note = String(shopData.note ?? existingRecord.note ?? '');
+    }
+
+    if (priorRecordUpdates.length > 0) {
+      await Promise.all(priorRecordUpdates);
+    }
   }
 
   try {
+    if (collection === 'prayer-times') {
+      const latestPrayerTimes = await resource.model.findOne().sort({ dateKey: -1, createdAt: -1 }).lean<{ _id?: unknown } | null>();
+
+      if (latestPrayerTimes?._id) {
+        const updated = await resource.model.findByIdAndUpdate(latestPrayerTimes._id, { ...parsed.data, addedBy: session.id }, { new: true });
+
+        if (!updated) {
+          return apiError('Unable to update record', 400);
+        }
+
+        await resource.model.deleteMany({ _id: { $ne: updated._id } });
+        return json({ ok: true, item: updated });
+      }
+    }
+
+    if (collection === 'shop-records' && existingShopRecordId) {
+      const updated = await resource.model.findByIdAndUpdate(existingShopRecordId, { ...parsed.data, addedBy: session.id }, { new: true });
+
+      if (!updated) {
+        return apiError('Unable to update shop record', 400);
+      }
+
+      return json({ ok: true, item: updated });
+    }
+
     const created = await resource.model.create({ ...parsed.data, addedBy: session.id });
+
+    if (collection === 'prayer-times') {
+      await resource.model.deleteMany({ _id: { $ne: created._id } });
+    }
+
     return json({ ok: true, item: created }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to create record';

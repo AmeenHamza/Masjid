@@ -132,12 +132,7 @@ export async function getTodayPrayerTimes(): Promise<Record<string, string>> {
     async (): Promise<Record<string, string>> => {
       try {
         await connectToDatabase();
-        const todayPrayerTimes = await PrayerTimes.findOne({ dateKey: todayKey }).lean();
-        if (todayPrayerTimes) {
-          return serialize(todayPrayerTimes) as Record<string, string>;
-        }
-
-        const latestPrayerTimes = await PrayerTimes.findOne({ dateKey: { $lte: todayKey } }).sort({ dateKey: -1, createdAt: -1 }).lean();
+        const latestPrayerTimes = await PrayerTimes.findOne().sort({ dateKey: -1, createdAt: -1 }).lean();
         if (latestPrayerTimes) {
           return serialize(latestPrayerTimes) as Record<string, string>;
         }
