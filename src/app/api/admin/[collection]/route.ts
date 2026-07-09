@@ -8,6 +8,32 @@ import { minutesToCanonical24, parsePrayerTimeToMinutes } from '@/lib/prayer-act
 
 type Params = { params: Promise<{ collection: string }> };
 
+async function generateShopSerialNumber(model: {
+  findOne: (query: Record<string, unknown>) => { sort: (opts: Record<string, unknown>) => { lean: <T>() => Promise<T> } };
+  exists: (query: Record<string, unknown>) => Promise<unknown>;
+}) {
+  const last = await model
+    .findOne({ serialNumber: { $exists: true, $ne: null } })
+    .sort({ createdAt: -1 })
+    .lean<{ serialNumber?: string } | null>();
+
+  let nextNumber = 1;
+  const match = last?.serialNumber ? String(last.serialNumber).match(/(\d+)$/) : null;
+  if (match) {
+    nextNumber = parseInt(match[1], 10) + 1;
+  }
+
+  let candidate = `SR-${String(nextNumber).padStart(6, '0')}`;
+  // Guarantee uniqueness even if there are gaps/collisions from deleted records.
+  // eslint-disable-next-line no-await-in-loop
+  while (await model.exists({ serialNumber: candidate })) {
+    nextNumber += 1;
+    candidate = `SR-${String(nextNumber).padStart(6, '0')}`;
+  }
+
+  return candidate;
+}
+
 function normalizePrayerTimesBody(body: Record<string, unknown>) {
   const requiredKeys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha'] as const;
   const optionalKeys = ['juma'] as const;
@@ -47,6 +73,25 @@ export async function GET(_request: Request, { params }: Params) {
   if (!session) return apiError('Unauthorized', 401);
 
   await connectToDatabase();
+
+  if (collection === 'shop-records') {
+    const url = new URL(_request.url);
+    const serialQuery = url.searchParams.get('serial');
+    if (serialQuery !== null) {
+      const trimmedSerial = serialQuery.trim();
+      if (!trimmedSerial) {
+        return apiError('Serial number is required', 400);
+      }
+
+      const found = await resource.model.findOne({ serialNumber: trimmedSerial }).lean();
+      if (!found) {
+        return json({ ok: true, item: null, found: false, message: 'No shop record found for this serial number.' });
+      }
+
+      return json({ ok: true, item: found, found: true });
+    }
+  }
+
   const items = await (collection === 'shop-records'
     ? resource.model.find().sort({ year: -1, month: -1, date: -1, createdAt: -1 }).lean()
     : collection === 'prayer-times'
@@ -190,6 +235,14 @@ export async function POST(request: Request, { params }: Params) {
       ]
     }).sort({ year: 1, month: 1, createdAt: 1 }).lean() as Array<Record<string, unknown>>;
 
+    // Total unpaid arrears from all earlier months, as they stood before this
+    // transaction's payment is applied. This is what "Previous Balance" means:
+    // how much the shop still owed from before, separate from this month's rent.
+    const previousBalanceBeforePayment = priorRecords.reduce(
+      (sum, record) => sum + Number(record.debtAmount ?? 0),
+      0
+    );
+
     const rentHistoryEntries: Record<string, Record<string, unknown>> = {};
 
     priorRecords.forEach((record) => {
@@ -246,11 +299,22 @@ export async function POST(request: Request, { params }: Params) {
     const currentBalance = Number(currentEntry.remainingBalance ?? 0);
     const currentStatus = currentBalance === 0 ? 'Clear' : (Number(currentEntry.paidAmount ?? 0) > 0 ? 'Partial' : 'Due');
 
+    currentEntry.previousBalance = previousBalanceBeforePayment;
+
     (parsed.data as Record<string, unknown>).monthlyRent = currentMonthlyRent;
     (parsed.data as Record<string, unknown>).debtAmount = currentBalance;
     (parsed.data as Record<string, unknown>).paymentAmount = Number(currentEntry.paidAmount ?? 0);
     (parsed.data as Record<string, unknown>).paymentStatus = currentStatus;
+    (parsed.data as Record<string, unknown>).previousBalance = previousBalanceBeforePayment;
     (parsed.data as Record<string, unknown>).rentHistory = rentHistoryEntries;
+
+    if (existingRecord?.serialNumber) {
+      // Editing/updating an existing month's record: keep its original serial number.
+      (parsed.data as Record<string, unknown>).serialNumber = existingRecord.serialNumber;
+    } else {
+      // New month entry: always issue a fresh, never-reused serial number.
+      (parsed.data as Record<string, unknown>).serialNumber = await generateShopSerialNumber(resource.model as unknown as Parameters<typeof generateShopSerialNumber>[0]);
+    }
 
     const priorRecordUpdates: Array<Promise<unknown>> = [];
 

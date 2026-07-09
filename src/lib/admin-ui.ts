@@ -127,7 +127,7 @@ export const adminResources: ResourceConfig[] = [
     key: 'shop-records',
     title: 'Shop Records',
     apiPath: `${apiBase}/admin/shop-records`,
-    searchKeys: ['shopName', 'ownerName', 'contactNumber', 'date', 'month', 'year', 'note'],
+    searchKeys: ['shopName', 'ownerName', 'contactNumber', 'serialNumber', 'date', 'month', 'year', 'note'],
     fields: [
       { name: 'shopName', label: 'Shop Name', type: 'text' },
       { name: 'ownerName', label: 'Owner Name', type: 'text' },

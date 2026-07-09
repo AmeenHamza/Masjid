@@ -23,6 +23,8 @@ type ShopRecord = {
   year?: number;
   date?: string | Date;
   paymentAmount?: number;
+  previousBalance?: number;
+  serialNumber?: string;
   paymentStatus: string;
   note: string;
 };
@@ -127,12 +129,14 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
       pdf.setFont('helvetica', 'normal');
 
       const details = [
+        { label: 'Serial Number:', value: shopData!.serialNumber || '-' },
         { label: 'Shop Name:', value: shopData!.shopName },
         { label: 'Owner Name:', value: shopData!.ownerName },
         { label: 'Contact Number:', value: shopData!.contactNumber || '-' },
         { label: 'Buy Date:', value: formatDate(shopData!.buyDate) },
         { label: 'Buy Rate:', value: formatCurrency(shopData!.buyRate) },
-        { label: 'Debt Amount:', value: formatCurrency(shopData!.debtAmount) },
+        { label: 'Previous Balance:', value: formatCurrency(shopData!.previousBalance || 0) },
+        { label: 'Debt Amount (Remaining):', value: formatCurrency(shopData!.debtAmount) },
         { label: 'Monthly Rent:', value: formatCurrency(shopData!.monthlyRent) },
         { label: 'Rent Due After:', value: `${shopData!.monthsDue} months` },
         { label: 'Payment Status:', value: shopData!.paymentStatus },
@@ -219,14 +223,17 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
         <div class="card">
           <div class="title">${siteTitle}</div>
           <div class="subtitle">Rent Payment Slip</div>
+          <div class="row"><span class="label">Serial Number</span><span class="value">${record.serialNumber || '-'}</span></div>
           <div class="row"><span class="label">Shop Name</span><span class="value">${record.shopName}</span></div>
           <div class="row"><span class="label">Owner Name</span><span class="value">${record.ownerName}</span></div>
           <div class="row"><span class="label">Month</span><span class="value">${recordMonth} ${recordYear}</span></div>
           <div class="row"><span class="label">Payment Date</span><span class="value">${formatDate(record.date || record.buyDate)}</span></div>
           <div class="row"><span class="label">Payment Status</span><span class="value">${record.paymentStatus}</span></div>
+          <div class="row"><span class="label">Previous Balance (Before This Payment)</span><span class="value">${formatCurrency(record.previousBalance || 0)}</span></div>
+          <div class="row"><span class="label">This Month's Rent</span><span class="value">${formatCurrency(record.monthlyRent || 0)}</span></div>
+          <div class="row"><span class="label">Total Due (Previous + This Month)</span><span class="value">${formatCurrency((record.previousBalance || 0) + (record.monthlyRent || 0))}</span></div>
           <div class="row"><span class="label">Paid Amount</span><span class="value">${formatCurrency(record.paymentAmount || 0)}</span></div>
           <div class="row"><span class="label">Remaining Balance</span><span class="value">${formatCurrency(record.debtAmount || 0)}</span></div>
-          <div class="row"><span class="label">Monthly Rent</span><span class="value">${formatCurrency(record.monthlyRent || 0)}</span></div>
           <div class="row"><span class="label">Note</span><span class="value">${record.note || '-'}</span></div>
           ${siteAddress ? `<div class="footer">${siteAddress}</div>` : ''}
           <div class="footer">Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
@@ -315,6 +322,10 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           <h1>Shop Record</h1>
           <div class="details-grid">
             <div>
+              <div class="detail-label">Serial Number</div>
+              <div class="detail-value">${shopData!.serialNumber || '-'}</div>
+            </div>
+            <div>
               <div class="detail-label">Shop Name</div>
               <div class="detail-value">${shopData!.shopName}</div>
             </div>
@@ -335,7 +346,11 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
               <div class="detail-value">${formatCurrency(shopData!.buyRate)}</div>
             </div>
             <div>
-              <div class="detail-label">Debt Amount</div>
+              <div class="detail-label">Previous Balance</div>
+              <div class="detail-value">${formatCurrency(shopData!.previousBalance || 0)}</div>
+            </div>
+            <div>
+              <div class="detail-label">Debt Amount (Remaining)</div>
               <div class="detail-value">${formatCurrency(shopData!.debtAmount)}</div>
             </div>
             <div>
@@ -396,9 +411,11 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           <Card className="p-6 border-blue-200 bg-blue-50">
             <h3 className="text-lg font-semibold text-blue-900 mb-4">Financial Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailField label="Serial Number" value={shopData.serialNumber || '-'} />
               <DetailField label="Buy Date" value={formatDate(shopData.buyDate)} />
               <DetailField label="Buy Rate" value={formatCurrency(shopData.buyRate)} />
-              <DetailField label="Debt Amount" value={formatCurrency(shopData.debtAmount)} />
+              <DetailField label="Previous Balance" value={formatCurrency(shopData.previousBalance || 0)} />
+              <DetailField label="Debt Amount (Remaining)" value={formatCurrency(shopData.debtAmount)} />
               <DetailField label="Monthly Rent" value={formatCurrency(shopData.monthlyRent)} />
             </div>
           </Card>
@@ -440,16 +457,18 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
                       <div>
                         <div className="font-semibold text-slate-900">{record.month ? new Date(0, record.month - 1).toLocaleString('en-US', { month: 'long' }) : '-'} {record.year || '-'}</div>
                         <div className="text-sm text-slate-500">Payment Date: {formatDate(record.date || record.buyDate)}</div>
+                        <div className="text-sm font-medium text-amber-700">Serial No: {record.serialNumber || '-'}</div>
                       </div>
                       <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${record.paymentStatus === 'Clear' ? 'bg-green-100 text-green-800' : record.paymentStatus === 'Due' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
                         {record.paymentStatus}
                       </span>
                     </div>
                     <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <div><span className="font-medium text-slate-700">Previous Balance:</span> {formatCurrency(record.previousBalance || 0)}</div>
+                      <div><span className="font-medium text-slate-700">Monthly Rent:</span> {formatCurrency(record.monthlyRent || 0)}</div>
                       <div><span className="font-medium text-slate-700">Paid Amount:</span> {formatCurrency(record.paymentAmount || 0)}</div>
                       <div><span className="font-medium text-slate-700">Remaining Balance:</span> {formatCurrency(record.debtAmount || 0)}</div>
-                      <div><span className="font-medium text-slate-700">Monthly Rent:</span> {formatCurrency(record.monthlyRent || 0)}</div>
-                      <div><span className="font-medium text-slate-700">Note:</span> {record.note || '-'}</div>
+                      <div className="sm:col-span-2"><span className="font-medium text-slate-700">Note:</span> {record.note || '-'}</div>
                     </div>
                     <div className="mt-3 flex justify-end">
                       <Button variant="outline" size="sm" onClick={() => printSlipForRecord(record)}>

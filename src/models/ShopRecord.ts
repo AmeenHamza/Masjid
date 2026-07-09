@@ -16,6 +16,8 @@ const ShopRecordSchema = new Schema(
     year: { type: Number, required: true },
     paymentStatus: { type: String, required: true, enum: ['Clear', 'Due', 'Partial'] },
     paymentAmount: { type: Number, default: 0, min: 0 },
+    previousBalance: { type: Number, min: 0, default: 0 },
+    serialNumber: { type: String, unique: true, sparse: true, index: true },
     rentHistory: { type: Map, of: Schema.Types.Mixed, default: {} },
     note: { type: String },
     addedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }

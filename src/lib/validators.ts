@@ -73,6 +73,8 @@ export const shopRecordSchema = z.object({
   year: z.number().int(),
   paymentStatus: z.enum(['Clear', 'Due', 'Partial']).optional(),
   paymentAmount: z.number().min(0).optional(),
+  previousBalance: z.number().min(0).optional(),
+  serialNumber: z.string().optional(),
   rentHistory: z.record(z.string(), z.any()).optional(),
   note: z.string().optional()
 });

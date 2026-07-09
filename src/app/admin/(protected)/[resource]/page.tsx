@@ -163,6 +163,9 @@ export default function AdminResourcePage() {
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
+  const [serialSearchInput, setSerialSearchInput] = useState('');
+  const [isSerialSearching, setIsSerialSearching] = useState(false);
+  const [serialSearchError, setSerialSearchError] = useState<string | null>(null);
 
   async function loadItems() {
     if (!resource) return;
@@ -282,6 +285,39 @@ export default function AdminResourcePage() {
     }
   }
 
+  async function searchShopBySerial(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSerialSearchError(null);
+
+    const trimmed = serialSearchInput.trim();
+    if (!trimmed) {
+      setSerialSearchError('Please enter a serial number.');
+      return;
+    }
+
+    setIsSerialSearching(true);
+    try {
+      const response = await fetch(`${currentResource.apiPath}?serial=${encodeURIComponent(trimmed)}`, {
+        credentials: 'include'
+      });
+      const data = await response.json().catch(() => null) as { ok?: boolean; item?: Record<string, unknown> | null; found?: boolean; message?: string } | null;
+
+      if (!response.ok || !data?.ok || !data.found || !data.item) {
+        setSerialSearchError('This record does not exist in the system. Please check the serial number and try again.');
+        return;
+      }
+
+      const foundRecord = data.item;
+      setSelectedShopForDetails(foundRecord);
+      setShopDetailsOpen(true);
+      toast.success('Record found.');
+    } catch {
+      setSerialSearchError('Unable to search right now. Please try again.');
+    } finally {
+      setIsSerialSearching(false);
+    }
+  }
+
   useEffect(() => {
     void loadItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -297,6 +333,13 @@ export default function AdminResourcePage() {
           id: 'serial',
           header: '#',
           cell: ({ row }: { row: { index: number } }) => row.index + 1
+        },
+        {
+          accessorKey: 'serialNumber',
+          header: 'Serial No.',
+          cell: ({ getValue }: { getValue: () => unknown }) => (
+            <span className="block max-w-[160px] break-words font-medium text-amber-700">{String(getValue() ?? '-')}</span>
+          )
         },
         {
           accessorKey: 'shopName',
@@ -559,6 +602,33 @@ export default function AdminResourcePage() {
           )
         ) : null}
       </div>
+
+      {currentResource.key === 'shop-records' ? (
+        <Card className="border-amber-900/10 bg-white/85 shadow-lg">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Search by Serial Number</h2>
+            {isSerialSearching ? (
+              <span className="inline-flex items-center gap-2 text-sm text-amber-700">
+                <Loader2 className="h-4 w-4 animate-spin" /> Searching...
+              </span>
+            ) : null}
+          </div>
+          {serialSearchError ? (
+            <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{serialSearchError}</div>
+          ) : null}
+          <form className="flex flex-col gap-3 sm:flex-row" onSubmit={searchShopBySerial}>
+            <input
+              value={serialSearchInput}
+              onChange={(event) => setSerialSearchInput(event.target.value)}
+              placeholder="e.g. SR-000123"
+              className="w-full flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-amber-500 focus:outline-none"
+            />
+            <Button type="submit" disabled={isSerialSearching} className="sm:w-auto">
+              {isSerialSearching ? 'Searching...' : 'Search'}
+            </Button>
+          </form>
+        </Card>
+      ) : null}
 
       {isPrayerTimesResource ? (
         <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
