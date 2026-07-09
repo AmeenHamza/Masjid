@@ -34,4 +34,5 @@ const StaffRecordSchema: Schema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.models.StaffRecord || mongoose.model<IStaffRecord>('StaffRecord', StaffRecordSchema);
+export const StaffRecord = mongoose.models.StaffRecord || mongoose.model<IStaffRecord>('StaffRecord', StaffRecordSchema);
+export default StaffRecord;
