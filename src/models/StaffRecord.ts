@@ -1,23 +1,37 @@
-import { Schema } from 'mongoose';
-import { createModel } from './_shared';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const StaffRecordSchema = new Schema(
-  {
-    staffName: { type: String, required: true },
-    role: { type: String, required: true, enum: ['Imam', 'Muazzin', 'Khadim'] },
-    dateKey: { type: Date, required: true, default: Date.now },
-    fajrAttendance: { type: String, required: true, enum: ['Present', 'Absent'] },
-    zoharAttendance: { type: String, required: true, enum: ['Present', 'Absent'] },
-    asrAttendance: { type: String, required: true, enum: ['Present', 'Absent'] },
-    maghribAttendance: { type: String, required: true, enum: ['Present', 'Absent'] },
-    ishaAttendance: { type: String, required: true, enum: ['Present', 'Absent'] },
-    note: { type: String },
-    addedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }
-  },
-  {
-    timestamps: true,
-    versionKey: false
-  }
-);
+export interface IStaffRecord extends Document {
+  name: string;
+  role: string;
+  attendance: {
+    date: string; // YYYY-MM-DD
+    prayers: {
+      fajr: boolean;
+      dhuhr: boolean;
+      asr: boolean;
+      maghrib: boolean;
+      isha: boolean;
+    };
+    isAbsent: boolean;
+  }[];
+  createdAt: Date;
+}
 
-export const StaffRecord = createModel('StaffRecord', StaffRecordSchema);
+const StaffRecordSchema: Schema = new Schema({
+  name: { type: String, required: true },
+  role: { type: String, required: true },
+  attendance: [{
+    date: { type: String, required: true },
+    prayers: {
+      fajr: { type: Boolean, default: false },
+      dhuhr: { type: Boolean, default: false },
+      asr: { type: Boolean, default: false },
+      maghrib: { type: Boolean, default: false },
+      isha: { type: Boolean, default: false },
+    },
+    isAbsent: { type: Boolean, default: false }
+  }],
+  createdAt: { type: Date, default: Date.now }
+});
+
+export default mongoose.models.StaffRecord || mongoose.model<IStaffRecord>('StaffRecord', StaffRecordSchema);
