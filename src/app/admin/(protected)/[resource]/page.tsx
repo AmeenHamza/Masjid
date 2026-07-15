@@ -350,7 +350,7 @@ export default function AdminResourcePage() {
         },
         {
           accessorKey: 'ownerName',
-          header: 'Owner Name',
+          header: 'Tenant Name',
           cell: ({ getValue }: { getValue: () => unknown }) => (
             <span className="block max-w-[260px] break-words">{String(getValue() ?? '')}</span>
           )
@@ -412,6 +412,14 @@ export default function AdminResourcePage() {
   const currentResource = resource;
   const isSettingsResource = currentResource.key === 'settings';
   const isPrayerTimesResource = currentResource.key === 'prayer-times';
+  const isNewStaffCreation = currentResource.key === 'staff-records' && newStaffMode && !selected?._id;
+  // Brand-new staff creation only takes name, role, start date and a note —
+  // attendance is fully automatic, so those five per-prayer fields are only
+  // ever shown/edited later through "Add Attendance" or "Edit".
+  const staffCreateOnlyFieldNames = new Set(['staffName', 'role', 'dateKey', 'note']);
+  const mainFormFields = isNewStaffCreation
+    ? currentResource.fields.filter((field) => staffCreateOnlyFieldNames.has(field.name))
+    : currentResource.fields;
   const selectedPaymentShop = getLatestShopRecord(items, paymentShopId) as Record<string, unknown> | undefined;
   const currentDueAmount = Number(selectedPaymentShop?.debtAmount ?? 0) + Number(selectedPaymentShop?.monthlyRent ?? 0);
   const managingResourcesText = t('managingResources', { resource: currentResource.title.toLowerCase() });
@@ -590,8 +598,11 @@ export default function AdminResourcePage() {
               if (currentResource.key === 'staff-records') {
                 const defaults = getNewRecordDefaults('staff-records');
                 setSelected(defaults);
-                const toDisable = currentResource.fields.map((f) => f.name).filter((n) => !['staffName', 'role'].includes(n));
-                setDisabledFields(toDisable);
+                // Nothing disabled here: creating a brand new staff member
+                // only needs staff name, role, start date and a note — the
+                // per-prayer attendance fields are hidden entirely and stay
+                // auto-computed until an admin explicitly updates them.
+                setDisabledFields([]);
                 setNewStaffMode(true);
               } else {
                 setSelected(getNewRecordDefaults(currentResource.key));
@@ -784,7 +795,7 @@ export default function AdminResourcePage() {
             ) : null}
           </div>
           <ResourceForm
-            fields={currentResource.fields}
+            fields={mainFormFields}
             defaultValues={selected}
             onSubmit={save}
             isSubmitting={saving}
@@ -935,6 +946,13 @@ export default function AdminResourcePage() {
               record={selectedForDetails}
               fields={currentResource.fields}
               historyRecords={resource?.key === 'staff-records' ? detailsHistoryRecords : []}
+              enableMonthFilter={resource?.key === 'staff-records'}
+              onEditRecord={resource?.key === 'staff-records' ? (entry) => {
+                setSelected(entry);
+                setDisabledFields(['staffName', 'role']);
+                setNewStaffMode(false);
+                setDetailsOpen(false);
+              } : undefined}
             />
           )}
         </>

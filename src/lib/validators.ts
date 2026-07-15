@@ -47,15 +47,17 @@ export const mosqueBeddingSchema = z.object({
   note: z.string().optional()
 });
 
+const staffAttendanceStatus = z.enum(['Present', 'Absent', 'Pending']).default('Pending');
+
 export const staffRecordSchema = z.object({
   staffName: z.string().min(1),
   role: z.enum(['Imam', 'Muazzin', 'Khadim']),
   dateKey: z.coerce.date().default(() => new Date()),
-  fajrAttendance: z.enum(['Present', 'Absent']),
-  zoharAttendance: z.enum(['Present', 'Absent']),
-  asrAttendance: z.enum(['Present', 'Absent']),
-  maghribAttendance: z.enum(['Present', 'Absent']),
-  ishaAttendance: z.enum(['Present', 'Absent']),
+  fajrAttendance: staffAttendanceStatus,
+  zoharAttendance: staffAttendanceStatus,
+  asrAttendance: staffAttendanceStatus,
+  maghribAttendance: staffAttendanceStatus,
+  ishaAttendance: staffAttendanceStatus,
   note: z.string().optional()
 });
 

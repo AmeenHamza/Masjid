@@ -1,37 +1,34 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { Schema } from 'mongoose';
+import { createModel, auditedFields } from './_shared';
 
-export interface IStaffRecord extends Document {
-  name: string;
-  role: string;
-  attendance: {
-    date: string; // YYYY-MM-DD
-    prayers: {
-      fajr: boolean;
-      dhuhr: boolean;
-      asr: boolean;
-      maghrib: boolean;
-      isha: boolean;
-    };
-    isAbsent: boolean;
-  }[];
-  createdAt: Date;
-}
+// 'Pending' means the admin has not manually marked this prayer yet.
+// There is no automatic marking — 'Present' / 'Absent' only ever come
+// from an explicit, manually-saved admin entry.
+const attendanceStatusField = {
+  type: String,
+  enum: ['Present', 'Absent', 'Pending'],
+  default: 'Pending'
+};
 
-const StaffRecordSchema: Schema = new Schema({
-  name: { type: String, required: true },
-  role: { type: String, required: true },
-  attendance: [{
-    date: { type: String, required: true },
-    prayers: {
-      fajr: { type: Boolean, default: false },
-      dhuhr: { type: Boolean, default: false },
-      asr: { type: Boolean, default: false },
-      maghrib: { type: Boolean, default: false },
-      isha: { type: Boolean, default: false },
-    },
-    isAbsent: { type: Boolean, default: false }
-  }],
-  createdAt: { type: Date, default: Date.now }
-});
+const StaffRecordSchema = new Schema(
+  {
+    staffName: { type: String, required: true, trim: true },
+    role: { type: String, required: true, enum: ['Imam', 'Muazzin', 'Khadim'] },
+    dateKey: { type: Date, required: true },
+    fajrAttendance: attendanceStatusField,
+    zoharAttendance: attendanceStatusField,
+    asrAttendance: attendanceStatusField,
+    maghribAttendance: attendanceStatusField,
+    ishaAttendance: attendanceStatusField,
+    note: { type: String },
+    ...auditedFields
+  },
+  {
+    timestamps: true,
+    versionKey: false
+  }
+);
 
-export default mongoose.models.StaffRecord || mongoose.model<IStaffRecord>('StaffRecord', StaffRecordSchema);
+StaffRecordSchema.index({ staffName: 1, role: 1, dateKey: 1 });
+
+export const StaffRecord = createModel('StaffRecord', StaffRecordSchema);

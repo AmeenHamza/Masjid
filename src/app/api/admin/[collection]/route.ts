@@ -173,6 +173,21 @@ export async function POST(request: Request, { params }: Params) {
     if (duplicate) {
       return apiError('Attendance for this staff and date is already added. Please edit existing record.', 409);
     }
+
+    // Only one active staff member is allowed per role (one Imam, one
+    // Muazzin, one Khadim). If a different name already holds this role,
+    // block the new one until the old record is removed.
+    const otherStaffForRole = await resource.model.findOne({
+      role: input.role,
+      staffName: { $ne: input.staffName }
+    }).lean();
+
+    if (otherStaffForRole) {
+      return apiError(
+        `Only one ${input.role} is allowed at a time. Please delete the existing ${input.role} record before adding a new one.`,
+        409
+      );
+    }
   }
 
   let existingShopRecordId: unknown = null;
@@ -200,7 +215,7 @@ export async function POST(request: Request, { params }: Params) {
     const paidAmount = Number(input.paymentAmount ?? 0);
 
     if (!shopName || !ownerName) {
-      return apiError('Shop name and owner name are required.', 400);
+      return apiError('Shop name and tenant name are required.', 400);
     }
 
     const shopQuery = {

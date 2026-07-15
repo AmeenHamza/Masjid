@@ -9,6 +9,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { PrayerMarquee } from '@/components/prayer-marquee';
 import { HeroSlider } from '@/components/hero-slider';
 import { PrayerBox } from '@/components/prayer-box';
+import { StaffAttendanceSection } from '@/components/staff-attendance-section';
 import { NavGrid } from '@/components/nav-grid';
 import { SummaryMetrics } from '@/components/summary-metrics';
 import { ProjectCards } from '@/components/project-cards';
@@ -114,6 +115,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <HeroSlider slides={galleryHeroSlides as never} />
         <PrayerBox prayers={prayers as Record<string, string>} timeZone={appTimeZone} />
       </section>
+
+      <StaffAttendanceSection locale={resolvedLocale} />
 
       <section className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
         <SummaryMetrics

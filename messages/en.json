@@ -40,7 +40,7 @@
     "source": "Source",
     "category": "Category",
     "shopName": "Shop Name",
-    "ownerName": "Owner Name",
+    "ownerName": "Tenant Name",
     "contactNumber": "Contact Number",
     "buyRate": "Buy Rate",
     "buyDate": "Buy Date",
