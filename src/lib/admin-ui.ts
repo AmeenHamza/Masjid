@@ -29,7 +29,6 @@ export const adminResources: ResourceConfig[] = [
       { name: 'fajr', label: 'Fajr', type: 'time' },
       { name: 'zohar', label: 'Zohar', type: 'time' },
       { name: 'asr', label: 'Asr', type: 'time' },
-      { name: 'maghrib', label: 'Maghrib', type: 'time' },
       { name: 'isha', label: 'Isha', type: 'time' },
       { name: 'juma', label: 'Juma', type: 'time' },
       { name: 'notes', label: 'Notes', type: 'textarea' }

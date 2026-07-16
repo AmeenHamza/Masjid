@@ -5,7 +5,7 @@ export const prayerTimesSchema = z.object({
   fajr: z.string().min(1),
   zohar: z.string().min(1),
   asr: z.string().min(1),
-  maghrib: z.string().min(1),
+  maghrib: z.string().optional(),
   isha: z.string().min(1),
   juma: z.string().optional(),
   notes: z.string().optional()

@@ -7,7 +7,10 @@ import { minutesToCanonical24, parsePrayerTimeToMinutes } from '@/lib/prayer-act
 type Params = { params: Promise<{ collection: string; id: string }> };
 
 function normalizePrayerTimesPatchBody(body: Record<string, unknown>) {
-  const keys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha', 'juma'] as const;
+  // Maghrib is fetched automatically from the Aladhan API and can never be
+  // patched from the admin panel.
+  delete body.maghrib;
+  const keys = ['fajr', 'zohar', 'asr', 'isha', 'juma'] as const;
 
   for (const key of keys) {
     if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
