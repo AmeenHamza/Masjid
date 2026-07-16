@@ -1,38 +1,35 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { Schema } from 'mongoose';
+import { createModel, auditedFields } from './_shared';
 
-export interface IStaffRecord extends Document {
-  name: string;
-  role: string;
-  attendance: {
-    date: string; // YYYY-MM-DD
-    prayers: {
-      fajr: boolean;
-      dhuhr: boolean;
-      asr: boolean;
-      maghrib: boolean;
-      isha: boolean;
-    };
-    isAbsent: boolean;
-  }[];
-  createdAt: Date;
-}
+// Attendance is fully manual. Only Present / Absent are allowed.
+// There is no Pending state and no automatic marking of any kind.
+const attendanceStatusField = {
+  type: String,
+  enum: ['Present', 'Absent'],
+  default: 'Absent'
+};
 
-const StaffRecordSchema: Schema = new Schema({
-  name: { type: String, required: true },
-  role: { type: String, required: true },
-  attendance: [{
-    date: { type: String, required: true },
-    prayers: {
-      fajr: { type: Boolean, default: false },
-      dhuhr: { type: Boolean, default: false },
-      asr: { type: Boolean, default: false },
-      maghrib: { type: Boolean, default: false },
-      isha: { type: Boolean, default: false },
-    },
-    isAbsent: { type: Boolean, default: false }
-  }],
-  createdAt: { type: Date, default: Date.now }
-});
+const StaffRecordSchema = new Schema(
+  {
+    staffName: { type: String, required: true, trim: true },
+    // Role is stored as a free string so that admin-created custom roles
+    // (in addition to Imam / Muazzin / Khadim) are supported.
+    role: { type: String, required: true, trim: true },
+    dateKey: { type: Date, required: true },
+    fajrAttendance: attendanceStatusField,
+    zoharAttendance: attendanceStatusField,
+    asrAttendance: attendanceStatusField,
+    maghribAttendance: attendanceStatusField,
+    ishaAttendance: attendanceStatusField,
+    note: { type: String },
+    ...auditedFields
+  },
+  {
+    timestamps: true,
+    versionKey: false
+  }
+);
 
-export const StaffRecord = mongoose.models.StaffRecord || mongoose.model<IStaffRecord>('StaffRecord', StaffRecordSchema);
-export default StaffRecord;
+StaffRecordSchema.index({ staffName: 1, role: 1, dateKey: 1 });
+
+export const StaffRecord = createModel('StaffRecord', StaffRecordSchema);

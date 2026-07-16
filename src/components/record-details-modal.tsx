@@ -15,6 +15,8 @@ type Props = {
   record: Record<string, unknown> | null;
   fields?: FieldConfig[];
   historyRecords?: Record<string, unknown>[];
+  enableMonthFilter?: boolean;
+  onEditRecord?: (record: Record<string, unknown>) => void;
 };
 
 type DetailItem = {
@@ -235,11 +237,25 @@ function formatHistoryDate(value: unknown) {
   }).format(date);
 }
 
-export function RecordDetailsModal({ open, onOpenChange, title, record, fields, historyRecords = [] }: Props) {
+export function RecordDetailsModal({ open, onOpenChange, title, record, fields, historyRecords = [], enableMonthFilter = false, onEditRecord }: Props) {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const now = new Date();
+  const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1);
+  const [filterYear, setFilterYear] = useState(now.getFullYear());
+
+  const filteredHistoryRecords = useMemo(() => {
+    if (!enableMonthFilter) return historyRecords;
+    return historyRecords.filter((entry) => {
+      const raw = String(entry.dateKey ?? entry.createdAt ?? '').trim();
+      const date = /^\d{4}-\d{2}-\d{2}/.test(raw) ? new Date(`${raw.slice(0, 10)}T00:00:00Z`) : new Date(raw);
+      if (Number.isNaN(date.getTime())) return false;
+      return date.getUTCMonth() + 1 === filterMonth && date.getUTCFullYear() === filterYear;
+    });
+  }, [enableMonthFilter, historyRecords, filterMonth, filterYear]);
+
   const totals = useMemo(() => {
     const t = { fajr: 0, zohar: 0, asr: 0, maghrib: 0, isha: 0 };
-    for (const entry of historyRecords) {
+    for (const entry of filteredHistoryRecords) {
       if (String(entry.fajrAttendance ?? '') === 'Present') t.fajr++;
       if (String(entry.zoharAttendance ?? '') === 'Present') t.zohar++;
       if (String(entry.asrAttendance ?? '') === 'Present') t.asr++;
@@ -247,7 +263,7 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
       if (String(entry.ishaAttendance ?? '') === 'Present') t.isha++;
     }
     return t;
-  }, [historyRecords]);
+  }, [filteredHistoryRecords]);
   const items = useMemo(() => {
     if (!record) return [] as DetailItem[];
 
@@ -328,11 +344,11 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
               </div>
             `)
             .join('')}
-          ${historyRecords.length > 0 ? `
+          ${filteredHistoryRecords.length > 0 ? `
             <div class="section">
               <div class="section-title">Daily Attendance History</div>
               <div class="details-grid" style="grid-template-columns: 1fr;">
-                ${historyRecords
+                ${filteredHistoryRecords
                   .map((entry) => `
                     <div>
                       <div class="detail-label">${formatHistoryDate(entry.dateKey ?? entry.createdAt)}</div>
@@ -364,7 +380,7 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
   async function generatePDF() {
     setIsLoadingPdf(true);
     try {
-      const pdf = buildPdf(title, items, historyRecords);
+      const pdf = buildPdf(title, items, filteredHistoryRecords);
       pdf.save(`${title.replace(/\s+/g, '-').toLowerCase()}.pdf`);
     } finally {
       setIsLoadingPdf(false);
@@ -403,12 +419,48 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
 
           {historyRecords.length > 0 ? (
             <Card className="border-amber-200 bg-amber-50 p-6">
-              <h3 className="mb-4 text-lg font-semibold text-amber-900">Daily Attendance History</h3>
-              <div className="space-y-3">
-                {historyRecords.map((entry) => (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold text-amber-900">Daily Attendance History</h3>
+                {enableMonthFilter ? (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={filterMonth}
+                      onChange={(event) => setFilterMonth(Number(event.target.value))}
+                      className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-sm"
+                    >
+                      {Array.from({ length: 12 }, (_, index) => index + 1).map((monthOption) => (
+                        <option key={monthOption} value={monthOption}>
+                          {new Date(0, monthOption - 1).toLocaleString('en-US', { month: 'long' })}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={filterYear}
+                      onChange={(event) => setFilterYear(Number(event.target.value))}
+                      className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-sm"
+                    >
+                      {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((yearOption) => (
+                        <option key={yearOption} value={yearOption}>{yearOption}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+              </div>
+              <div className="max-h-[40vh] space-y-3 overflow-y-auto pr-1">
+                {filteredHistoryRecords.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-amber-700">No attendance found for the selected month.</p>
+                ) : null}
+                {filteredHistoryRecords.map((entry) => (
                   <div key={String(entry._id ?? Math.random())} className="rounded-xl border border-amber-200 bg-white p-3">
-                    <div className="text-sm font-semibold text-slate-800">
-                      {formatHistoryDate(entry.dateKey ?? entry.createdAt)}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-slate-800">
+                        {formatHistoryDate(entry.dateKey ?? entry.createdAt)}
+                      </div>
+                      {onEditRecord ? (
+                        <Button variant="outline" size="sm" onClick={() => onEditRecord(entry)}>
+                          Edit
+                        </Button>
+                      ) : null}
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-slate-700 md:grid-cols-5">
                       <span>Fajr: {String(entry.fajrAttendance ?? '-')}</span>
@@ -428,7 +480,7 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
                   <h3 className="mb-4 text-lg font-semibold text-emerald-900">Attendance Summary</h3>
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-5 text-sm text-slate-800">
                     <div className="font-medium">Days Recorded</div>
-                    <div>{historyRecords.length}</div>
+                    <div>{filteredHistoryRecords.length}</div>
                     <div className="font-medium">Fajr Present</div>
                     <div>{totals.fajr}</div>
                     <div className="font-medium">Zohar Present</div>

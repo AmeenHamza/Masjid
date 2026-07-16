@@ -29,7 +29,6 @@ export const adminResources: ResourceConfig[] = [
       { name: 'fajr', label: 'Fajr', type: 'time' },
       { name: 'zohar', label: 'Zohar', type: 'time' },
       { name: 'asr', label: 'Asr', type: 'time' },
-      { name: 'maghrib', label: 'Maghrib', type: 'time' },
       { name: 'isha', label: 'Isha', type: 'time' },
       { name: 'juma', label: 'Juma', type: 'time' },
       { name: 'notes', label: 'Notes', type: 'textarea' }
@@ -130,7 +129,7 @@ export const adminResources: ResourceConfig[] = [
     searchKeys: ['shopName', 'ownerName', 'contactNumber', 'serialNumber', 'date', 'month', 'year', 'note'],
     fields: [
       { name: 'shopName', label: 'Shop Name', type: 'text' },
-      { name: 'ownerName', label: 'Owner Name', type: 'text' },
+      { name: 'ownerName', label: 'Tenant Name', type: 'text' },
       { name: 'contactNumber', label: 'Contact Number', type: 'text' },
       { name: 'buyDate', label: 'Buy Date', type: 'date' },
       { name: 'date', label: 'Date', type: 'date' },

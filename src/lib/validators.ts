@@ -5,7 +5,7 @@ export const prayerTimesSchema = z.object({
   fajr: z.string().min(1),
   zohar: z.string().min(1),
   asr: z.string().min(1),
-  maghrib: z.string().min(1),
+  maghrib: z.string().optional(),
   isha: z.string().min(1),
   juma: z.string().optional(),
   notes: z.string().optional()
@@ -47,16 +47,24 @@ export const mosqueBeddingSchema = z.object({
   note: z.string().optional()
 });
 
+const staffAttendanceStatus = z.enum(['Present', 'Absent']).default('Absent');
+
 export const staffRecordSchema = z.object({
   staffName: z.string().min(1),
-  role: z.enum(['Imam', 'Muazzin', 'Khadim']),
+  // Role is a free string to support admin-defined custom roles in addition
+  // to Imam / Muazzin / Khadim.
+  role: z.string().min(1),
   dateKey: z.coerce.date().default(() => new Date()),
-  fajrAttendance: z.enum(['Present', 'Absent']),
-  zoharAttendance: z.enum(['Present', 'Absent']),
-  asrAttendance: z.enum(['Present', 'Absent']),
-  maghribAttendance: z.enum(['Present', 'Absent']),
-  ishaAttendance: z.enum(['Present', 'Absent']),
+  fajrAttendance: staffAttendanceStatus,
+  zoharAttendance: staffAttendanceStatus,
+  asrAttendance: staffAttendanceStatus,
+  maghribAttendance: staffAttendanceStatus,
+  ishaAttendance: staffAttendanceStatus,
   note: z.string().optional()
+});
+
+export const customRoleSchema = z.object({
+  name: z.string().min(1).max(60)
 });
 
 export const shopRecordSchema = z.object({

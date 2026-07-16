@@ -5,6 +5,7 @@ import { connectToDatabase } from './db';
 import { HeroSlide } from '@/models/HeroSlide';
 import { MasjidSettings } from '@/models/MasjidSettings';
 import { PrayerTimes } from '@/models/PrayerTimes';
+import { getMaghribTime } from './aladhan-maghrib';
 import { Project } from '@/models/Project';
 import { GalleryItem } from '@/models/GalleryItem';
 import { IncomeRecord } from '@/models/IncomeRecord';
@@ -114,7 +115,7 @@ export async function getHeroSlides() {
 
 export async function getTodayPrayerTimes(): Promise<Record<string, string>> {
   const todayKey = getCurrentDateKey();
-  const fallbackPrayerTimes = {
+  const fallbackPrayerTimes: Record<string, string> = {
     dateKey: todayKey,
     fajr: '00:00',
     zohar: '00:00',
@@ -124,29 +125,35 @@ export async function getTodayPrayerTimes(): Promise<Record<string, string>> {
     juma: '00:00'
   };
 
-  if (!isDatabaseConfigured()) {
-    return fallbackPrayerTimes;
+  let baseTimes: Record<string, string> = fallbackPrayerTimes;
+
+  if (isDatabaseConfigured()) {
+    const getTodayPrayerTimesCached = unstable_cache(
+      async (): Promise<Record<string, string>> => {
+        try {
+          await connectToDatabase();
+          const latestPrayerTimes = await PrayerTimes.findOne().sort({ dateKey: -1, createdAt: -1 }).lean();
+          if (latestPrayerTimes) {
+            return serialize(latestPrayerTimes) as Record<string, string>;
+          }
+          return fallbackPrayerTimes;
+        } catch {
+          return fallbackPrayerTimes;
+        }
+      },
+      ['public-prayer-times', todayKey],
+      { revalidate: 60 }
+    );
+    baseTimes = await getTodayPrayerTimesCached();
   }
 
-  const getTodayPrayerTimesCached = unstable_cache(
-    async (): Promise<Record<string, string>> => {
-      try {
-        await connectToDatabase();
-        const latestPrayerTimes = await PrayerTimes.findOne().sort({ dateKey: -1, createdAt: -1 }).lean();
-        if (latestPrayerTimes) {
-          return serialize(latestPrayerTimes) as Record<string, string>;
-        }
-
-        return fallbackPrayerTimes;
-      } catch {
-        return fallbackPrayerTimes;
-      }
-    },
-    ['public-prayer-times', todayKey],
-    { revalidate: 60 }
-  );
-
-  return getTodayPrayerTimesCached();
+  // Maghrib is ALWAYS sourced from the Aladhan API (Karachi). The previously
+  // stored value is only used as a fallback if the API is unreachable.
+  const apiMaghrib = await getMaghribTime(baseTimes.maghrib);
+  return {
+    ...baseTimes,
+    maghrib: apiMaghrib ?? baseTimes.maghrib ?? '00:00'
+  };
 }
 
 export async function getSummaryMetrics() {

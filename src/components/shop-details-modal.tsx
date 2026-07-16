@@ -131,7 +131,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
       const details = [
         { label: 'Serial Number:', value: shopData!.serialNumber || '-' },
         { label: 'Shop Name:', value: shopData!.shopName },
-        { label: 'Owner Name:', value: shopData!.ownerName },
+        { label: 'Tenant Name:', value: shopData!.ownerName },
         { label: 'Contact Number:', value: shopData!.contactNumber || '-' },
         { label: 'Buy Date:', value: formatDate(shopData!.buyDate) },
         { label: 'Buy Rate:', value: formatCurrency(shopData!.buyRate) },
@@ -225,7 +225,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           <div class="subtitle">Rent Payment Slip</div>
           <div class="row"><span class="label">Serial Number</span><span class="value">${record.serialNumber || '-'}</span></div>
           <div class="row"><span class="label">Shop Name</span><span class="value">${record.shopName}</span></div>
-          <div class="row"><span class="label">Owner Name</span><span class="value">${record.ownerName}</span></div>
+          <div class="row"><span class="label">Tenant Name</span><span class="value">${record.ownerName}</span></div>
           <div class="row"><span class="label">Month</span><span class="value">${recordMonth} ${recordYear}</span></div>
           <div class="row"><span class="label">Payment Date</span><span class="value">${formatDate(record.date || record.buyDate)}</span></div>
           <div class="row"><span class="label">Payment Status</span><span class="value">${record.paymentStatus}</span></div>
@@ -330,7 +330,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
               <div class="detail-value">${shopData!.shopName}</div>
             </div>
             <div>
-              <div class="detail-label">Owner Name</div>
+              <div class="detail-label">Tenant Name</div>
               <div class="detail-value">${shopData!.ownerName}</div>
             </div>
             <div>
@@ -402,7 +402,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
             <h3 className="text-lg font-semibold text-emerald-900 mb-4">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DetailField label="Shop Name" value={shopData.shopName} />
-              <DetailField label="Owner Name" value={shopData.ownerName} />
+              <DetailField label="Tenant Name" value={shopData.ownerName} />
               <DetailField label="Contact Number" value={shopData.contactNumber || '-'} />
             </div>
           </Card>

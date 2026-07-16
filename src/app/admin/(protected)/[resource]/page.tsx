@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { formatCurrency } from '@/lib/utils';
 import { ShopDetailsModal } from '@/components/shop-details-modal';
 import { RecordDetailsModal } from '@/components/record-details-modal';
+import { StaffManagePanel } from '@/components/staff-manage-panel';
 
 function formatDateValue(value: unknown) {
   if (!value) {
@@ -166,6 +167,7 @@ export default function AdminResourcePage() {
   const [serialSearchInput, setSerialSearchInput] = useState('');
   const [isSerialSearching, setIsSerialSearching] = useState(false);
   const [serialSearchError, setSerialSearchError] = useState<string | null>(null);
+  const [staffCreateRequestToken, setStaffCreateRequestToken] = useState(0);
 
   async function loadItems() {
     if (!resource) return;
@@ -350,7 +352,7 @@ export default function AdminResourcePage() {
         },
         {
           accessorKey: 'ownerName',
-          header: 'Owner Name',
+          header: 'Tenant Name',
           cell: ({ getValue }: { getValue: () => unknown }) => (
             <span className="block max-w-[260px] break-words">{String(getValue() ?? '')}</span>
           )
@@ -412,6 +414,14 @@ export default function AdminResourcePage() {
   const currentResource = resource;
   const isSettingsResource = currentResource.key === 'settings';
   const isPrayerTimesResource = currentResource.key === 'prayer-times';
+  const isNewStaffCreation = currentResource.key === 'staff-records' && newStaffMode && !selected?._id;
+  // Brand-new staff creation only takes name, role, start date and a note —
+  // attendance is fully automatic, so those five per-prayer fields are only
+  // ever shown/edited later through "Add Attendance" or "Edit".
+  const staffCreateOnlyFieldNames = new Set(['staffName', 'role', 'dateKey', 'note']);
+  const mainFormFields = isNewStaffCreation
+    ? currentResource.fields.filter((field) => staffCreateOnlyFieldNames.has(field.name))
+    : currentResource.fields;
   const selectedPaymentShop = getLatestShopRecord(items, paymentShopId) as Record<string, unknown> | undefined;
   const currentDueAmount = Number(selectedPaymentShop?.debtAmount ?? 0) + Number(selectedPaymentShop?.monthlyRent ?? 0);
   const managingResourcesText = t('managingResources', { resource: currentResource.title.toLowerCase() });
@@ -588,11 +598,12 @@ export default function AdminResourcePage() {
           ) : (
             <Button onClick={() => {
               if (currentResource.key === 'staff-records') {
-                const defaults = getNewRecordDefaults('staff-records');
-                setSelected(defaults);
-                const toDisable = currentResource.fields.map((f) => f.name).filter((n) => !['staffName', 'role'].includes(n));
-                setDisabledFields(toDisable);
-                setNewStaffMode(true);
+                // For staff, "New Record" opens a dedicated New Staff
+                // dialog handled by StaffManagePanel (name + role only).
+                setSelected(undefined);
+                setDisabledFields([]);
+                setNewStaffMode(false);
+                setStaffCreateRequestToken((token) => token + 1);
               } else {
                 setSelected(getNewRecordDefaults(currentResource.key));
                 setDisabledFields([]);
@@ -773,7 +784,13 @@ export default function AdminResourcePage() {
         </Card>
       ) : null}
 
-      {isPrayerTimesResource ? null : (
+      {currentResource.key === 'staff-records' ? (
+        <StaffManagePanel
+          apiPath={currentResource.apiPath}
+          onSaved={loadItems}
+          createRequestToken={staffCreateRequestToken}
+        />
+      ) : isPrayerTimesResource ? null : (
         <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">{isSettingsResource ? t('viewRecord') : (selected?._id ? t('editRecord') : t('createRecord'))}</h2>
@@ -784,7 +801,7 @@ export default function AdminResourcePage() {
             ) : null}
           </div>
           <ResourceForm
-            fields={currentResource.fields}
+            fields={mainFormFields}
             defaultValues={selected}
             onSubmit={save}
             isSubmitting={saving}
@@ -869,29 +886,7 @@ export default function AdminResourcePage() {
                         {t('viewDetails')}
                       </Button>
                     )}
-                    {resource?.key === 'staff-records' ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelected({
-                            staffName: row.original.staffName,
-                            role: row.original.role,
-                            dateKey: new Date().toISOString().slice(0, 10),
-                            fajrAttendance: 'Present',
-                            zoharAttendance: 'Present',
-                            asrAttendance: 'Present',
-                            maghribAttendance: 'Present',
-                            ishaAttendance: 'Present',
-                            note: ''
-                          });
-                          setDisabledFields(['staffName', 'role']);
-                          setNewStaffMode(false);
-                        }}
-                      >
-                        Add Attendance
-                      </Button>
-                    ) : (
+                    {resource?.key === 'staff-records' ? null : (
                       <Button variant="outline" size="sm" onClick={() => {
                         setSelected(row.original);
                         setDisabledFields([]);
@@ -935,6 +930,8 @@ export default function AdminResourcePage() {
               record={selectedForDetails}
               fields={currentResource.fields}
               historyRecords={resource?.key === 'staff-records' ? detailsHistoryRecords : []}
+              enableMonthFilter={resource?.key === 'staff-records'}
+              onEditRecord={undefined}
             />
           )}
         </>

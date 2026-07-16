@@ -35,7 +35,10 @@ async function generateShopSerialNumber(model: {
 }
 
 function normalizePrayerTimesBody(body: Record<string, unknown>) {
-  const requiredKeys = ['fajr', 'zohar', 'asr', 'maghrib', 'isha'] as const;
+  // Maghrib is fetched automatically from the Aladhan API and can never be
+  // set from the admin panel. Any value the client submits is discarded here.
+  delete body.maghrib;
+  const requiredKeys = ['fajr', 'zohar', 'asr', 'isha'] as const;
   const optionalKeys = ['juma'] as const;
 
   for (const key of requiredKeys) {
@@ -156,6 +159,9 @@ export async function POST(request: Request, { params }: Params) {
 
   await connectToDatabase();
 
+  let existingShopRecordId: unknown = null;
+  let existingStaffRecordId: unknown = null;
+
   if (collection === 'staff-records') {
     const input = parsed.data as { staffName: string; role: string; dateKey: Date };
     const currentDate = new Date(input.dateKey);
@@ -164,18 +170,20 @@ export async function POST(request: Request, { params }: Params) {
     const endOfDay = new Date(currentDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // Same staff + role + day already has a record: instead of blocking the
+    // save, remember its id so we update that existing record below rather
+    // than creating a duplicate. This lets a previously-saved day's
+    // attendance be edited simply by saving again for that date.
     const duplicate = await resource.model.findOne({
       staffName: input.staffName,
       role: input.role,
       dateKey: { $gte: startOfDay, $lte: endOfDay }
-    }).lean();
+    }).lean() as Record<string, unknown> | null;
 
-    if (duplicate) {
-      return apiError('Attendance for this staff and date is already added. Please edit existing record.', 409);
+    if (duplicate?._id) {
+      existingStaffRecordId = duplicate._id;
     }
   }
-
-  let existingShopRecordId: unknown = null;
 
   if (collection === 'shop-records') {
     const input = parsed.data as {
@@ -200,7 +208,7 @@ export async function POST(request: Request, { params }: Params) {
     const paidAmount = Number(input.paymentAmount ?? 0);
 
     if (!shopName || !ownerName) {
-      return apiError('Shop name and owner name are required.', 400);
+      return apiError('Shop name and tenant name are required.', 400);
     }
 
     const shopQuery = {
@@ -376,6 +384,16 @@ export async function POST(request: Request, { params }: Params) {
 
       if (!updated) {
         return apiError('Unable to update shop record', 400);
+      }
+
+      return json({ ok: true, item: updated });
+    }
+
+    if (collection === 'staff-records' && existingStaffRecordId) {
+      const updated = await resource.model.findByIdAndUpdate(existingStaffRecordId, { ...parsed.data, addedBy: session.id }, { new: true });
+
+      if (!updated) {
+        return apiError('Unable to update attendance record', 400);
       }
 
       return json({ ok: true, item: updated });
