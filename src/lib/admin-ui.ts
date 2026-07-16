@@ -115,11 +115,11 @@ export const adminResources: ResourceConfig[] = [
         ]
       },
       { name: 'dateKey', label: 'Date', type: 'date' },
-      { name: 'fajrAttendance', label: 'Fajr Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }, { label: 'Pending (Auto)', value: 'Pending' }] },
-      { name: 'zoharAttendance', label: 'Zohar Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }, { label: 'Pending (Auto)', value: 'Pending' }] },
-      { name: 'asrAttendance', label: 'Asr Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }, { label: 'Pending (Auto)', value: 'Pending' }] },
-      { name: 'maghribAttendance', label: 'Maghrib Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }, { label: 'Pending (Auto)', value: 'Pending' }] },
-      { name: 'ishaAttendance', label: 'Isha Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }, { label: 'Pending (Auto)', value: 'Pending' }] },
+      { name: 'fajrAttendance', label: 'Fajr Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'zoharAttendance', label: 'Zohar Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'asrAttendance', label: 'Asr Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'maghribAttendance', label: 'Maghrib Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
+      { name: 'ishaAttendance', label: 'Isha Attendance', type: 'select', options: [{ label: 'Present', value: 'Present' }, { label: 'Absent', value: 'Absent' }] },
       { name: 'note', label: 'Note', type: 'textarea' }
     ]
   },

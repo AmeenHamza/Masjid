@@ -47,11 +47,13 @@ export const mosqueBeddingSchema = z.object({
   note: z.string().optional()
 });
 
-const staffAttendanceStatus = z.enum(['Present', 'Absent', 'Pending']).default('Pending');
+const staffAttendanceStatus = z.enum(['Present', 'Absent']).default('Absent');
 
 export const staffRecordSchema = z.object({
   staffName: z.string().min(1),
-  role: z.enum(['Imam', 'Muazzin', 'Khadim']),
+  // Role is a free string to support admin-defined custom roles in addition
+  // to Imam / Muazzin / Khadim.
+  role: z.string().min(1),
   dateKey: z.coerce.date().default(() => new Date()),
   fajrAttendance: staffAttendanceStatus,
   zoharAttendance: staffAttendanceStatus,
@@ -59,6 +61,10 @@ export const staffRecordSchema = z.object({
   maghribAttendance: staffAttendanceStatus,
   ishaAttendance: staffAttendanceStatus,
   note: z.string().optional()
+});
+
+export const customRoleSchema = z.object({
+  name: z.string().min(1).max(60)
 });
 
 export const shopRecordSchema = z.object({

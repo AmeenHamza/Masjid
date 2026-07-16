@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { StaffAttendanceModal } from '@/components/staff-attendance-modal';
 
 type PrayerKey = 'fajr' | 'zohar' | 'asr' | 'maghrib' | 'isha';
-type AttendanceStatus = 'Present' | 'Absent' | 'Pending';
+type AttendanceStatus = 'Present' | 'Absent';
 type StaffRole = 'Imam' | 'Muazzin' | 'Khadim';
 
 type RoleTodayStatus = {
@@ -35,8 +35,7 @@ const prayerLabels: Record<PrayerKey, { en: string; ur: string }> = {
 
 function statusDotClass(status: AttendanceStatus) {
   if (status === 'Present') return 'bg-emerald-500';
-  if (status === 'Absent') return 'bg-rose-500';
-  return 'bg-amber-400';
+  return 'bg-rose-500';
 }
 
 export function StaffAttendanceSection({ locale = 'en' }: { locale?: 'en' | 'ur' }) {

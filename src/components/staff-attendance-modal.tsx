@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 type PrayerKey = 'fajr' | 'zohar' | 'asr' | 'maghrib' | 'isha';
-type AttendanceStatus = 'Present' | 'Absent' | 'Pending';
+type AttendanceStatus = 'Present' | 'Absent';
 
 type AttendanceDay = {
   dateKey: string;
@@ -41,8 +41,7 @@ const monthNames = [
 
 function statusBadgeClass(status: AttendanceStatus) {
   if (status === 'Present') return 'bg-emerald-100 text-emerald-800';
-  if (status === 'Absent') return 'bg-rose-100 text-rose-700';
-  return 'bg-amber-100 text-amber-700';
+  return 'bg-rose-100 text-rose-700';
 }
 
 function formatDateLabel(dateKey: string) {

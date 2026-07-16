@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { formatCurrency } from '@/lib/utils';
 import { ShopDetailsModal } from '@/components/shop-details-modal';
 import { RecordDetailsModal } from '@/components/record-details-modal';
+import { StaffManagePanel } from '@/components/staff-manage-panel';
 
 function formatDateValue(value: unknown) {
   if (!value) {
@@ -166,6 +167,7 @@ export default function AdminResourcePage() {
   const [serialSearchInput, setSerialSearchInput] = useState('');
   const [isSerialSearching, setIsSerialSearching] = useState(false);
   const [serialSearchError, setSerialSearchError] = useState<string | null>(null);
+  const [staffCreateRequestToken, setStaffCreateRequestToken] = useState(0);
 
   async function loadItems() {
     if (!resource) return;
@@ -596,14 +598,12 @@ export default function AdminResourcePage() {
           ) : (
             <Button onClick={() => {
               if (currentResource.key === 'staff-records') {
-                const defaults = getNewRecordDefaults('staff-records');
-                setSelected(defaults);
-                // Nothing disabled here: creating a brand new staff member
-                // only needs staff name, role, start date and a note — the
-                // per-prayer attendance fields are hidden entirely and stay
-                // auto-computed until an admin explicitly updates them.
+                // For staff, "New Record" opens a dedicated New Staff
+                // dialog handled by StaffManagePanel (name + role only).
+                setSelected(undefined);
                 setDisabledFields([]);
-                setNewStaffMode(true);
+                setNewStaffMode(false);
+                setStaffCreateRequestToken((token) => token + 1);
               } else {
                 setSelected(getNewRecordDefaults(currentResource.key));
                 setDisabledFields([]);
@@ -784,7 +784,13 @@ export default function AdminResourcePage() {
         </Card>
       ) : null}
 
-      {isPrayerTimesResource ? null : (
+      {currentResource.key === 'staff-records' ? (
+        <StaffManagePanel
+          apiPath={currentResource.apiPath}
+          onSaved={loadItems}
+          createRequestToken={staffCreateRequestToken}
+        />
+      ) : isPrayerTimesResource ? null : (
         <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-lg font-bold">{isSettingsResource ? t('viewRecord') : (selected?._id ? t('editRecord') : t('createRecord'))}</h2>
@@ -880,29 +886,7 @@ export default function AdminResourcePage() {
                         {t('viewDetails')}
                       </Button>
                     )}
-                    {resource?.key === 'staff-records' ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelected({
-                            staffName: row.original.staffName,
-                            role: row.original.role,
-                            dateKey: new Date().toISOString().slice(0, 10),
-                            fajrAttendance: 'Present',
-                            zoharAttendance: 'Present',
-                            asrAttendance: 'Present',
-                            maghribAttendance: 'Present',
-                            ishaAttendance: 'Present',
-                            note: ''
-                          });
-                          setDisabledFields(['staffName', 'role']);
-                          setNewStaffMode(false);
-                        }}
-                      >
-                        Add Attendance
-                      </Button>
-                    ) : (
+                    {resource?.key === 'staff-records' ? null : (
                       <Button variant="outline" size="sm" onClick={() => {
                         setSelected(row.original);
                         setDisabledFields([]);
@@ -947,12 +931,7 @@ export default function AdminResourcePage() {
               fields={currentResource.fields}
               historyRecords={resource?.key === 'staff-records' ? detailsHistoryRecords : []}
               enableMonthFilter={resource?.key === 'staff-records'}
-              onEditRecord={resource?.key === 'staff-records' ? (entry) => {
-                setSelected(entry);
-                setDisabledFields(['staffName', 'role']);
-                setNewStaffMode(false);
-                setDetailsOpen(false);
-              } : undefined}
+              onEditRecord={undefined}
             />
           )}
         </>

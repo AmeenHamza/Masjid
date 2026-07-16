@@ -3,13 +3,18 @@ import 'server-only';
 import { connectToDatabase } from './db';
 import { StaffRecord } from '@/models/StaffRecord';
 
+// Only the three default roles are surfaced on the public frontend.
+// Admin-created custom roles are still fully supported internally and
+// stored on staff records; they just don't add new frontend categories.
 export const STAFF_ROLES = ['Imam', 'Muazzin', 'Khadim'] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
 export const PRAYER_ORDER = ['fajr', 'zohar', 'asr', 'maghrib', 'isha'] as const;
 export type PrayerKey = (typeof PRAYER_ORDER)[number];
 
-export type AttendanceStatus = 'Present' | 'Absent' | 'Pending';
+// Attendance is fully manual. Only Present / Absent are ever produced or
+// stored. Days without a saved record are simply treated as Absent.
+export type AttendanceStatus = 'Present' | 'Absent';
 
 const attendanceFieldByPrayer: Record<PrayerKey, string> = {
   fajr: 'fajrAttendance',
@@ -52,22 +57,18 @@ function isDatabaseConfigured() {
 
 /**
  * Works out the status of one prayer on one day.
- * - There is no automatic marking of any kind. The only source of truth
- *   is what the admin has actually saved on the record.
- * - An explicit "Present"/"Absent" stored on the record is returned as-is.
- * - Anything not explicitly saved (including days with no record at all)
- *   is "Pending" — it stays Pending until the admin manually sets it.
+ * - The only source of truth is what the admin has explicitly saved.
+ * - An explicit "Present"/"Absent" is returned as-is.
+ * - Anything else (no record, missing field, legacy "Pending" values) is
+ *   treated as Absent — there is no Pending state anymore.
  */
 export function computePrayerStatus(options: {
-  storedValue: AttendanceStatus | undefined | null;
+  storedValue: AttendanceStatus | string | undefined | null;
 }): AttendanceStatus {
   const { storedValue } = options;
 
-  if (storedValue === 'Present' || storedValue === 'Absent') {
-    return storedValue;
-  }
-
-  return 'Pending';
+  if (storedValue === 'Present') return 'Present';
+  return 'Absent';
 }
 
 type StaffRecordLean = {
@@ -106,7 +107,7 @@ export async function getStaffAttendanceOverview(): Promise<RoleTodayStatus[]> {
     role,
     staffName: null,
     dateKey: getTodayDateKey(),
-    prayers: { fajr: 'Pending', zohar: 'Pending', asr: 'Pending', maghrib: 'Pending', isha: 'Pending' } as Record<PrayerKey, AttendanceStatus>
+    prayers: { fajr: 'Absent', zohar: 'Absent', asr: 'Absent', maghrib: 'Absent', isha: 'Absent' } as Record<PrayerKey, AttendanceStatus>
   }));
 
   if (!isDatabaseConfigured()) return emptyOverview;

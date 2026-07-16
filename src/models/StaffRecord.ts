@@ -1,19 +1,20 @@
 import { Schema } from 'mongoose';
 import { createModel, auditedFields } from './_shared';
 
-// 'Pending' means the admin has not manually marked this prayer yet.
-// There is no automatic marking — 'Present' / 'Absent' only ever come
-// from an explicit, manually-saved admin entry.
+// Attendance is fully manual. Only Present / Absent are allowed.
+// There is no Pending state and no automatic marking of any kind.
 const attendanceStatusField = {
   type: String,
-  enum: ['Present', 'Absent', 'Pending'],
-  default: 'Pending'
+  enum: ['Present', 'Absent'],
+  default: 'Absent'
 };
 
 const StaffRecordSchema = new Schema(
   {
     staffName: { type: String, required: true, trim: true },
-    role: { type: String, required: true, enum: ['Imam', 'Muazzin', 'Khadim'] },
+    // Role is stored as a free string so that admin-created custom roles
+    // (in addition to Imam / Muazzin / Khadim) are supported.
+    role: { type: String, required: true, trim: true },
     dateKey: { type: Date, required: true },
     fajrAttendance: attendanceStatusField,
     zoharAttendance: attendanceStatusField,
