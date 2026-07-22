@@ -5,6 +5,7 @@ import { getServerSession } from '@/lib/auth';
 import { resourceMap } from '@/lib/admin-resources';
 import { rateLimit } from '@/lib/rate-limit';
 import { minutesToCanonical24, parsePrayerTimeToMinutes } from '@/lib/prayer-activity';
+import { revalidatePublicData } from '@/lib/revalidate-public';
 
 type Params = { params: Promise<{ collection: string }> };
 
@@ -375,6 +376,7 @@ export async function POST(request: Request, { params }: Params) {
         }
 
         await resource.model.deleteMany({ _id: { $ne: updated._id } });
+        revalidatePublicData(collection);
         return json({ ok: true, item: updated });
       }
     }
@@ -386,6 +388,7 @@ export async function POST(request: Request, { params }: Params) {
         return apiError('Unable to update shop record', 400);
       }
 
+      revalidatePublicData(collection);
       return json({ ok: true, item: updated });
     }
 
@@ -405,6 +408,7 @@ export async function POST(request: Request, { params }: Params) {
       await resource.model.deleteMany({ _id: { $ne: created._id } });
     }
 
+    revalidatePublicData(collection);
     return json({ ok: true, item: created }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to create record';
