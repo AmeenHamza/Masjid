@@ -8,11 +8,11 @@ const badgeClass: Record<string, string> = {
   Upcoming: 'bg-slate-700 text-white'
 };
 
-export function ProjectCards({ projects }: { projects: Array<{ title: string; description: string; status: string; imageUrl?: string; collectedAmount?: number; targetAmount?: number }> }) {
+export function ProjectCards({ projects }: { projects: Array<{ _id?: string; title: string; description: string; status: string; imageUrl?: string; collectedAmount?: number; targetAmount?: number }> }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {projects.map((project) => (
-        <Card key={project.title} className="group overflow-hidden p-0 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+      {projects.map((project, index) => (
+        <Card key={project._id ?? `${project.title}-${index}`} className="group overflow-hidden p-0 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
           {project.imageUrl ? (
             <div className="relative h-48 overflow-hidden rounded-none">
               <Image src={project.imageUrl} alt={project.title} fill className="object-cover" />

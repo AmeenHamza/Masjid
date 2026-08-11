@@ -1,12 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Download, Loader2, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { FieldConfig } from '@/lib/admin-ui';
+
+type SiteSettings = {
+  masjidName: string;
+  address?: string;
+};
 
 type Props = {
   open: boolean;
@@ -134,7 +139,7 @@ function buildSections(items: DetailItem[]): DetailSection[] {
   ].filter((section) => section.items.length > 0);
 }
 
-function buildPdf(title: string, items: DetailItem[], historyRecords: Record<string, unknown>[]) {
+function buildPdf(title: string, items: DetailItem[], historyRecords: Record<string, unknown>[], settings: SiteSettings | null) {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -146,10 +151,16 @@ function buildPdf(title: string, items: DetailItem[], historyRecords: Record<str
 
   let yPosition = marginTop;
 
+  const siteTitle = settings?.masjidName || 'Masjid';
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
+  pdf.text(siteTitle, marginLeft, yPosition);
+  yPosition += 8;
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(14);
   pdf.text(title, marginLeft, yPosition);
-  yPosition += 10;
+  yPosition += 8;
 
   pdf.setDrawColor(0, 100, 0);
   pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
@@ -219,9 +230,22 @@ function buildPdf(title: string, items: DetailItem[], historyRecords: Record<str
     }
   }
 
+  let footerY = pageHeight - marginTop - 12;
   pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'italic');
   pdf.setTextColor(100, 100, 100);
-  pdf.text(`Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, marginLeft, pageHeight - 10);
+
+  if (settings?.address) {
+    const splitFooter = pdf.splitTextToSize(settings.address, contentWidth);
+    pdf.text(splitFooter as string[], marginLeft, footerY);
+    footerY += 4 * splitFooter.length;
+  }
+
+  pdf.text(
+    `Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+    marginLeft,
+    pageHeight - marginTop - 5
+  );
 
   return pdf;
 }
@@ -239,9 +263,38 @@ function formatHistoryDate(value: unknown) {
 
 export function RecordDetailsModal({ open, onOpenChange, title, record, fields, historyRecords = [], enableMonthFilter = false, onEditRecord }: Props) {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
   const now = new Date();
   const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1);
   const [filterYear, setFilterYear] = useState(now.getFullYear());
+
+  useEffect(() => {
+    if (!open) return;
+    let mounted = true;
+    fetch('/api/public/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (mounted) setSettings(data as SiteSettings);
+      })
+      .catch(() => {
+        if (mounted) setSettings(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
+
+  async function fetchSettingsAsync() {
+    try {
+      const res = await fetch('/api/public/settings');
+      if (!res.ok) return null;
+      const data = await res.json();
+      setSettings(data as SiteSettings);
+      return data as SiteSettings;
+    } catch {
+      return null;
+    }
+  }
 
   const filteredHistoryRecords = useMemo(() => {
     if (!enableMonthFilter) return historyRecords;
@@ -295,7 +348,11 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
 
   const sections = useMemo(() => buildSections(items), [items]);
 
-  function handlePrint() {
+  async function handlePrint() {
+    const finalSettings = settings ?? (await fetchSettingsAsync());
+    const siteTitle = finalSettings?.masjidName || 'Masjid';
+    const siteAddress = finalSettings?.address || '';
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -324,7 +381,8 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
       <body>
         <div class="container">
           <div class="print-header">
-            <div class="site-name">${title}</div>
+            <div class="site-name">${siteTitle}</div>
+            ${siteAddress ? `<div class="site-address">${siteAddress}</div>` : ''}
           </div>
           <h1>${title}</h1>
           ${sections
@@ -361,7 +419,10 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
               </div>
             </div>
           ` : ''}
-          <div class="print-footer">Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+          <div class="print-footer">
+            ${siteAddress ? `<div>${siteAddress}</div>` : ''}
+            <div>Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+          </div>
         </div>
       </body>
       </html>
@@ -380,7 +441,8 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
   async function generatePDF() {
     setIsLoadingPdf(true);
     try {
-      const pdf = buildPdf(title, items, filteredHistoryRecords);
+      const finalSettings = settings ?? (await fetchSettingsAsync());
+      const pdf = buildPdf(title, items, filteredHistoryRecords, finalSettings);
       pdf.save(`${title.replace(/\s+/g, '-').toLowerCase()}.pdf`);
     } finally {
       setIsLoadingPdf(false);

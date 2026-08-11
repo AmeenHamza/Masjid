@@ -124,7 +124,7 @@ export async function getStaffAttendanceOverview(): Promise<RoleTodayStatus[]> {
       const activeStaffName = roleRecords[0]?.staffName ?? null;
 
       const todaysRecord = activeStaffName
-        ? roleRecords.find((record) => record.staffName === activeStaffName && toDateKey(record.dateKey) === todayKey)
+        ? roleRecords.find((record) => record.staffName.toLowerCase() === activeStaffName.toLowerCase() && toDateKey(record.dateKey) === todayKey)
         : undefined;
 
       const prayers = PRAYER_ORDER.reduce((acc, prayer) => {
@@ -191,7 +191,7 @@ export async function getStaffAttendanceMonth(role: StaffRole, month: number, ye
     if (roleRecords.length === 0) return empty;
 
     const activeStaffName = roleRecords[0].staffName;
-    const staffRecords = roleRecords.filter((record) => record.staffName === activeStaffName);
+    const staffRecords = roleRecords.filter((record) => record.staffName.toLowerCase() === activeStaffName.toLowerCase());
     const recordsByDate = new Map<string, StaffRecordLean>();
     staffRecords.forEach((record) => {
       recordsByDate.set(toDateKey(record.dateKey), record);

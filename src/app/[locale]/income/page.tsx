@@ -69,8 +69,11 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
     (!selectedYear || Number(item.year) === selectedYear)
   );
 
-  const monthly = records.filter((item: any) => item.month === currentMonth && item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-  const yearly = records.filter((item: any) => item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  // Monthly/yearly summary cards are fixed headline totals for the current
+  // period and should not shrink when the user filters the table below by
+  // source/month/year - they're computed from allRecords, not records.
+  const monthly = allRecords.filter((item: any) => item.month === currentMonth && item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  const yearly = allRecords.filter((item: any) => item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
   const rows = records.map((item: any) => ({
     date: `${item.month || '-'}-${item.year || '-'}`,

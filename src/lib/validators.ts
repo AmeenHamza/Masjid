@@ -138,7 +138,9 @@ export const galleryItemSchema = z.object({
   title: z.string().min(1),
   mediaType: z.enum(['image', 'video']),
   url: z.string().url(),
-  thumbnailUrl: z.string().url().optional(),
+  // .url().optional() only allows undefined, not an empty string, so a form
+  // field left blank (submitted as '') would fail validation - allow '' too.
+  thumbnailUrl: z.string().url().optional().or(z.literal('')),
   caption: z.string().optional(),
   order: z.number().int().default(0)
 });
@@ -147,7 +149,9 @@ export const heroSlideSchema = z.object({
   title: z.string().min(1),
   subtitle: z.string().optional(),
   imageUrl: z.string().url(),
-  linkUrl: z.string().url().optional(),
+  // Same as thumbnailUrl above: leaving "Link URL" blank in the admin form
+  // submits '', which .url().optional() alone would reject.
+  linkUrl: z.string().url().optional().or(z.literal('')),
   order: z.number().int().default(0),
   active: z.boolean().default(true)
 });

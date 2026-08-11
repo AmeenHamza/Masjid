@@ -237,18 +237,26 @@ export async function POST(request: Request, { params }: Params) {
 
   if (collection === 'staff-records') {
     const input = parsed.data as { staffName: string; role: string; dateKey: Date };
+    // dateKey is always stored as UTC midnight for the submitted calendar
+    // day (z.coerce.date() on a date-only "YYYY-MM-DD" string). The window
+    // must be computed with UTC methods, not setHours(), which operates in
+    // the server process's local timezone and can shift the window onto
+    // the wrong day depending on where the server happens to be hosted.
     const currentDate = new Date(input.dateKey);
     const startOfDay = new Date(currentDate);
-    startOfDay.setHours(0, 0, 0, 0);
+    startOfDay.setUTCHours(0, 0, 0, 0);
     const endOfDay = new Date(currentDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
     // Same staff + role + day already has a record: instead of blocking the
     // save, remember its id so we update that existing record below rather
     // than creating a duplicate. This lets a previously-saved day's
-    // attendance be edited simply by saving again for that date.
+    // attendance be edited simply by saving again for that date. Name match
+    // is case-insensitive so "Imam Ali" and "imam ali" are treated as the
+    // same person, matching how the staff-list dropdown already dedups.
+    const escapedName = input.staffName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const duplicate = await resource.model.findOne({
-      staffName: input.staffName,
+      staffName: { $regex: `^${escapedName}$`, $options: 'i' },
       role: input.role,
       dateKey: { $gte: startOfDay, $lte: endOfDay }
     }).lean() as Record<string, unknown> | null;
@@ -317,15 +325,17 @@ export async function POST(request: Request, { params }: Params) {
       ]
     }).sort({ year: 1, month: 1, createdAt: 1 }).lean() as Array<Record<string, unknown>>;
 
-    // Total unpaid arrears from all earlier months, as they stood before this
-    // transaction's payment is applied. This is what "Previous Balance" means:
-    // how much the shop still owed from before, separate from this month's rent.
+    // Unpaid arrears carried in from before this transaction's payment is
+    // applied. This is what "Previous Balance" means: how much the shop
+    // still owed from before, separate from this month's rent. Each
+    // record's debtAmount is already the running cumulative balance as of
+    // that month (see currentBalance below), so the correct carry-in value
+    // is the most recent prior record's debtAmount — not a sum across all
+    // prior records, which would double-count arrears that are already
+    // included in later months' cumulative totals.
     const previousBalanceBeforePayment = Number.isFinite(manualPreviousBalance) && manualPreviousBalance >= 0
       ? manualPreviousBalance
-      : priorRecords.reduce(
-          (sum, record) => sum + Number(record.debtAmount ?? 0),
-          0
-        );
+      : Number(priorRecords[priorRecords.length - 1]?.debtAmount ?? 0);
 
     const rentHistoryEntries: Record<string, Record<string, unknown>> = {};
 
@@ -356,29 +366,11 @@ export async function POST(request: Request, { params }: Params) {
       paymentDate: String(shopData.date ?? existingRecord?.date ?? new Date().toISOString().slice(0, 10))
     };
 
-    const sortedHistoryKeys = Object.keys(rentHistoryEntries).sort((a, b) => a.localeCompare(b));
-    let remainingPayment = paidAmount;
-
-    sortedHistoryKeys.forEach((key) => {
-      const entry = rentHistoryEntries[key];
-      const rentAmount = Number(entry.rentAmount ?? 0);
-      const currentPaid = Number(entry.paidAmount ?? 0);
-      const outstanding = Math.max(0, rentAmount - currentPaid);
-
-      if (outstanding <= 0 || remainingPayment <= 0) {
-        return;
-      }
-
-      const appliedAmount = Math.min(outstanding, remainingPayment);
-      const nextPaid = currentPaid + appliedAmount;
-      const nextBalance = Math.max(0, rentAmount - nextPaid);
-      entry.paidAmount = nextPaid;
-      entry.remainingBalance = nextBalance;
-      entry.status = nextBalance === 0 ? 'Clear' : nextPaid > 0 ? 'Partial' : 'Due';
-      entry.paymentDate = String(entry.paymentDate || new Date().toISOString().slice(0, 10));
-      remainingPayment = Math.max(0, remainingPayment - appliedAmount);
-    });
-
+    // Older months keep the values they were originally saved with above —
+    // only the current month's entry is updated by this payment. The
+    // cumulative running balance (debtAmount) is what tracks total arrears
+    // across months; per-month history entries are a historical record and
+    // should not be rewritten by a later month's payment.
     const currentEntry = rentHistoryEntries[currentKey] as Record<string, unknown>;
     const paymentDate = String(shopData.date ?? existingRecord?.date ?? new Date().toISOString().slice(0, 10));
     const currentBalance = Math.max(0, previousBalanceBeforePayment + currentMonthlyRent - Math.min(paidAmount, previousBalanceBeforePayment + currentMonthlyRent));

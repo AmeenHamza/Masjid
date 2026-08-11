@@ -82,10 +82,7 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
       {/* LEFT BUTTON */}
       <div className="absolute inset-y-0 left-0 flex items-center p-4">
         <button
-          onClick={() => {
-            setIsPaused(true);
-            setIndex((prev) => (prev - 1 + slides.length) % slides.length);
-          }}
+          onClick={() => setIndex((prev) => (prev - 1 + slides.length) % slides.length)}
           className="grid h-11 w-11 place-items-center rounded-full bg-white/20 text-white backdrop-blur hover:bg-white/30"
         >
           <ChevronLeft />
@@ -95,10 +92,7 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
       {/* RIGHT BUTTON */}
       <div className="absolute inset-y-0 right-0 flex items-center p-4">
         <button
-          onClick={() => {
-            setIsPaused(true);
-            setIndex((prev) => (prev + 1) % slides.length);
-          }}
+          onClick={() => setIndex((prev) => (prev + 1) % slides.length)}
           className="grid h-11 w-11 place-items-center rounded-full bg-white/20 text-white backdrop-blur hover:bg-white/30"
         >
           <ChevronRight />

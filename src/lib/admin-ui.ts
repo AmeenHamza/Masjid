@@ -131,6 +131,8 @@ export const adminResources: ResourceConfig[] = [
       { name: 'shopName', label: 'Shop Name', type: 'text' },
       { name: 'ownerName', label: 'Rental Name', type: 'text' },
       { name: 'buyDate', label: 'Date', type: 'date' },
+      { name: 'month', label: 'Month', type: 'number' },
+      { name: 'year', label: 'Year', type: 'number' },
       { name: 'note', label: 'Note', type: 'textarea' },
       { name: 'monthlyRent', label: 'Monthly Rent (Rs)', type: 'number' }
     ]
@@ -230,7 +232,8 @@ export const adminResources: ResourceConfig[] = [
       { name: 'title', label: 'Title', type: 'text' },
       { name: 'mediaType', label: 'Media Type', type: 'select', options: [{ label: 'Image', value: 'image' }, { label: 'Video', value: 'video' }] },
       { name: 'url', label: 'Upload Media', type: 'media-upload', accept: 'image/*,video/*' },
-      { name: 'caption', label: 'Caption', type: 'textarea' }
+      { name: 'caption', label: 'Caption', type: 'textarea' },
+      { name: 'order', label: 'Order', type: 'number' }
     ]
   },
   {

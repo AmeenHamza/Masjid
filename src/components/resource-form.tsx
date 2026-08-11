@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { ImagePlus, Loader2, Trash2, UploadCloud } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -64,6 +65,8 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
   const { register, handleSubmit, reset, setValue, watch } = useForm<Record<string, unknown>>({ defaultValues });
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const [dragOverField, setDragOverField] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const emptyValues = useMemo(() => buildEmptyValues(fields), [fields]);
   const normalizedDefaultValues = useMemo(() => normalizeDefaultValues(fields, defaultValues), [defaultValues, fields]);
@@ -164,43 +167,118 @@ export function ResourceForm({ fields, defaultValues, onSubmit, submitLabel = 'S
 
         if (field.type === 'media-upload') {
           const mediaUrl = String(watch(field.name) ?? '');
+          const isUploading = uploadingField === field.name;
+          const isDraggingOver = dragOverField === field.name;
+          const hasError = Boolean(uploadErrors[field.name]);
 
           return (
-            <label key={field.name} className="sm:col-span-2">
+            <div key={field.name} className="sm:col-span-2">
               <div className="mb-2 text-sm font-semibold">{field.label}</div>
-              <Input
+              <input
+                ref={(element) => {
+                  fileInputRefs.current[field.name] = element;
+                }}
                 type="file"
                 accept={field.accept || 'image/*'}
                 onChange={(event) => {
-                  if (isDisabled) {
-                    return;
-                  }
+                  if (isDisabled) return;
                   void handleMediaUpload(field.name, event.target.files?.[0] ?? null);
+                  event.target.value = '';
                 }}
-                className="w-full"
+                className="hidden"
                 disabled={isDisabled}
               />
               <input type="hidden" {...register(field.name)} />
-              {uploadingField === field.name ? <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">Uploading image...</p> : null}
-              {uploadErrors[field.name] ? <p className="mt-2 text-xs text-rose-600 dark:text-rose-300">{uploadErrors[field.name]}</p> : null}
-              {mediaUrl ? (
-                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-slate-900/40">
-                      {mediaType === 'image' ? (
-                        <img src={mediaUrl} alt="Uploaded media preview" className="h-44 w-full rounded-lg object-cover sm:h-56" />
-                      ) : (
-                        <video
-                          src={mediaUrl}
-                          className="h-44 w-full rounded-lg object-cover sm:h-56"
-                          controls
-                          muted
-                          autoPlay
-                          loop
-                          playsInline
-                        />
-                      )}
+
+              {mediaUrl && !isUploading ? (
+                <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/40">
+                  {mediaType === 'video' ? (
+                    <video
+                      src={mediaUrl}
+                      className="h-48 w-full object-cover sm:h-60"
+                      controls
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <img src={mediaUrl} alt="Uploaded media preview" className="h-48 w-full object-cover sm:h-60" />
+                  )}
+                  {!isDisabled ? (
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-slate-950/80 to-transparent p-3 opacity-0 transition group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRefs.current[field.name]?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-white"
+                      >
+                        <ImagePlus className="h-3.5 w-3.5" /> Replace
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setValue(field.name, '', { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-white"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Remove
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
+              ) : (
+                <div
+                  role="button"
+                  tabIndex={isDisabled ? -1 : 0}
+                  onClick={() => !isDisabled && !isUploading && fileInputRefs.current[field.name]?.click()}
+                  onKeyDown={(event) => {
+                    if ((event.key === 'Enter' || event.key === ' ') && !isDisabled && !isUploading) {
+                      event.preventDefault();
+                      fileInputRefs.current[field.name]?.click();
+                    }
+                  }}
+                  onDragOver={(event) => {
+                    if (isDisabled) return;
+                    event.preventDefault();
+                    setDragOverField(field.name);
+                  }}
+                  onDragLeave={() => setDragOverField((current) => (current === field.name ? null : current))}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setDragOverField(null);
+                    if (isDisabled || isUploading) return;
+                    void handleMediaUpload(field.name, event.dataTransfer.files?.[0] ?? null);
+                  }}
+                  className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition ${
+                    isDisabled
+                      ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 dark:border-white/10 dark:bg-white/5'
+                      : hasError
+                        ? 'cursor-pointer border-rose-300 bg-rose-50 dark:border-rose-500/40 dark:bg-rose-950/20'
+                        : isDraggingOver
+                          ? 'cursor-pointer border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/20'
+                          : 'cursor-pointer border-slate-300 bg-slate-50 hover:border-emerald-400 hover:bg-emerald-50/50 dark:border-white/15 dark:bg-white/5 dark:hover:border-emerald-400/60'
+                  }`}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Uploading...</p>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className={`h-7 w-7 ${hasError ? 'text-rose-500' : 'text-slate-400 dark:text-slate-500'}`} />
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        Click to upload <span className="font-normal text-slate-500 dark:text-slate-400">or drag and drop</span>
+                      </p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        {mediaType === 'video' ? 'MP4, WebM, or other video files' : 'PNG, JPG, WEBP, or other image files'}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {uploadErrors[field.name] ? (
+                <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-300">{uploadErrors[field.name]}</p>
               ) : null}
-            </label>
+            </div>
           );
         }
 

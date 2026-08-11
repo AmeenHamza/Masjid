@@ -221,17 +221,18 @@ export function StaffManagePanel({ apiPath, onSaved, createRequestToken }: Staff
     setSavingNewStaff(true);
     try {
       // Every staff record must have a dateKey. Use today as the hire/start
-      // date; all prayers default to Absent (admin will edit later via the
-      // attendance form).
+      // date; all prayers default to Present since the staff member is
+      // being added as active today (admin can correct via the attendance
+      // form if needed).
       const payload: Record<string, unknown> = {
         staffName: trimmedName,
         role: trimmedRole,
         dateKey: todayKey(),
-        fajrAttendance: 'Absent',
-        zoharAttendance: 'Absent',
-        asrAttendance: 'Absent',
-        maghribAttendance: 'Absent',
-        ishaAttendance: 'Absent',
+        fajrAttendance: 'Present',
+        zoharAttendance: 'Present',
+        asrAttendance: 'Present',
+        maghribAttendance: 'Present',
+        ishaAttendance: 'Present',
         note: ''
       };
       const response = await fetch(apiPath, {
@@ -330,8 +331,8 @@ export function StaffManagePanel({ apiPath, onSaved, createRequestToken }: Staff
                     {filteredStaff.length === 0 ? (
                       <div className="px-3 py-2 text-sm text-slate-500">
                         {staffOptions.length === 0
-                          ? 'No staff added yet. Use "New Record" to add one.'
-                          : 'No matching staff.'}
+                          ? 'No staff added yet. Use "New Record" above to add one.'
+                          : `No existing staff match "${staffSearch}". This form only edits attendance for staff who already exist — use "New Record" above to add a new person first.`}
                       </div>
                     ) : (
                       filteredStaff.map((option) => (
@@ -349,6 +350,11 @@ export function StaffManagePanel({ apiPath, onSaved, createRequestToken }: Staff
                   </div>
                 ) : null}
               </div>
+              {staffSearch.trim() && !selectedStaff ? (
+                <p className="mt-1.5 text-xs text-amber-700">
+                  No staff selected — pick a name from the list above, or use &quot;New Record&quot; if this person isn&apos;t added yet.
+                </p>
+              ) : null}
             </div>
 
             <div className="min-w-0">

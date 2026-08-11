@@ -256,17 +256,13 @@ export default function AdminResourcePage() {
       computedStatus = 'Partial';
     }
 
-    const requestedMonthYear = getMonthYearFromDate(paymentDate);
-    const paymentMonthToSave = requestedMonthYear?.month ?? paymentMonth;
-    const paymentYearToSave = requestedMonthYear?.year ?? paymentYear;
-
     const payload = {
       shopName: String(shop.shopName || ''),
       ownerName: String(shop.ownerName || ''),
       buyDate: String(shop.buyDate ?? shop.date ?? new Date().toISOString().slice(0, 10)),
       monthlyRent: currentMonthlyRent,
-      month: paymentMonthToSave,
-      year: paymentYearToSave,
+      month: paymentMonth,
+      year: paymentYear,
       previousBalance,
       paymentAmount: paymentAmountToSave,
       date: paymentDate,
@@ -387,11 +383,19 @@ export default function AdminResourcePage() {
       ];
     }
 
+    const fieldByName = new Map(resource?.fields.map((field) => [field.name, field]) ?? []);
+
     return Object.keys(items[0]).filter((key) => !hiddenKeys.has(key)).map((key) => ({
       accessorKey: key,
       header: key,
       cell: ({ getValue }: { getValue: () => unknown }) => {
-        const value = String(getValue() ?? '');
+        const rawValue = getValue();
+
+        if (fieldByName.get(key)?.type === 'date') {
+          return <span className="block max-w-[260px] break-words">{formatDateValue(rawValue)}</span>;
+        }
+
+        const value = String(rawValue ?? '');
 
         if (key.toLowerCase().includes('url')) {
           const displayText = value.length > 65 ? `${value.slice(0, 65)}...` : value;
@@ -481,7 +485,11 @@ export default function AdminResourcePage() {
     setSaving(true);
     const isUpdate = Boolean(selected?._id);
 
-    if (isSettingsResource && !isUpdate) {
+    // Settings is a singleton - block creating a second document once one
+    // already exists, but the very first save (no settings row yet) must be
+    // allowed to go through as a create, or the site could never be
+    // configured for the first time at all.
+    if (isSettingsResource && !isUpdate && items.length > 0) {
       toast.error(tToast('unableToSaveRecord'));
       setSaving(false);
       return;
@@ -555,6 +563,26 @@ export default function AdminResourcePage() {
         const deleteResponses = await Promise.all(
           shopIds.map((shopId) =>
             fetch(`${currentResource.apiPath}/${shopId}`, { method: 'DELETE', credentials: 'include' })
+          )
+        );
+
+        if (deleteResponses.some((response) => !response.ok)) {
+          throw new Error('Delete failed');
+        }
+      } else if (currentResource.key === 'staff-records') {
+        const staffRecord = items.find((item) => String(item._id ?? '') === id);
+        const staffName = String(staffRecord?.staffName ?? '').trim();
+        const role = String(staffRecord?.role ?? '').trim();
+        const staffIds = staffName
+          ? items
+              .filter((item) => String(item.staffName ?? '').trim() === staffName && String(item.role ?? '').trim() === role)
+              .map((item) => String(item._id ?? ''))
+              .filter(Boolean)
+          : [id];
+
+        const deleteResponses = await Promise.all(
+          staffIds.map((staffId) =>
+            fetch(`${currentResource.apiPath}/${staffId}`, { method: 'DELETE', credentials: 'include' })
           )
         );
 

@@ -12,7 +12,6 @@ export function MasonryGallery({ items }: { items: Array<{ mediaType: 'image' | 
                 src={item.url}
                 controls
                 muted
-                autoPlay
                 loop
                 playsInline
                 className="absolute inset-0 w-full h-full object-cover rounded-lg"
