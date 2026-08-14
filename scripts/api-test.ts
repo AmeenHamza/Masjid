@@ -74,6 +74,27 @@ async function main() {
     assert(july.body?.item?.debtAmount === 15000, 'No arrears double-counting: July debt is 15000, not 20000', july.body?.item?.debtAmount);
   }
 
+  console.log('\n=== Shop payment: explicit month must win over the date field (regression check) ===');
+  {
+    // Mimics exactly what the fixed frontend now sends: month explicitly
+    // chosen as July while the receiving date falls in August. The backend
+    // must save month=7 - if it silently derived month from the date
+    // instead, this would come back as 8.
+    const rec = await api('/api/admin/shop-records', {
+      method: 'POST',
+      body: JSON.stringify({
+        shopName: 'ZZZTEST-DEPLOY-CHECK-monthdate', ownerName: 'ZZZTEST', buyDate: '2026-01-01',
+        monthlyRent: 3000, month: 7, year: 2026, date: '2026-08-11', paymentAmount: 3000
+      })
+    });
+    assert(rec.status === 201, 'POST with month=July + date=August succeeds', rec.body);
+    assert(rec.body?.item?.month === 7, 'Saved month is July (7) - date field did not override it', rec.body?.item?.month);
+    if (rec.body?.item?._id) {
+      const del = await api(`/api/admin/shop-records/${rec.body.item._id}`, { method: 'DELETE' });
+      assert(del.status === 200, 'Cleanup delete succeeds', del.body);
+    }
+  }
+
   console.log('\n=== Staff: attendance defaults + delete building block ===');
   {
     const rec = await api('/api/admin/staff-records', {

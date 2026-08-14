@@ -10,6 +10,7 @@ import { DataTable } from '@/components/data-table';
 import { getResourceConfig } from '@/lib/admin-ui';
 import { ResourceForm } from '@/components/resource-form';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/utils';
@@ -68,26 +69,6 @@ function getNextMonthYear(month: number, year: number) {
   }
 
   return { month: month + 1, year };
-}
-
-function getMonthYearFromDate(dateValue: string) {
-  const rawValue = String(dateValue ?? '').trim();
-  if (!rawValue) {
-    return null;
-  }
-
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(rawValue)
-    ? new Date(`${rawValue}T00:00:00Z`)
-    : new Date(rawValue);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return {
-    month: date.getUTCMonth() + 1,
-    year: date.getUTCFullYear()
-  };
 }
 
 function getNewRecordDefaults(resourceKey: string) {
@@ -379,6 +360,44 @@ export default function AdminResourcePage() {
           cell: ({ getValue }: { getValue: () => unknown }) => (
             <span className="block max-w-[260px] break-words">{formatCurrency(Number(getValue() ?? 0))}</span>
           )
+        },
+        {
+          id: 'lastPayment',
+          header: 'Last Recorded',
+          cell: ({ row }: { row: { original: Record<string, unknown> } }) => {
+            const month = row.original.month;
+            const year = row.original.year;
+            if (!month || !year) return <span>-</span>;
+            const monthLabel = new Date(0, Number(month) - 1).toLocaleString('en-US', { month: 'short' });
+            return <span className="whitespace-nowrap">{monthLabel} {String(year)}</span>;
+          }
+        },
+        {
+          accessorKey: 'debtAmount',
+          header: 'Balance Due',
+          cell: ({ getValue }: { getValue: () => unknown }) => {
+            const amount = Number(getValue() ?? 0);
+            return (
+              <span className={`block whitespace-nowrap font-semibold ${amount > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                {formatCurrency(amount)}
+              </span>
+            );
+          }
+        },
+        {
+          accessorKey: 'paymentStatus',
+          header: 'Status',
+          cell: ({ getValue }: { getValue: () => unknown }) => {
+            const status = String(getValue() ?? '-');
+            const badgeClass = status === 'Clear'
+              ? 'bg-emerald-100 text-emerald-800'
+              : status === 'Partial'
+                ? 'bg-amber-100 text-amber-800'
+                : status === 'Due'
+                  ? 'bg-rose-100 text-rose-700'
+                  : 'bg-slate-100 text-slate-600';
+            return <Badge className={badgeClass}>{status}</Badge>;
+          }
         }
       ];
     }
@@ -760,17 +779,11 @@ export default function AdminResourcePage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="min-w-0">
-                <div className="mb-2 text-sm font-semibold">Date</div>
+                <div className="mb-2 text-sm font-semibold">Payment Received Date</div>
+                <p className="mb-1.5 -mt-1 text-xs text-slate-500">When the tenant actually paid (can be weeks or months after the rent month below).</p>
                 <input
                   value={paymentDate}
-                  onChange={(event) => {
-                    const next = getMonthYearFromDate(event.target.value);
-                    setPaymentDate(event.target.value);
-                    if (next) {
-                      setPaymentMonth(next.month);
-                      setPaymentYear(next.year);
-                    }
-                  }}
+                  onChange={(event) => setPaymentDate(event.target.value)}
                   type="date"
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
                 />
@@ -785,7 +798,8 @@ export default function AdminResourcePage() {
                 />
               </label>
               <label className="min-w-0">
-                <div className="mb-2 text-sm font-semibold">Month</div>
+                <div className="mb-2 text-sm font-semibold">Rent For Month</div>
+                <p className="mb-1.5 -mt-1 text-xs text-slate-500">Which month&apos;s rent this payment covers - independent of the date above.</p>
                 <select
                   value={paymentMonth}
                   onChange={(event) => setPaymentMonth(Number(event.target.value))}
@@ -800,7 +814,7 @@ export default function AdminResourcePage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="min-w-0">
-                <div className="mb-2 text-sm font-semibold">Year</div>
+                <div className="mb-2 text-sm font-semibold">Rent For Year</div>
                 <input
                   value={paymentYear}
                   onChange={(event) => setPaymentYear(Number(event.target.value))}

@@ -107,16 +107,17 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
 
       let yPosition = marginTop;
 
-      // Header (site name + title)
+      // Header (site name + title), centered
+      const pageCenter = pageWidth / 2;
       const siteTitle = (finalSettings && finalSettings.masjidName) ? finalSettings.masjidName : 'Masjid';
       pdf.setFontSize(18);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(siteTitle, marginLeft, yPosition);
+      pdf.text(siteTitle, pageCenter, yPosition, { align: 'center' });
       yPosition += 8;
 
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Shop Record', marginLeft, yPosition);
+      pdf.text('Shop Receipt', pageCenter, yPosition, { align: 'center' });
       yPosition += 10;
 
       // Divider
@@ -220,7 +221,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
       <body>
         <div class="card">
           <div class="title">${siteTitle}</div>
-          <div class="subtitle">Rent Payment Slip</div>
+          <div class="subtitle">Shop Receipt</div>
           <div class="row"><span class="label">Serial Number</span><span class="value">${record.serialNumber || '-'}</span></div>
           <div class="row"><span class="label">Shop Name</span><span class="value">${record.shopName}</span></div>
           <div class="row"><span class="label">Rental Name</span><span class="value">${record.ownerName}</span></div>
@@ -294,6 +295,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
             color: #075985;
             margin: 8px 0 16px 0;
             font-size: 16px;
+            text-align: center;
           }
           .details-grid {
             display: grid;
@@ -312,9 +314,9 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
         <div class="container">
           <div class="print-header">
             <div class="site-name">${siteTitle}</div>
+            <h1>Shop Receipt</h1>
             ${siteAddress ? `<div class="site-address">${siteAddress}</div>` : ''}
           </div>
-          <h1>Shop Record</h1>
           <div class="details-grid">
             <div>
               <div class="detail-label">Serial Number</div>

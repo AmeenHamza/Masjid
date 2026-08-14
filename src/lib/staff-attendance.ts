@@ -57,18 +57,21 @@ function isDatabaseConfigured() {
 
 /**
  * Works out the status of one prayer on one day.
- * - The only source of truth is what the admin has explicitly saved.
- * - An explicit "Present"/"Absent" is returned as-is.
- * - Anything else (no record, missing field, legacy "Pending" values) is
- *   treated as Absent — there is no Pending state anymore.
+ * - An explicit "Present"/"Absent" saved by the admin is always returned as-is.
+ * - If nothing was explicitly saved for today, the staff member is assumed
+ *   Present by default - Absent only happens when the admin actively marks
+ *   it. This does not apply when no one is assigned to the role at all
+ *   (hasAssignedStaff: false), since there is no one to default to Present.
  */
 export function computePrayerStatus(options: {
   storedValue: AttendanceStatus | string | undefined | null;
+  hasAssignedStaff?: boolean;
 }): AttendanceStatus {
-  const { storedValue } = options;
+  const { storedValue, hasAssignedStaff = true } = options;
 
   if (storedValue === 'Present') return 'Present';
-  return 'Absent';
+  if (storedValue === 'Absent') return 'Absent';
+  return hasAssignedStaff ? 'Present' : 'Absent';
 }
 
 type StaffRecordLean = {
@@ -129,7 +132,8 @@ export async function getStaffAttendanceOverview(): Promise<RoleTodayStatus[]> {
 
       const prayers = PRAYER_ORDER.reduce((acc, prayer) => {
         acc[prayer] = computePrayerStatus({
-          storedValue: todaysRecord?.[attendanceFieldByPrayer[prayer] as keyof StaffRecordLean] as AttendanceStatus | undefined
+          storedValue: todaysRecord?.[attendanceFieldByPrayer[prayer] as keyof StaffRecordLean] as AttendanceStatus | undefined,
+          hasAssignedStaff: Boolean(activeStaffName)
         });
         return acc;
       }, {} as Record<PrayerKey, AttendanceStatus>);
@@ -225,7 +229,8 @@ export async function getStaffAttendanceMonth(role: StaffRole, month: number, ye
 
       const prayers = PRAYER_ORDER.reduce((acc, prayer) => {
         const status = computePrayerStatus({
-          storedValue: record?.[attendanceFieldByPrayer[prayer] as keyof StaffRecordLean] as AttendanceStatus | undefined
+          storedValue: record?.[attendanceFieldByPrayer[prayer] as keyof StaffRecordLean] as AttendanceStatus | undefined,
+          hasAssignedStaff: true
         });
         acc[prayer] = status;
         if (status === 'Present') summary[prayer] += 1;
