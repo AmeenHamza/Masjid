@@ -25,8 +25,8 @@
     "languageEnglish": "English",
     "languageUrdu": "Urdu",
     "languageTheme": "Language & Theme",
-    "brandTop": "Jami Masjid",
-    "brandBottom": "Noori & Madrasa",
+    "brandTop": "Jamia Masjid",
+    "brandBottom": "Noorani & Madrasa",
     "liveSummary": "Live summary from admin records",
     "records": "Records",
     "noRecordsYet": "No records yet.",
@@ -39,6 +39,7 @@
     "title": "Title",
     "source": "Source",
     "category": "Category",
+    "note": "Note",
     "shopName": "Shop Name",
     "ownerName": "Tenant Name",
     "contactNumber": "Contact Number",
@@ -100,7 +101,7 @@
     "gallery": { "title": "Gallery", "subtitle": "Images and videos uploaded by the admin team." }
   },
   "home": {
-    "title": "Jami Masjid Noori & Madrasa",
+    "title": "Jamia Masjid Noorani & Madrasa",
     "subtitle": "Korangi No. 1, Karachi, Pakistan",
     "marquee": "Prayer times update live from the admin panel. Friday Juma timing is shown separately.",
     "highlight": "Please give donation according to your ability and support the masjid and madrasa activities.",
@@ -166,7 +167,7 @@
     "password": "Password",
     "enterPassword": "Enter your password",
     "signInTitle": "Admin sign in",
-    "signInSubtitle": "Secure access for Jami Masjid staff",
+    "signInSubtitle": "Secure access for Jamia Masjid staff",
     "signingIn": "Signing in...",
     "signIn": "Sign In",
     "loginFailed": "Login failed. Please check email/password.",
@@ -182,7 +183,7 @@
   },
   "components": {
     "masjidAdmin": "Masjid Admin",
-    "jamisMasjidNoori": "Jami Masjid Noori",
+    "jamisMasjidNoori": "Jamia Masjid Noorani & Madrasa",
     "navigation": "Navigation",
     "logout": "Logout"
   }

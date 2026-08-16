@@ -77,16 +77,16 @@ export default async function ExpensePage({ params, searchParams }: { params: Pr
   const rows = records.map((item: any) => ({
     date: `${item.month || '-'}-${item.year || '-'}`,
     title: String(item.title || '-'),
-    category: String(item.category || '-'),
+    note: String(item.note || '-'),
     amount: formatCurrency(Number(item.amount || 0))
   }));
 
-  const columns = [common('date'), common('title'), common('category'), common('amount')];
+  const columns = [common('date'), common('title'), common('note'), common('amount')];
 
   const normalizedRows = rows.map((item) => ({
     [common('date')]: item.date,
     [common('title')]: item.title,
-    [common('category')]: item.category,
+    [common('note')]: item.note,
     [common('amount')]: item.amount
   }));
 

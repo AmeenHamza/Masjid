@@ -39,6 +39,7 @@
     "title": "عنوان",
     "source": "ذریعہ",
     "category": "قسم",
+    "note": "نوٹ",
     "shopName": "شاپ کا نام",
     "ownerName": "کرایہ دار کا نام",
     "contactNumber": "رابطہ نمبر",
@@ -182,7 +183,7 @@
   },
   "components": {
     "masjidAdmin": "مسجد ایڈمن",
-    "jamisMasjidNoori": "جامع مسجد نوری",
+    "jamisMasjidNoori": "جامع مسجد نورانی و مدرسہ",
     "navigation": "رہنمائی",
     "logout": "لاگ آؤٹ"
   }

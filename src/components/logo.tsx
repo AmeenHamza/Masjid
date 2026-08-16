@@ -1,6 +1,6 @@
 import { Landmark } from 'lucide-react';
 
-export function Logo({ compact = false, topText = 'Jami Masjid', bottomText = 'Noori & Madrasa', tone = 'dark' }: { compact?: boolean; topText?: string; bottomText?: string; tone?: 'dark' | 'light' }) {
+export function Logo({ compact = false, topText = 'Jamia Masjid', bottomText = 'Noorani & Madrasa', tone = 'dark' }: { compact?: boolean; topText?: string; bottomText?: string; tone?: 'dark' | 'light' }) {
   const textTone = tone === 'light' ? 'text-white' : 'text-slate-900 dark:text-white';
   const mutedTone = tone === 'light' ? 'text-white/70' : 'text-slate-600 dark:text-slate-300';
 

@@ -34,8 +34,8 @@ export type SiteSettings = {
 };
 
 const fallbackSettings: SiteSettings = {
-  masjidName: 'Jami Masjid Noori & Madrasa',
-  madrasaName: 'Noori Madrasa',
+  masjidName: 'Jamia Masjid Noorani & Madrasa',
+  madrasaName: 'Noorani Madrasa',
   address: 'Korangi No. 1, Karachi, Pakistan',
   phone: '+92 300 1234567',
   prayerMarquee: 'Prayer times are managed live from the admin panel.',

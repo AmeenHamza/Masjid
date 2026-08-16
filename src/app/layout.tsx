@@ -7,8 +7,8 @@ const englishFont = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-sa
 const urduFont = Noto_Naskh_Arabic({ subsets: ['arabic'], variable: '--font-urdu' });
 
 export const metadata: Metadata = {
-  title: 'Jami Masjid Noori & Madrasa',
-  description: 'Official bilingual web application for Jami Masjid Noori & Madrasa, Korangi No. 1, Karachi.',
+  title: 'Jamia Masjid Noorani & Madrasa',
+  description: 'Official bilingual web application for Jamia Masjid Noorani & Madrasa, Korangi No. 1, Karachi.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
 };
 

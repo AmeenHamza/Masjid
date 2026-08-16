@@ -10,7 +10,6 @@ import { DataTable } from '@/components/data-table';
 import { getResourceConfig } from '@/lib/admin-ui';
 import { ResourceForm } from '@/components/resource-form';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatCurrency } from '@/lib/utils';
@@ -374,7 +373,7 @@ export default function AdminResourcePage() {
         },
         {
           accessorKey: 'debtAmount',
-          header: 'Balance Due',
+          header: 'Shop Balance',
           cell: ({ getValue }: { getValue: () => unknown }) => {
             const amount = Number(getValue() ?? 0);
             return (
@@ -382,21 +381,6 @@ export default function AdminResourcePage() {
                 {formatCurrency(amount)}
               </span>
             );
-          }
-        },
-        {
-          accessorKey: 'paymentStatus',
-          header: 'Status',
-          cell: ({ getValue }: { getValue: () => unknown }) => {
-            const status = String(getValue() ?? '-');
-            const badgeClass = status === 'Clear'
-              ? 'bg-emerald-100 text-emerald-800'
-              : status === 'Partial'
-                ? 'bg-amber-100 text-amber-800'
-                : status === 'Due'
-                  ? 'bg-rose-100 text-rose-700'
-                  : 'bg-slate-100 text-slate-600';
-            return <Badge className={badgeClass}>{status}</Badge>;
           }
         }
       ];
