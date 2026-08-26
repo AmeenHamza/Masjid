@@ -6,7 +6,7 @@ const DonationSchema = new Schema(
     donorName: { type: String, required: true },
     type: {
       type: String,
-      enum: ['Friday', 'Box', 'Ramadan', 'Fitrah', 'General', 'Project'],
+      enum: ['Friday', 'Box', 'Masjid', 'Madrasa', 'Ramadan', 'Fitrah', 'General', 'Project'],
       required: true
     },
     date: { type: String },

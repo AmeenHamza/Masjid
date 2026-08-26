@@ -4,7 +4,7 @@ export default function RamadanAdminPage() {
   return (
     <GroupedRecordPanel
       title="Ramadan"
-      subtitle="Manage Ramadan donation, Ramadan expense, and fitrah records from one place."
+      subtitle="Manage Ramadan donation, Ramadan expense, fitrah, and zakat records from one place."
       tabs={[
         {
           key: 'ramadan-donation',
@@ -25,7 +25,18 @@ export default function RamadanAdminPage() {
           label: 'Fitrah',
           resourceKey: 'fitrah-records',
           description: 'Fitrah records with family name, member count, amount, year, and note.',
-          defaultValues: { year: new Date().getFullYear(), amount: 0, membersCount: 1 }
+          defaultValues: { type: 'Fitrah', year: new Date().getFullYear(), amount: 0, membersCount: 1 },
+          extraValues: { type: 'Fitrah' },
+          hideFields: ['type']
+        },
+        {
+          key: 'zakat',
+          label: 'Zakat',
+          resourceKey: 'fitrah-records',
+          description: 'Zakat records with family/payer name, member count, amount, year, and note.',
+          defaultValues: { type: 'Zakat', year: new Date().getFullYear(), amount: 0, membersCount: 1 },
+          extraValues: { type: 'Zakat' },
+          hideFields: ['type']
         }
       ]}
     />

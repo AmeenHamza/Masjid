@@ -4,6 +4,7 @@ import { createModel, auditedFields } from './_shared';
 const FitrahRecordSchema = new Schema(
   {
     familyName: { type: String, required: true },
+    type: { type: String, enum: ['Fitrah', 'Zakat'], default: 'Fitrah' },
     membersCount: { type: Number, required: true, min: 1 },
     amount: { type: Number, required: true, min: 0 },
     year: { type: Number, required: true },

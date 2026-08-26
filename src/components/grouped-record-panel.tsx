@@ -26,6 +26,11 @@ type Props = {
   tabs: GroupTab[];
 };
 
+const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 function normalizeValue(field: FieldConfig, value: unknown) {
   if (field.type === 'number') return Number(value ?? 0);
   if (field.type === 'checkbox') return Boolean(value);
@@ -71,6 +76,8 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
   const [formResetToken, setFormResetToken] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [filterMonth, setFilterMonth] = useState(0);
+  const [filterYear, setFilterYear] = useState(0);
 
   const activeTab = tabs.find((tab) => tab.key === activeTabKey) ?? tabs[0];
   const resource = activeTab ? getResourceConfig(activeTab.resourceKey) : undefined;
@@ -79,7 +86,25 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
     const hiddenFields = new Set(activeTab?.hideFields ?? []);
     return resource.fields.filter((field) => !hiddenFields.has(field.name));
   }, [activeTab?.hideFields, resource]);
-  const columns = useMemo(() => buildColumns(items), [items]);
+  const hasMonthField = resource?.fields.some((field) => field.name === 'month') ?? false;
+  const hasYearField = resource?.fields.some((field) => field.name === 'year') ?? false;
+  const filterYearOptions = useMemo(() => {
+    const years = new Set<number>();
+    items.forEach((item) => {
+      const year = Number(item.year);
+      if (Number.isInteger(year) && year > 0) years.add(year);
+    });
+    years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [items]);
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesMonth = !hasMonthField || !filterMonth || Number(item.month) === filterMonth;
+      const matchesYear = !hasYearField || !filterYear || Number(item.year) === filterYear;
+      return matchesMonth && matchesYear;
+    });
+  }, [items, hasMonthField, hasYearField, filterMonth, filterYear]);
+  const columns = useMemo(() => buildColumns(filteredItems), [filteredItems]);
   const defaultValues = selected || activeTab?.defaultValues;
 
   useEffect(() => {
@@ -174,6 +199,8 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
               setSelectedForDetails(null);
               setDetailsOpen(false);
               setSaveError(null);
+              setFilterMonth(0);
+              setFilterYear(0);
             }}
             className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${activeTab.key === tab.key ? 'bg-emerald-700 text-white' : 'bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'}`}
           >
@@ -201,8 +228,42 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
       </Card>
 
       <Card className="overflow-hidden border-slate-200/80 p-0 dark:border-white/10">
-        <div className="border-b border-slate-200/80 bg-slate-50 px-6 py-5 dark:border-white/10 dark:bg-white/5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50 px-6 py-5 dark:border-white/10 dark:bg-white/5">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Records</h2>
+          {hasMonthField || hasYearField ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {hasMonthField ? (
+                <select
+                  value={filterMonth}
+                  onChange={(event) => setFilterMonth(Number(event.target.value))}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-white/10 dark:bg-white/5"
+                >
+                  <option value={0}>All Months</option>
+                  {monthNames.map((name, index) => (
+                    <option key={name} value={index + 1}>{name}</option>
+                  ))}
+                </select>
+              ) : null}
+              {hasYearField ? (
+                <select
+                  value={filterYear}
+                  onChange={(event) => setFilterYear(Number(event.target.value))}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-white/10 dark:bg-white/5"
+                >
+                  <option value={0}>All Years</option>
+                  {filterYearOptions.map((yearOption) => (
+                    <option key={yearOption} value={yearOption}>{yearOption}</option>
+                  ))}
+                </select>
+              ) : null}
+              {filterMonth || filterYear ? (
+                <Button variant="outline" size="sm" onClick={() => { setFilterMonth(0); setFilterYear(0); }}>
+                  Clear Filter
+                </Button>
+              ) : null}
+              <span className="text-xs text-slate-500 dark:text-slate-400">{filteredItems.length} of {items.length} records</span>
+            </div>
+          ) : null}
         </div>
         <div className="p-4">
           {columns.length ? (
@@ -232,7 +293,7 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
                   )
                 }
               ]}
-              data={items}
+              data={filteredItems}
               searchKey={resource.searchKeys[0]}
             />
           ) : (

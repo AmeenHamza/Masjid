@@ -11,9 +11,22 @@ type SectionPageProps = {
   columns: string[];
   recordsLabel: string;
   noRecordsLabel: string;
+  // Optional per-row override for a specific column's badge color (e.g. a
+  // balance column where the color depends on a numeric comparison the
+  // caller has context for, not just the displayed string).
+  columnColorOverrides?: {
+    column: string;
+    colors: Array<'red' | 'amber' | 'green' | null>;
+  };
 };
 
-export function SectionPage({ brandLabel, title, subtitle, summary, rows, columns, recordsLabel, noRecordsLabel }: SectionPageProps) {
+const balanceBadgeClass: Record<'red' | 'amber' | 'green', string> = {
+  red: 'inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
+  amber: 'inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+  green: 'inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+};
+
+export function SectionPage({ brandLabel, title, subtitle, summary, rows, columns, recordsLabel, noRecordsLabel, columnColorOverrides }: SectionPageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 lg:px-6">
       <AutoRefresh />
@@ -62,10 +75,13 @@ export function SectionPage({ brandLabel, title, subtitle, summary, rows, column
                       {columns.map((column) => {
                         const cellValue = row[column] || '-';
                         const isStatusCell = column.toLowerCase().includes('status') || column.toLowerCase().includes('payment');
-                        
+
                         // Determine badge color based on status value
                         let badgeClass = '';
-                        if (isStatusCell) {
+                        const override = columnColorOverrides?.column === column ? columnColorOverrides.colors[rowIndex] : null;
+                        if (override) {
+                          badgeClass = balanceBadgeClass[override];
+                        } else if (isStatusCell) {
                           const statusLower = String(cellValue).toLowerCase();
                           if (statusLower === 'clear') {
                             badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';

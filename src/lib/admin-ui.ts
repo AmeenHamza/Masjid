@@ -68,14 +68,15 @@ export const adminResources: ResourceConfig[] = [
     key: 'madrasa-records',
     title: 'Madrasa Records',
     apiPath: `${apiBase}/admin/madrasa-records`,
-    searchKeys: ['title', 'studentCount', 'teacherCount', 'note'],
+    searchKeys: ['studentName', 'fatherName', 'contactNumber', 'darja', 'class', 'teacherName'],
     fields: [
-      { name: 'title', label: 'Title', type: 'text' },
-      { name: 'studentCount', label: 'Student Count', type: 'number' },
-      { name: 'teacherCount', label: 'Teacher Count', type: 'number' },
-      { name: 'month', label: 'Month', type: 'number' },
-      { name: 'year', label: 'Year', type: 'number' },
-      { name: 'note', label: 'Note', type: 'textarea' }
+      { name: 'studentName', label: 'Student Name', type: 'text' },
+      { name: 'fatherName', label: 'Father Name', type: 'text' },
+      { name: 'contactNumber', label: 'Contact Number', type: 'text' },
+      { name: 'admissionDate', label: 'Admission Date', type: 'date' },
+      { name: 'darja', label: 'Darja', type: 'text' },
+      { name: 'class', label: 'Class', type: 'text' },
+      { name: 'teacherName', label: 'Teacher Name', type: 'text' }
     ]
   },
   {
@@ -151,6 +152,8 @@ export const adminResources: ResourceConfig[] = [
         options: [
           { label: 'Friday', value: 'Friday' },
           { label: 'Box', value: 'Box' },
+          { label: 'Masjid', value: 'Masjid' },
+          { label: 'Madrasa', value: 'Madrasa' },
           { label: 'Ramadan', value: 'Ramadan' },
           { label: 'Fitrah', value: 'Fitrah' },
           { label: 'General', value: 'General' },
@@ -199,6 +202,15 @@ export const adminResources: ResourceConfig[] = [
     searchKeys: ['familyName', 'note'],
     fields: [
       { name: 'familyName', label: 'Family Name', type: 'text' },
+      {
+        name: 'type',
+        label: 'Type',
+        type: 'select',
+        options: [
+          { label: 'Fitrah', value: 'Fitrah' },
+          { label: 'Zakat', value: 'Zakat' }
+        ]
+      },
       { name: 'membersCount', label: 'Members Count', type: 'number' },
       { name: 'amount', label: 'Amount', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
@@ -263,6 +275,20 @@ export const adminResources: ResourceConfig[] = [
       { name: 'notice', label: 'Notice', type: 'textarea' },
       { name: 'prayerMarquee', label: 'Prayer Marquee', type: 'textarea' },
       // Removed logoUrl, heroHeading, heroSubheading per admin UI simplification
+      {
+        name: 'paperSize',
+        label: 'Report Paper Size',
+        type: 'select',
+        options: [
+          { label: 'A4', value: 'A4' },
+          { label: 'Letter', value: 'Letter' },
+          { label: 'Legal', value: 'Legal' },
+          { label: 'A5', value: 'A5' },
+          { label: 'Custom', value: 'Custom' }
+        ]
+      },
+      { name: 'paperWidth', label: 'Custom Paper Width (mm) — used only when Paper Size is Custom', type: 'number' },
+      { name: 'paperHeight', label: 'Custom Paper Height (mm) — used only when Paper Size is Custom', type: 'number' }
     ]
   }
 ];

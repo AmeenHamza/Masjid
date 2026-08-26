@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
+import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FOOTER_STYLES, PRINT_HEADER_CONTACT_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
 
 type ShopRecord = {
   _id: string;
@@ -41,6 +42,9 @@ type SiteSettings = {
   madrasaName?: string;
   address?: string;
   phone?: string;
+  paperSize?: 'A4' | 'Letter' | 'Legal' | 'A5' | 'Custom';
+  paperWidth?: number;
+  paperHeight?: number;
 };
 
 function formatDate(value: unknown) {
@@ -92,10 +96,11 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
     setIsLoadingPdf(true);
     try {
       const finalSettings = settings ?? (await fetchSettingsAsync());
+      const { format, orientation } = resolvePdfFormat(finalSettings, 'portrait');
       const pdf = new jsPDF({
-        orientation: 'portrait',
+        orientation,
         unit: 'mm',
-        format: 'a4'
+        format
       });
 
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -107,16 +112,14 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
 
       let yPosition = marginTop;
 
-      // Header (site name + title), centered
+      // Header (site name + fixed contact line + title), centered
       const pageCenter = pageWidth / 2;
       const siteTitle = (finalSettings && finalSettings.masjidName) ? finalSettings.masjidName : 'Masjid';
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(siteTitle, pageCenter, yPosition, { align: 'center' });
-      yPosition += 8;
+      yPosition = drawPdfHeader(pdf, { siteTitle, pageWidth, startY: yPosition + 3 });
 
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(0, 0, 0);
       pdf.text('Shop Receipt', pageCenter, yPosition, { align: 'center' });
       yPosition += 10;
 
@@ -161,29 +164,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
         yPosition += lineHeight * splitText.length + 2;
       });
 
-      // Footer (address + generated on)
-      yPosition = pageHeight - marginTop - 12;
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'italic');
-      pdf.setTextColor(100, 100, 100);
-      const footerLeft = finalSettings?.address ? finalSettings.address : '';
-      if (footerLeft) {
-        const splitFooter = pdf.splitTextToSize(footerLeft, pageWidth - marginLeft - marginRight - 40);
-        pdf.text(splitFooter as string[], marginLeft, yPosition);
-        yPosition += 4 * splitFooter.length;
-      }
-
-      pdf.text(
-        `Generated on ${new Date().toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })}`,
-        pageWidth - marginRight - 60,
-        pageHeight - marginTop - 5
-      );
+      drawPdfFooter(pdf, { marginLeft, marginRight, pageWidth, pageHeight });
 
       // Download
       pdf.save(`shop-record-${shopData!.shopName.replace(/\s+/g, '-').toLowerCase()}.pdf`);
@@ -198,7 +179,6 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
 
   function printSlipForRecord(record: ShopRecord) {
     const siteTitle = (settings && settings.masjidName) ? settings.masjidName : 'Masjid';
-    const siteAddress = settings?.address || '';
     const recordMonth = record.month ? new Date(0, record.month - 1).toLocaleString('en-US', { month: 'long' }) : '-';
     const recordYear = record.year || '-';
 
@@ -208,6 +188,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
       <head>
         <title>Rent Slip - ${record.shopName}</title>
         <style>
+          @page { size: ${resolvePageSizeCss(settings, 'portrait')}; }
           body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: white; color: #222; }
           .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 20px; max-width: 700px; margin: 0 auto; }
           .title { font-size: 20px; font-weight: 700; color: #0f766e; text-align: center; margin-bottom: 8px; }
@@ -216,12 +197,15 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           .label { font-weight: 600; color: #334155; }
           .value { color: #0f172a; }
           .footer { margin-top: 16px; text-align: center; font-size: 12px; color: #64748b; }
+          ${PRINT_FOOTER_STYLES}
         </style>
       </head>
       <body>
         <div class="card">
           <div class="title">${siteTitle}</div>
-          <div class="subtitle">Shop Receipt</div>
+          <div class="subtitle">${PRINT_HEADER_CONTACT_LINE}</div>
+          <div class="subtitle" style="font-weight:600;color:#0f172a;">Shop Receipt</div>
+          <div class="subtitle">Month: ${recordMonth} ${recordYear}</div>
           <div class="row"><span class="label">Serial Number</span><span class="value">${record.serialNumber || '-'}</span></div>
           <div class="row"><span class="label">Shop Name</span><span class="value">${record.shopName}</span></div>
           <div class="row"><span class="label">Rental Name</span><span class="value">${record.ownerName}</span></div>
@@ -231,8 +215,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           <div class="row"><span class="label">Paid Amount</span><span class="value">${formatCurrency(record.paymentAmount || 0)}</span></div>
           <div class="row"><span class="label">Remaining Balance</span><span class="value">${formatCurrency(record.debtAmount || 0)}</span></div>
           <div class="row"><span class="label">Note</span><span class="value">${record.note || '-'}</span></div>
-          ${siteAddress ? `<div class="footer">${siteAddress}</div>` : ''}
-          <div class="footer">Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+          ${buildPrintFooterHtml()}
         </div>
       </body>
       </html>
@@ -252,7 +235,8 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
     // ensure we have settings before printing
     const finalSettings = settings ?? (await fetchSettingsAsync());
     const siteTitle = (finalSettings && finalSettings.masjidName) ? finalSettings.masjidName : 'Masjid';
-    const siteAddress = finalSettings?.address || '';
+    const recordMonth = shopData!.month ? new Date(0, shopData!.month - 1).toLocaleString('en-US', { month: 'long' }) : '-';
+    const recordYear = shopData!.year || '-';
 
     const printContent = `
       <!DOCTYPE html>
@@ -260,6 +244,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
       <head>
         <title>Shop Record - ${shopData!.shopName}</title>
         <style>
+          @page { size: ${resolvePageSizeCss(finalSettings, 'portrait')}; }
           @media print {
             body { margin: 0; padding: 20mm; }
             .no-print { display: none; }
@@ -308,14 +293,16 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           .notes-section { grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
           .print-footer { margin-top: 18px; font-size: 12px; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
           @media print { .container { border: none; } }
+          ${PRINT_FOOTER_STYLES}
         </style>
       </head>
       <body>
         <div class="container">
           <div class="print-header">
             <div class="site-name">${siteTitle}</div>
+            <div class="site-address">${PRINT_HEADER_CONTACT_LINE}</div>
             <h1>Shop Receipt</h1>
-            ${siteAddress ? `<div class="site-address">${siteAddress}</div>` : ''}
+            <div class="site-address">Month: ${recordMonth} ${recordYear}</div>
           </div>
           <div class="details-grid">
             <div>
@@ -359,10 +346,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
               <div class="detail-value">${shopData!.note || '-'}</div>
             </div>
           </div>
-          <div class="print-footer">
-            ${siteAddress ? `<div>${siteAddress}</div>` : ''}
-            <div>Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-          </div>
+          ${buildPrintFooterHtml()}
         </div>
       </body>
       </html>

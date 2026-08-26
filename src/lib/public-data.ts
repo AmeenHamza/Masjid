@@ -31,6 +31,9 @@ export type SiteSettings = {
   logoUrl?: string;
   heroHeading?: string;
   heroSubheading?: string;
+  paperSize?: 'A4' | 'Letter' | 'Legal' | 'A5' | 'Custom';
+  paperWidth?: number;
+  paperHeight?: number;
 };
 
 const fallbackSettings: SiteSettings = {

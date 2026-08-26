@@ -12,6 +12,9 @@ const MasjidSettingsSchema = new Schema(
     logoUrl: { type: String },
     heroHeading: { type: String },
     heroSubheading: { type: String },
+    paperSize: { type: String, enum: ['A4', 'Letter', 'Legal', 'A5', 'Custom'], default: 'A4' },
+    paperWidth: { type: Number },
+    paperHeight: { type: Number },
     addedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }
   },
   {

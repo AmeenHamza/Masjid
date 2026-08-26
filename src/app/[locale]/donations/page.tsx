@@ -10,10 +10,12 @@ import { Link } from '@/navigation';
 function normalizeView(value: unknown) {
   const nextValue = String(value || '').toLowerCase();
   if (nextValue === 'box') return 'box';
+  if (nextValue === 'masjid') return 'masjid';
+  if (nextValue === 'madrasa') return 'madrasa';
   return 'friday';
 }
 
-function viewHref(view: 'friday' | 'box') {
+function viewHref(view: 'friday' | 'box' | 'masjid' | 'madrasa') {
   return `/donations?view=${view}`;
 }
 
@@ -24,7 +26,7 @@ export default async function DonationsPage({ params, searchParams }: { params: 
   const view = normalizeView(resolvedSearchParams?.view);
   const [settings, t, common, records] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' }), getDonationRecords()]);
 
-  const filteredRecords = records.filter((item: any) => String(item.type || '').toLowerCase() === (view === 'box' ? 'box' : 'friday'));
+  const filteredRecords = records.filter((item: any) => String(item.type || '').toLowerCase() === view);
   const totalAmount = filteredRecords.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
   const rows = filteredRecords.map((item: any) => ({
@@ -43,8 +45,14 @@ export default async function DonationsPage({ params, searchParams }: { params: 
     [common('notes')]: item.note
   }));
 
-  const title = view === 'box' ? 'Box Donation' : 'Friday Donation';
-  const subtitle = view === 'box' ? 'Box donation records from the admin panel.' : 'Friday donation records from the admin panel.';
+  const viewLabels: Record<typeof view, string> = {
+    friday: 'Friday Donation',
+    box: 'Box Donation',
+    masjid: 'Masjid Donation',
+    madrasa: 'Madrasa Donation'
+  };
+  const title = viewLabels[view];
+  const subtitle = `${viewLabels[view]} records from the admin panel.`;
 
   return (
     <>
@@ -71,12 +79,18 @@ export default async function DonationsPage({ params, searchParams }: { params: 
         </section>
 
         <section className="mt-6 rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-2 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-4">
             <Link href={viewHref('friday')} className={`rounded-2xl px-4 py-3 text-center text-sm font-bold transition ${view === 'friday' ? 'bg-emerald-700 text-white' : 'bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'}`}>
               Friday Donation
             </Link>
             <Link href={viewHref('box')} className={`rounded-2xl px-4 py-3 text-center text-sm font-bold transition ${view === 'box' ? 'bg-emerald-700 text-white' : 'bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'}`}>
               Box Donation
+            </Link>
+            <Link href={viewHref('masjid')} className={`rounded-2xl px-4 py-3 text-center text-sm font-bold transition ${view === 'masjid' ? 'bg-emerald-700 text-white' : 'bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'}`}>
+              Masjid Donation
+            </Link>
+            <Link href={viewHref('madrasa')} className={`rounded-2xl px-4 py-3 text-center text-sm font-bold transition ${view === 'madrasa' ? 'bg-emerald-700 text-white' : 'bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'}`}>
+              Madrasa Donation
             </Link>
           </div>
         </section>

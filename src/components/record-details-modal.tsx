@@ -7,10 +7,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { FieldConfig } from '@/lib/admin-ui';
+import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FOOTER_STYLES, PRINT_HEADER_CONTACT_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
 
 type SiteSettings = {
   masjidName: string;
   address?: string;
+  paperSize?: 'A4' | 'Letter' | 'Legal' | 'A5' | 'Custom';
+  paperWidth?: number;
+  paperHeight?: number;
 };
 
 type Props = {
@@ -140,7 +144,8 @@ function buildSections(items: DetailItem[]): DetailSection[] {
 }
 
 function buildPdf(title: string, items: DetailItem[], historyRecords: Record<string, unknown>[], settings: SiteSettings | null) {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const { format, orientation } = resolvePdfFormat(settings, 'portrait');
+  const pdf = new jsPDF({ orientation, unit: 'mm', format });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const marginLeft = 15;
@@ -152,15 +157,23 @@ function buildPdf(title: string, items: DetailItem[], historyRecords: Record<str
   let yPosition = marginTop;
 
   const siteTitle = settings?.masjidName || 'Masjid';
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(18);
-  pdf.text(siteTitle, marginLeft, yPosition);
-  yPosition += 8;
+  yPosition = drawPdfHeader(pdf, { siteTitle, pageWidth, startY: yPosition + 3 });
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(14);
-  pdf.text(title, marginLeft, yPosition);
-  yPosition += 8;
+  pdf.setTextColor(0, 0, 0);
+  pdf.text(title, pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 7;
+
+  const periodLabel = getPeriodLabel(items);
+  if (periodLabel) {
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(80, 80, 80);
+    pdf.text(periodLabel, pageWidth / 2, yPosition, { align: 'center' });
+    pdf.setTextColor(0, 0, 0);
+    yPosition += 7;
+  }
 
   pdf.setDrawColor(0, 100, 0);
   pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
@@ -230,24 +243,24 @@ function buildPdf(title: string, items: DetailItem[], historyRecords: Record<str
     }
   }
 
-  let footerY = pageHeight - marginTop - 12;
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'italic');
-  pdf.setTextColor(100, 100, 100);
-
-  if (settings?.address) {
-    const splitFooter = pdf.splitTextToSize(settings.address, contentWidth);
-    pdf.text(splitFooter as string[], marginLeft, footerY);
-    footerY += 4 * splitFooter.length;
-  }
-
-  pdf.text(
-    `Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
-    marginLeft,
-    pageHeight - marginTop - 5
-  );
+  drawPdfFooter(pdf, { marginLeft, marginRight, pageWidth, pageHeight });
 
   return pdf;
+}
+
+function getPeriodLabel(items: DetailItem[]) {
+  const monthItem = items.find((item) => item.name.toLowerCase() === 'month');
+  const yearItem = items.find((item) => item.name.toLowerCase() === 'year');
+  const monthNumber = monthItem ? Number(monthItem.value) : NaN;
+  const yearValue = yearItem ? String(yearItem.value ?? '') : '';
+
+  if (!yearValue && Number.isNaN(monthNumber)) return null;
+
+  const monthLabel = Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12
+    ? new Date(0, monthNumber - 1).toLocaleString('en-US', { month: 'long' })
+    : '';
+
+  return [monthLabel, yearValue].filter(Boolean).join(' ') || null;
 }
 
 function formatHistoryDate(value: unknown) {
@@ -351,7 +364,7 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
   async function handlePrint() {
     const finalSettings = settings ?? (await fetchSettingsAsync());
     const siteTitle = finalSettings?.masjidName || 'Masjid';
-    const siteAddress = finalSettings?.address || '';
+    const periodLabel = getPeriodLabel(items);
 
     const printContent = `
       <!DOCTYPE html>
@@ -359,6 +372,7 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
       <head>
         <title>${title}</title>
         <style>
+          @page { size: ${resolvePageSizeCss(finalSettings, 'portrait')}; }
           @media print {
             body { margin: 0; padding: 20mm; }
             .no-print { display: none; }
@@ -376,15 +390,17 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
           .detail-value { color: #444; padding-left: 8px; white-space: pre-wrap; word-break: break-word; }
           .notes-section { grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
           .print-footer { margin-top: 18px; font-size: 12px; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+          ${PRINT_FOOTER_STYLES}
         </style>
       </head>
       <body>
         <div class="container">
           <div class="print-header">
             <div class="site-name">${siteTitle}</div>
-            ${siteAddress ? `<div class="site-address">${siteAddress}</div>` : ''}
+            <div class="site-address">${PRINT_HEADER_CONTACT_LINE}</div>
           </div>
           <h1>${title}</h1>
+          ${periodLabel ? `<div class="site-address" style="margin-bottom:12px;">${periodLabel}</div>` : ''}
           ${sections
             .map((section) => `
               <div class="section">
@@ -419,10 +435,7 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
               </div>
             </div>
           ` : ''}
-          <div class="print-footer">
-            ${siteAddress ? `<div>${siteAddress}</div>` : ''}
-            <div>Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-          </div>
+          ${buildPrintFooterHtml()}
         </div>
       </body>
       </html>

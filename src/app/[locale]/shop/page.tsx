@@ -4,8 +4,14 @@ import { getShopRecords, getSiteSettings } from '@/lib/public-data';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { SectionPage } from '@/components/section-page';
+import { DownloadReportButton } from '@/components/download-report-button';
 import { getTranslations } from 'next-intl/server';
 import { formatCurrency } from '@/lib/utils';
+
+const reportMonthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 function formatDate(value: unknown, locale: 'en' | 'ur') {
   if (!value) {
@@ -111,7 +117,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   );
 
   const totalShops = records.length;
-  const clearShops = records.filter((item: any) => String(item.paymentStatus || '').toLowerCase() === 'clear').length;
+  const clearShops = records.filter((item: any) => Number(item.debtAmount || 0) === 0).length;
   const totalMonthlyRent = records.reduce((sum: number, item: any) => sum + (Number(item.monthlyRent || 0) || 0), 0);
 
   const rows = records.map((item: any, index: number) => ({
@@ -122,10 +128,20 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
     [common('shopName')]: String(item.shopName || item.itemName || '-'),
     [common('ownerName')]: String(item.ownerName || '-'),
     [common('monthlyRent')]: formatCurrency(Number(item.monthlyRent || 0), 'PKR', resolvedLocale),
-    [common('paymentStatus')]: String(item.paymentStatus || '-').toLowerCase() === 'clear' ? common('clear') : String(item.paymentStatus || '-').toLowerCase() === 'due' ? common('due') : String(item.paymentStatus || '-').toLowerCase() === 'partial' ? common('partial') : '-'
+    [common('shopBalance')]: formatCurrency(Number(item.debtAmount || 0), 'PKR', resolvedLocale)
   }));
 
-  const columns = [common('serial'), common('date'), common('month'), common('year'), common('shopName'), common('ownerName'), common('monthlyRent'), common('paymentStatus')];
+  const columns = [common('serial'), common('date'), common('month'), common('year'), common('shopName'), common('ownerName'), common('monthlyRent'), common('shopBalance')];
+
+  // Balance color: red if more than one month's rent is owed, green if
+  // fully clear, amber for anything owed in between.
+  const balanceColors = records.map((item: any) => {
+    const debt = Number(item.debtAmount || 0);
+    const rent = Number(item.monthlyRent || 0);
+    if (debt <= 0) return 'green' as const;
+    if (rent > 0 && debt > rent) return 'red' as const;
+    return 'amber' as const;
+  });
 
   const normalizedRows = rows;
 
@@ -161,6 +177,29 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
           </label>
           <button type="submit" className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600">Filter</button>
         </form>
+        <div className="mb-6 flex justify-end">
+          <DownloadReportButton
+            siteTitle={settings.masjidName}
+            reportTitle="Shop Rent Report"
+            periodLabel={`${reportMonthNames[selectedMonth - 1] || selectedMonth} ${selectedYear}`}
+            columns={[
+              { key: 'serialNumber', label: 'Serial No.' },
+              { key: 'shopName', label: 'Shop Name' },
+              { key: 'ownerName', label: 'Rental Name' },
+              { key: 'previousBalance', label: 'Previous Balance', type: 'amount' },
+              { key: 'date', label: 'Payment Date', type: 'date' },
+              { key: 'debtAmount', label: 'Remaining Balance', type: 'amount' }
+            ]}
+            rows={records.map((item: any) => ({ ...item, date: item.date || item.buyDate }))}
+            totals={[
+              { label: 'Total Rent Received', value: records.reduce((sum: number, item: any) => sum + Number(item.paymentAmount || 0), 0) },
+              { label: 'Total Outstanding Balance', value: records.reduce((sum: number, item: any) => sum + Number(item.debtAmount || 0), 0) }
+            ]}
+            paperSettings={settings}
+            fileName={`shop-rent-report-${reportMonthNames[selectedMonth - 1] || selectedMonth}-${selectedYear}.pdf`.toLowerCase()}
+            label={t('downloadReport')}
+          />
+        </div>
       </main>
       <SectionPage
         brandLabel={`${common('brandTop')} ${common('brandBottom')}`}
@@ -175,6 +214,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
         rows={normalizedRows}
         recordsLabel={common('records')}
         noRecordsLabel={common('noRecordsYet')}
+        columnColorOverrides={{ column: common('shopBalance'), colors: balanceColors }}
       />
       <SiteFooter address={settings.address} phone={settings.phone} />
     </>

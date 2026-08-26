@@ -16,6 +16,19 @@ import { formatCurrency } from '@/lib/utils';
 import { ShopDetailsModal } from '@/components/shop-details-modal';
 import { RecordDetailsModal } from '@/components/record-details-modal';
 import { StaffManagePanel } from '@/components/staff-manage-panel';
+import { buildMonthlyReportPdf, type ReportColumn } from '@/lib/monthly-report-pdf';
+
+const reportMonthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function buildPeriodLabel(month: number, year: number) {
+  if (month && year) return `${reportMonthNames[month - 1]} ${year}`;
+  if (year) return `Year ${year}`;
+  if (month) return reportMonthNames[month - 1];
+  return 'All Records';
+}
 
 function formatDateValue(value: unknown) {
   if (!value) {
@@ -144,6 +157,9 @@ export default function AdminResourcePage() {
   const tToast = useTranslations('toast');
   const tCommon = useTranslations('common');
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
+  const [filterMonth, setFilterMonth] = useState<number>(0);
+  const [filterYear, setFilterYear] = useState<number>(0);
+  const [filterClass, setFilterClass] = useState<string>('');
   const [selected, setSelected] = useState<Record<string, unknown> | undefined>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -170,6 +186,18 @@ export default function AdminResourcePage() {
   const [isSerialSearching, setIsSerialSearching] = useState(false);
   const [serialSearchError, setSerialSearchError] = useState<string | null>(null);
   const [staffCreateRequestToken, setStaffCreateRequestToken] = useState(0);
+  const [reportSiteTitle, setReportSiteTitle] = useState('Masjid');
+  const [reportPaperSettings, setReportPaperSettings] = useState<{ paperSize?: 'A4' | 'Letter' | 'Legal' | 'A5' | 'Custom'; paperWidth?: number; paperHeight?: number }>({});
+
+  useEffect(() => {
+    fetch('/api/public/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        setReportSiteTitle(data?.masjidName || 'Masjid');
+        setReportPaperSettings({ paperSize: data?.paperSize, paperWidth: data?.paperWidth, paperHeight: data?.paperHeight });
+      })
+      .catch(() => {});
+  }, []);
 
   async function loadItems() {
     if (!resource) return;
@@ -318,6 +346,9 @@ export default function AdminResourcePage() {
 
   useEffect(() => {
     void loadItems();
+    setFilterMonth(0);
+    setFilterYear(0);
+    setFilterClass('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resource]);
 
@@ -374,10 +405,18 @@ export default function AdminResourcePage() {
         {
           accessorKey: 'debtAmount',
           header: 'Shop Balance',
-          cell: ({ getValue }: { getValue: () => unknown }) => {
-            const amount = Number(getValue() ?? 0);
+          cell: ({ row }: { row: { original: Record<string, unknown> } }) => {
+            const amount = Number(row.original.debtAmount ?? 0);
+            const monthlyRent = Number(row.original.monthlyRent ?? 0);
+            // Red if more than a month's rent is owed, green if fully clear,
+            // amber for anything owed in between.
+            const colorClass = amount <= 0
+              ? 'text-emerald-700'
+              : monthlyRent > 0 && amount > monthlyRent
+                ? 'text-rose-600'
+                : 'text-amber-600';
             return (
-              <span className={`block whitespace-nowrap font-semibold ${amount > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+              <span className={`block whitespace-nowrap font-semibold ${colorClass}`}>
                 {formatCurrency(amount)}
               </span>
             );
@@ -433,6 +472,48 @@ export default function AdminResourcePage() {
   const currentDueAmount = Number(paymentPreviousBalance || String(selectedPaymentShop?.debtAmount ?? 0)) + Number(selectedPaymentShop?.monthlyRent ?? 0);
   const managingResourcesText = t('managingResources', { resource: currentResource.title.toLowerCase() });
   const selectedPaymentMonthLabel = paymentMonth ? new Date(0, paymentMonth - 1).toLocaleString('en-US', { month: 'long' }) : '-';
+
+  // Month/Year filter: shown for any resource whose records actually carry
+  // month + year fields, except shop-records and staff-records which already
+  // have their own dedicated filtering/grouping flows.
+  const supportsMonthYearFilter = currentResource.key !== 'shop-records'
+    && currentResource.key !== 'staff-records'
+    && currentResource.fields.some((field) => field.name === 'month')
+    && currentResource.fields.some((field) => field.name === 'year');
+  const isMadrasaResource = currentResource.key === 'madrasa-records';
+
+  const filterYearOptions = useMemo(() => {
+    const years = new Set<number>();
+    items.forEach((item) => {
+      const year = Number(item.year);
+      if (Number.isInteger(year) && year > 0) years.add(year);
+    });
+    years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [items]);
+
+  const filterClassOptions = useMemo(() => {
+    if (!isMadrasaResource) return [] as string[];
+    const values = new Set<string>();
+    items.forEach((item) => {
+      const value = String(item.class ?? '').trim();
+      if (value) values.add(value);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [items, isMadrasaResource]);
+
+  const filteredItems = useMemo(() => {
+    if (isMadrasaResource) {
+      if (!filterClass) return items;
+      return items.filter((item) => String(item.class ?? '').trim() === filterClass);
+    }
+    if (!supportsMonthYearFilter) return items;
+    return items.filter((item) => {
+      const matchesMonth = !filterMonth || Number(item.month) === filterMonth;
+      const matchesYear = !filterYear || Number(item.year) === filterYear;
+      return matchesMonth && matchesYear;
+    });
+  }, [items, isMadrasaResource, filterClass, supportsMonthYearFilter, filterMonth, filterYear]);
   const latestPrayerTimesRecord = useMemo(() => {
     if (!isPrayerTimesResource) {
       return undefined;
@@ -483,6 +564,69 @@ export default function AdminResourcePage() {
 
     return Array.from(grouped.values()).sort((a, b) => new Date(String(b.dateKey ?? b.createdAt ?? 0)).getTime() - new Date(String(a.dateKey ?? a.createdAt ?? 0)).getTime());
   }, [items]);
+
+  // Shop records aren't covered by the generic month/year filter above (the
+  // main table shows one summary row per shop, not raw payments), so the
+  // monthly rent report gets its own filtered view straight off the raw
+  // payment records.
+  const shopReportItems = useMemo(() => {
+    if (currentResource.key !== 'shop-records') return [];
+    return items.filter((item) => {
+      const matchesMonth = !filterMonth || Number(item.month) === filterMonth;
+      const matchesYear = !filterYear || Number(item.year) === filterYear;
+      return matchesMonth && matchesYear;
+    });
+  }, [items, currentResource.key, filterMonth, filterYear]);
+
+  function downloadShopMonthlyReport() {
+    const periodLabel = buildPeriodLabel(filterMonth, filterYear);
+    const columns: ReportColumn[] = [
+      { key: 'serialNumber', label: 'Serial No.' },
+      { key: 'shopName', label: 'Shop Name' },
+      { key: 'ownerName', label: 'Rental Name' },
+      { key: 'previousBalance', label: 'Previous Balance', type: 'amount' },
+      { key: 'date', label: 'Payment Date', type: 'date' },
+      { key: 'debtAmount', label: 'Remaining Balance', type: 'amount' }
+    ];
+    const totalRentReceived = shopReportItems.reduce((sum, item) => sum + Number(item.paymentAmount || 0), 0);
+    const totalOutstanding = shopReportItems.reduce((sum, item) => sum + Number(item.debtAmount || 0), 0);
+    const pdf = buildMonthlyReportPdf({
+      siteTitle: reportSiteTitle,
+      reportTitle: 'Shop Rent Report',
+      periodLabel,
+      columns,
+      rows: shopReportItems.map((item) => ({ ...item, date: item.date || item.buyDate })),
+      totals: [
+        { label: 'Total Rent Received', value: totalRentReceived },
+        { label: 'Total Outstanding Balance', value: totalOutstanding }
+      ],
+      paperSettings: reportPaperSettings
+    });
+    pdf.save(`shop-rent-report-${periodLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  }
+
+  function downloadResourceMonthlyReport() {
+    const periodLabel = isMadrasaResource
+      ? (filterClass ? `Class: ${filterClass}` : 'All Classes')
+      : buildPeriodLabel(filterMonth, filterYear);
+    const columns: ReportColumn[] = currentResource.fields.map((field) => ({
+      key: field.name,
+      label: field.label,
+      type: field.name.toLowerCase() === 'amount' ? 'amount' : field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'
+    }));
+    const hasAmountField = currentResource.fields.some((field) => field.name.toLowerCase() === 'amount');
+    const totalAmount = hasAmountField ? filteredItems.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const pdf = buildMonthlyReportPdf({
+      siteTitle: reportSiteTitle,
+      reportTitle: `${currentResource.title} Report`,
+      periodLabel,
+      columns,
+      rows: filteredItems,
+      totals: hasAmountField ? [{ label: 'Total Amount', value: totalAmount }] : [],
+      paperSettings: reportPaperSettings
+    });
+    pdf.save(`${currentResource.key}-report-${periodLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  }
 
   async function save(values: Record<string, unknown>) {
     setSaving(true);
@@ -644,6 +788,48 @@ export default function AdminResourcePage() {
           )
         ) : null}
       </div>
+
+      {currentResource.key === 'shop-records' ? (
+        <Card className="border-emerald-900/10 bg-white/85 p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">Month</div>
+              <select
+                value={filterMonth}
+                onChange={(event) => setFilterMonth(Number(event.target.value))}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value={0}>All Months</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en-US', { month: 'long' })}</option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">Year</div>
+              <select
+                value={filterYear}
+                onChange={(event) => setFilterYear(Number(event.target.value))}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value={0}>All Years</option>
+                {filterYearOptions.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </label>
+            {(filterMonth || filterYear) ? (
+              <Button variant="outline" size="sm" onClick={() => { setFilterMonth(0); setFilterYear(0); }}>
+                Clear Filter
+              </Button>
+            ) : null}
+            <Button size="sm" onClick={downloadShopMonthlyReport} disabled={!shopReportItems.length} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+              Download Monthly Rent Report (PDF)
+            </Button>
+            <span className="text-sm text-slate-500">{shopReportItems.length} payment record(s) for this period</span>
+          </div>
+        </Card>
+      ) : null}
 
       {currentResource.key === 'shop-records' ? (
         <Card className="border-amber-900/10 bg-white/85 shadow-lg">
@@ -879,6 +1065,77 @@ export default function AdminResourcePage() {
         </Dialog>
       ) : null}
 
+      {supportsMonthYearFilter ? (
+        <Card className="border-emerald-900/10 bg-white/85 p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">Month</div>
+              <select
+                value={filterMonth}
+                onChange={(event) => setFilterMonth(Number(event.target.value))}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value={0}>All Months</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en-US', { month: 'long' })}</option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">Year</div>
+              <select
+                value={filterYear}
+                onChange={(event) => setFilterYear(Number(event.target.value))}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value={0}>All Years</option>
+                {filterYearOptions.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </label>
+            {(filterMonth || filterYear) ? (
+              <Button variant="outline" size="sm" onClick={() => { setFilterMonth(0); setFilterYear(0); }}>
+                Clear Filter
+              </Button>
+            ) : null}
+            <Button size="sm" onClick={downloadResourceMonthlyReport} disabled={!filteredItems.length} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+              Download Report (PDF)
+            </Button>
+            <span className="text-sm text-slate-500">{filteredItems.length} of {items.length} records</span>
+          </div>
+        </Card>
+      ) : null}
+
+      {isMadrasaResource ? (
+        <Card className="border-emerald-900/10 bg-white/85 p-4 shadow-sm">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">Class</div>
+              <select
+                value={filterClass}
+                onChange={(event) => setFilterClass(event.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="">All Classes</option>
+                {filterClassOptions.map((classValue) => (
+                  <option key={classValue} value={classValue}>{classValue}</option>
+                ))}
+              </select>
+            </label>
+            {filterClass ? (
+              <Button variant="outline" size="sm" onClick={() => setFilterClass('')}>
+                Clear Filter
+              </Button>
+            ) : null}
+            <Button size="sm" onClick={downloadResourceMonthlyReport} disabled={!filteredItems.length} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+              Download Report (PDF)
+            </Button>
+            <span className="text-sm text-slate-500">{filteredItems.length} of {items.length} records</span>
+          </div>
+        </Card>
+      ) : null}
+
       {!isSettingsResource && loading ? (
         <Card className="flex items-center justify-center py-12">
           <div className="inline-flex items-center gap-2 text-sm text-slate-600">
@@ -956,7 +1213,7 @@ export default function AdminResourcePage() {
               resource?.key === 'shop-records' ? shopSummaryItems : (
                 resource?.key === 'staff-records'
                   ? (newStaffMode && selected ? [selected] : staffSummaryItems)
-                  : items
+                  : filteredItems
               )
             }
             searchKey={currentResource.searchKeys[0]}

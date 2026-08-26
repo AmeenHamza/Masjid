@@ -5,8 +5,22 @@ import { getIncomeRecords } from '@/lib/public-data';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { SectionPage } from '@/components/section-page';
+import { DownloadReportButton } from '@/components/download-report-button';
+import { getResourceConfig } from '@/lib/admin-ui';
 import { getTranslations } from 'next-intl/server';
 import { formatCurrency, formatNumber } from '@/lib/utils';
+
+const reportMonthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function buildReportPeriodLabel(month: number, year: number) {
+  if (month && year) return `${reportMonthNames[month - 1]} ${year}`;
+  if (year) return `Year ${year}`;
+  if (month) return reportMonthNames[month - 1];
+  return 'All Records';
+}
 
 function normalizeSource(value: unknown, fallback: string | null) {
   if (Array.isArray(value)) {
@@ -125,6 +139,23 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
           </label>
           <button type="submit" className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600">Filter</button>
         </form>
+        <div className="mb-6 flex justify-end">
+          <DownloadReportButton
+            siteTitle={settings.masjidName}
+            reportTitle="Income Report"
+            periodLabel={buildReportPeriodLabel(selectedMonth, selectedYear)}
+            columns={(getResourceConfig('income-records')?.fields ?? []).map((field) => ({
+              key: field.name,
+              label: field.label,
+              type: field.name.toLowerCase() === 'amount' ? 'amount' : field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'
+            }))}
+            rows={records}
+            totals={[{ label: 'Total Amount', value: records.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0) }]}
+            paperSettings={settings}
+            fileName={`income-report-${buildReportPeriodLabel(selectedMonth, selectedYear).replace(/\s+/g, '-').toLowerCase()}.pdf`}
+            label={t('downloadReport')}
+          />
+        </div>
       </main>
       <SectionPage
         brandLabel={`${common('brandTop')} ${common('brandBottom')}`}

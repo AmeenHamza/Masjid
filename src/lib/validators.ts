@@ -32,12 +32,13 @@ export const expenseRecordSchema = z.object({
 });
 
 export const madrasaRecordSchema = z.object({
-  title: z.string().min(1),
-  studentCount: z.number().int().min(0),
-  teacherCount: z.number().int().min(0),
-  month: z.number().int().min(1).max(12),
-  year: z.number().int(),
-  note: z.string().optional()
+  studentName: z.string().min(1),
+  fatherName: z.string().min(1),
+  contactNumber: z.string().optional(),
+  admissionDate: z.string().optional(),
+  darja: z.string().optional(),
+  class: z.string().optional(),
+  teacherName: z.string().optional()
 });
 
 export const mosqueBeddingSchema = z.object({
@@ -89,7 +90,7 @@ export const shopRecordSchema = z.object({
 
 export const donationSchema = z.object({
   donorName: z.string().min(1),
-  type: z.enum(['Friday', 'Box', 'Ramadan', 'Fitrah', 'General', 'Project']),
+  type: z.enum(['Friday', 'Box', 'Masjid', 'Madrasa', 'Ramadan', 'Fitrah', 'General', 'Project']),
   date: z.string().optional(),
   amount: z.number().min(0),
   month: z.number().int().min(1).max(12),
@@ -117,6 +118,7 @@ export const ramadanExpenseSchema = z.object({
 
 export const fitrahRecordSchema = z.object({
   familyName: z.string().min(1),
+  type: z.enum(['Fitrah', 'Zakat']).optional(),
   membersCount: z.number().int().min(1),
   amount: z.number().min(0),
   year: z.number().int(),
@@ -165,7 +167,10 @@ export const settingsSchema = z.object({
   prayerMarquee: z.string().optional(),
   logoUrl: z.string().url().optional(),
   heroHeading: z.string().optional(),
-  heroSubheading: z.string().optional()
+  heroSubheading: z.string().optional(),
+  paperSize: z.enum(['A4', 'Letter', 'Legal', 'A5', 'Custom']).optional(),
+  paperWidth: z.number().min(50).max(2000).optional(),
+  paperHeight: z.number().min(50).max(2000).optional()
 });
 
 export const adminLoginSchema = z.object({
