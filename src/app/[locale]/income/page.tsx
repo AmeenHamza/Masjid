@@ -171,7 +171,7 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
         recordsLabel={common('records')}
         noRecordsLabel={common('noRecordsYet')}
       />
-      <SiteFooter address={settings.address} phone={settings.phone} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>
   );
 }

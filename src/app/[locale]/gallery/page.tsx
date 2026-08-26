@@ -21,7 +21,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ locale
           <MasonryGallery items={gallery as never} />
         </div>
       </section>
-      <SiteFooter address={settings.address} phone={settings.phone} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </main>
   );
 }

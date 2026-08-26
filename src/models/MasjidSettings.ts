@@ -7,6 +7,7 @@ const MasjidSettingsSchema = new Schema(
     madrasaName: { type: String },
     address: { type: String, required: true },
     phone: { type: String, required: true },
+    email: { type: String },
     notice: { type: String },
     prayerMarquee: { type: String },
     logoUrl: { type: String },

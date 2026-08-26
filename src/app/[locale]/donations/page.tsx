@@ -131,7 +131,7 @@ export default async function DonationsPage({ params, searchParams }: { params: 
           </div>
         </section>
       </main>
-      <SiteFooter address={settings.address} phone={settings.phone} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>
   );
 }

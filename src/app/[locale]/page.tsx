@@ -164,7 +164,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <MasonryGallery items={galleryPreview as never} />
       </section>
 
-      <SiteFooter address={settings.address} phone={settings.phone} masjidName={settings.masjidName} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} masjidName={settings.masjidName} />
     </main>
   );
 }

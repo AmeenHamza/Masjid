@@ -170,7 +170,7 @@ export default async function ExpensePage({ params, searchParams }: { params: Pr
         recordsLabel={common('records')}
         noRecordsLabel={common('noRecordsYet')}
       />
-      <SiteFooter address={settings.address} phone={settings.phone} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>
   );
 }

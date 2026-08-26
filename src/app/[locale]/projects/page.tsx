@@ -21,7 +21,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ local
           <ProjectCards projects={projects as never} />
         </div>
       </section>
-      <SiteFooter address={settings.address} phone={settings.phone} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </main>
   );
 }

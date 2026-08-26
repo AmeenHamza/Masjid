@@ -163,6 +163,7 @@ export const settingsSchema = z.object({
   madrasaName: z.string().optional(),
   address: z.string().min(1),
   phone: z.string().min(1),
+  email: z.string().email().optional().or(z.literal('')),
   notice: z.string().optional(),
   prayerMarquee: z.string().optional(),
   logoUrl: z.string().url().optional(),

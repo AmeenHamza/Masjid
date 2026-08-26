@@ -272,6 +272,7 @@ export const adminResources: ResourceConfig[] = [
       { name: 'madrasaName', label: 'Madrasa Name', type: 'text' },
       { name: 'address', label: 'Address', type: 'textarea' },
       { name: 'phone', label: 'Phone', type: 'text' },
+      { name: 'email', label: 'Email', type: 'text' },
       { name: 'notice', label: 'Notice', type: 'textarea' },
       { name: 'prayerMarquee', label: 'Prayer Marquee', type: 'textarea' },
       // Removed logoUrl, heroHeading, heroSubheading per admin UI simplification

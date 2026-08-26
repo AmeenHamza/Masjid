@@ -241,7 +241,7 @@ export default async function RamadanPage({ params, searchParams }: { params: Pr
           </div>
         </section>
       </main>
-      <SiteFooter address={settings.address} phone={settings.phone} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>
   );
 }

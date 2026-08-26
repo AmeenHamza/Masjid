@@ -1,10 +1,10 @@
 import { useTranslations } from 'next-intl';
-import { ChevronRight, MapPin, Phone } from 'lucide-react';
+import { ChevronRight, Mail, MapPin, Phone } from 'lucide-react';
 import { Link } from '@/navigation';
 import { ThemeToggle } from './theme-toggle';
 import { LanguageSwitcher } from './language-switcher';
 
-export function SiteFooter({ address, phone, masjidName }: { address: string; phone: string; masjidName?: string }) {
+export function SiteFooter({ address, phone, email, masjidName }: { address: string; phone: string; email?: string; masjidName?: string }) {
   const year = new Date().getFullYear();
   const tCommon = useTranslations('common');
   const t = useTranslations('home');
@@ -40,6 +40,15 @@ export function SiteFooter({ address, phone, masjidName }: { address: string; ph
                 <Phone className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
                 <span dir="ltr" className="[unicode-bidi:isolate]">{phone}</span>
               </div>
+              {email ? (
+                <a
+                  href={`mailto:${email}`}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/85 px-3 py-2 text-sm text-slate-700 transition hover:bg-emerald-100 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-slate-200 dark:hover:bg-emerald-500/20"
+                >
+                  <Mail className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
+                  <span dir="ltr" className="[unicode-bidi:isolate]">{email}</span>
+                </a>
+              ) : null}
             </div>
           </div>
 

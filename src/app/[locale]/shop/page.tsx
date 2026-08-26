@@ -216,7 +216,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
         noRecordsLabel={common('noRecordsYet')}
         columnColorOverrides={{ column: common('shopBalance'), colors: balanceColors }}
       />
-      <SiteFooter address={settings.address} phone={settings.phone} />
+      <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>
   );
 }

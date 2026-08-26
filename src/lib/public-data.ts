@@ -26,6 +26,7 @@ export type SiteSettings = {
   madrasaName: string;
   address: string;
   phone: string;
+  email?: string;
   prayerMarquee: string;
   notice?: string;
   logoUrl?: string;
@@ -41,6 +42,7 @@ const fallbackSettings: SiteSettings = {
   madrasaName: 'Noorani Madrasa',
   address: 'Korangi No. 1, Karachi, Pakistan',
   phone: '+92 300 1234567',
+  email: 'info@jamiamasjidnoorani.com',
   prayerMarquee: 'Prayer times are managed live from the admin panel.',
   notice: 'Please give donation according to your ability and support the masjid and madrasa activities.'
 };
