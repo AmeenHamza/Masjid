@@ -93,6 +93,19 @@ export function SiteFooter({ address, phone, email, masjidName }: { address: str
             <span>{t('subtitle')}</span>
           </p>
         </div>
+        <div className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
+          <p>
+            Made with <span aria-hidden="true">❤️</span> by{' '}
+            <a
+              href="https://brandwings.online"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-emerald-700 underline decoration-dotted underline-offset-2 transition hover:text-emerald-600 dark:text-emerald-300 dark:hover:text-emerald-200"
+            >
+              Brandwings
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );
