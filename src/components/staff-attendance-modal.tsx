@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FOOTER_STYLES, PRINT_HEADER_CONTACT_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
+import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FONT_STACK, PRINT_FOOTER_STYLES, PRINT_GREEN_HEX, PRINT_GREEN_RGB, PRINT_HEADER_ADDRESS_LINE, PRINT_HEADER_WEBSITE_EMAIL_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
 
 type SiteSettings = {
   masjidName: string;
@@ -142,10 +142,10 @@ export function StaffAttendanceModal({ open, onOpenChange, role, staffName, loca
         <title>${roleLabel} Attendance - ${monthLabel} ${year}</title>
         <style>
           @page { size: ${resolvePageSizeCss(settings, 'portrait')}; }
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; color: #222; }
+          body { font-family: ${PRINT_FONT_STACK}; margin: 0; padding: 20px; background: white; color: #222; }
           .print-header { text-align: center; margin-bottom: 16px; }
-          .site-name { font-size: 20px; font-weight: 700; color: #0f766e; }
-          h1 { text-align: center; color: #075985; margin: 4px 0 4px 0; font-size: 16px; }
+          .site-name { font-size: 20px; font-weight: 700; color: ${PRINT_GREEN_HEX}; }
+          h1 { text-align: center; color: #0f172a; margin: 4px 0 4px 0; font-size: 16px; }
           .site-address { font-size: 12px; color: #444; margin-top: 4px; text-align: center; }
           .subtitle { text-align: center; font-size: 12px; color: #64748b; margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; margin-top: 12px; }
@@ -154,7 +154,7 @@ export function StaffAttendanceModal({ open, onOpenChange, role, staffName, loca
           td.present { color: #047857; font-weight: 600; }
           td.absent { color: #be123c; font-weight: 600; }
           td.empty { color: #64748b; padding: 20px; }
-          .summary-title { margin-top: 20px; font-size: 13px; font-weight: 700; color: #075985; text-align: center; }
+          .summary-title { margin-top: 20px; font-size: 13px; font-weight: 700; color: #0f172a; text-align: center; }
           .summary-table { margin-top: 8px; }
           .summary-table th.row-label, .summary-table td.row-label { text-align: left; background: #f1f5f9; font-weight: 700; }
           .summary-table td.present-count { color: #047857; font-weight: 700; }
@@ -166,25 +166,11 @@ export function StaffAttendanceModal({ open, onOpenChange, role, staffName, loca
       <body>
         <div class="print-header">
           <div class="site-name">${siteTitle}</div>
-          <div class="site-address">${PRINT_HEADER_CONTACT_LINE}</div>
+          <div class="site-address">${PRINT_HEADER_ADDRESS_LINE}</div>
+          <div class="site-address">${PRINT_HEADER_WEBSITE_EMAIL_LINE}</div>
         </div>
         <h1>${roleLabel} Monthly Attendance${staffName ? ` - ${staffName}` : ''}</h1>
         <div class="subtitle">${monthLabel} ${year}</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Fajr</th>
-              <th>Zohar</th>
-              <th>Asr</th>
-              <th>Maghrib</th>
-              <th>Isha</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
         <div class="summary-title">Monthly Summary (Total Days: ${data.summary.daysCounted})</div>
         <table class="summary-table">
           <thead>
@@ -202,6 +188,22 @@ export function StaffAttendanceModal({ open, onOpenChange, role, staffName, loca
               <td class="row-label">Absent</td>
               ${(Object.keys(prayerLabels) as PrayerKey[]).map((key) => `<td class="absent-count">${data.summary.daysCounted - data.summary[key]}</td>`).join('')}
             </tr>
+          </tbody>
+        </table>
+        <div class="summary-title">Daily Attendance Detail</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Fajr</th>
+              <th>Zohar</th>
+              <th>Asr</th>
+              <th>Maghrib</th>
+              <th>Isha</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
           </tbody>
         </table>
         ${buildPrintFooterHtml()}
@@ -246,7 +248,7 @@ export function StaffAttendanceModal({ open, onOpenChange, role, staffName, loca
     pdf.setTextColor(0, 0, 0);
     yPosition += 8;
 
-    pdf.setDrawColor(0, 100, 0);
+    pdf.setDrawColor(...PRINT_GREEN_RGB);
     pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
     yPosition += 8;
 
@@ -254,54 +256,11 @@ export function StaffAttendanceModal({ open, onOpenChange, role, staffName, loca
     const dateColWidth = 32;
     const prayerColWidth = (pageWidth - marginLeft - marginRight - dateColWidth) / prayerKeys.length;
 
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
-    pdf.text('Date', marginLeft, yPosition);
-    prayerKeys.forEach((key, index) => {
-      pdf.text(prayerLabels[key].en, marginLeft + dateColWidth + index * prayerColWidth, yPosition);
-    });
-    yPosition += 2;
-    pdf.setDrawColor(200, 200, 200);
-    pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
-    yPosition += 5;
-
-    pdf.setFont('helvetica', 'normal');
-    if (data.days.length === 0) {
-      pdf.setTextColor(100, 100, 100);
-      pdf.text('No attendance found for this month.', marginLeft, yPosition);
-      pdf.setTextColor(0, 0, 0);
-      yPosition += 6;
-    } else {
-      data.days.forEach((day) => {
-        if (yPosition > pageHeight - 60) {
-          pdf.addPage();
-          yPosition = marginTop;
-        }
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(formatDateLabel(day.dateKey), marginLeft, yPosition);
-        prayerKeys.forEach((key, index) => {
-          const status = day.prayers[key];
-          if (status === 'Present') {
-            pdf.setTextColor(4, 120, 87);
-          } else {
-            pdf.setTextColor(190, 18, 60);
-          }
-          pdf.text(status, marginLeft + dateColWidth + index * prayerColWidth, yPosition);
-        });
-        yPosition += 6;
-      });
-      pdf.setTextColor(0, 0, 0);
-    }
-
-    yPosition += 10;
-    if (yPosition > pageHeight - 70) {
-      pdf.addPage();
-      yPosition = marginTop;
-    }
-
+    // Monthly Summary (total Present/Absent per prayer) comes first, then
+    // the full day-by-day detail below it.
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
-    pdf.setTextColor(7, 89, 133);
+    pdf.setTextColor(15, 23, 42);
     pdf.text(`Monthly Summary (Total Days: ${data.summary.daysCounted})`, pageWidth / 2, yPosition, { align: 'center' });
     pdf.setTextColor(0, 0, 0);
     yPosition += 6;
@@ -346,7 +305,58 @@ export function StaffAttendanceModal({ open, onOpenChange, role, staffName, loca
     });
 
     pdf.setTextColor(0, 0, 0);
-    yPosition = tableTop + tableRows.length * rowHeight + 6;
+    yPosition = tableTop + tableRows.length * rowHeight + 10;
+
+    if (yPosition > pageHeight - 40) {
+      pdf.addPage();
+      yPosition = marginTop;
+    }
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text('Daily Attendance Detail', pageWidth / 2, yPosition, { align: 'center' });
+    pdf.setTextColor(0, 0, 0);
+    yPosition += 8;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.text('Date', marginLeft, yPosition);
+    prayerKeys.forEach((key, index) => {
+      pdf.text(prayerLabels[key].en, marginLeft + dateColWidth + index * prayerColWidth, yPosition);
+    });
+    yPosition += 2;
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
+    yPosition += 5;
+
+    pdf.setFont('helvetica', 'normal');
+    if (data.days.length === 0) {
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('No attendance found for this month.', marginLeft, yPosition);
+      pdf.setTextColor(0, 0, 0);
+      yPosition += 6;
+    } else {
+      data.days.forEach((day) => {
+        if (yPosition > pageHeight - 30) {
+          pdf.addPage();
+          yPosition = marginTop;
+        }
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(formatDateLabel(day.dateKey), marginLeft, yPosition);
+        prayerKeys.forEach((key, index) => {
+          const status = day.prayers[key];
+          if (status === 'Present') {
+            pdf.setTextColor(4, 120, 87);
+          } else {
+            pdf.setTextColor(190, 18, 60);
+          }
+          pdf.text(status, marginLeft + dateColWidth + index * prayerColWidth, yPosition);
+        });
+        yPosition += 6;
+      });
+      pdf.setTextColor(0, 0, 0);
+    }
 
     drawPdfFooter(pdf, { marginLeft, marginRight, pageWidth, pageHeight });
 

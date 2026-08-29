@@ -160,6 +160,7 @@ export default function AdminResourcePage() {
   const [filterMonth, setFilterMonth] = useState<number>(0);
   const [filterYear, setFilterYear] = useState<number>(0);
   const [filterClass, setFilterClass] = useState<string>('');
+  const [filterShopName, setFilterShopName] = useState<string>('');
   const [selected, setSelected] = useState<Record<string, unknown> | undefined>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -349,6 +350,7 @@ export default function AdminResourcePage() {
     setFilterMonth(0);
     setFilterYear(0);
     setFilterClass('');
+    setFilterShopName('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resource]);
 
@@ -569,14 +571,25 @@ export default function AdminResourcePage() {
   // main table shows one summary row per shop, not raw payments), so the
   // monthly rent report gets its own filtered view straight off the raw
   // payment records.
+  const filterShopNameOptions = useMemo(() => {
+    if (currentResource.key !== 'shop-records') return [] as string[];
+    const values = new Set<string>();
+    items.forEach((item) => {
+      const value = String(item.shopName ?? '').trim();
+      if (value) values.add(value);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [items, currentResource.key]);
+
   const shopReportItems = useMemo(() => {
     if (currentResource.key !== 'shop-records') return [];
     return items.filter((item) => {
       const matchesMonth = !filterMonth || Number(item.month) === filterMonth;
       const matchesYear = !filterYear || Number(item.year) === filterYear;
-      return matchesMonth && matchesYear;
+      const matchesShop = !filterShopName || String(item.shopName ?? '').trim() === filterShopName;
+      return matchesMonth && matchesYear && matchesShop;
     });
-  }, [items, currentResource.key, filterMonth, filterYear]);
+  }, [items, currentResource.key, filterMonth, filterYear, filterShopName]);
 
   function downloadShopMonthlyReport() {
     const periodLabel = buildPeriodLabel(filterMonth, filterYear);
@@ -793,6 +806,19 @@ export default function AdminResourcePage() {
         <Card className="border-emerald-900/10 bg-white/85 p-4 shadow-sm">
           <div className="flex flex-wrap items-end gap-4">
             <label className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">Shop</div>
+              <select
+                value={filterShopName}
+                onChange={(event) => setFilterShopName(event.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="">All Shops</option>
+                {filterShopNameOptions.map((shopName) => (
+                  <option key={shopName} value={shopName}>{shopName}</option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0">
               <div className="mb-2 text-sm font-semibold">Month</div>
               <select
                 value={filterMonth}
@@ -818,8 +844,8 @@ export default function AdminResourcePage() {
                 ))}
               </select>
             </label>
-            {(filterMonth || filterYear) ? (
-              <Button variant="outline" size="sm" onClick={() => { setFilterMonth(0); setFilterYear(0); }}>
+            {(filterMonth || filterYear || filterShopName) ? (
+              <Button variant="outline" size="sm" onClick={() => { setFilterMonth(0); setFilterYear(0); setFilterShopName(''); }}>
                 Clear Filter
               </Button>
             ) : null}

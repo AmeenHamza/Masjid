@@ -126,10 +126,10 @@
     "juma": "Juma"
   },
   "metrics": {
-    "totalIncome": "Total Income",
-    "totalDonation": "Total Donation",
+    "totalIncome": "Monthly Income",
+    "totalDonation": "Monthly Donation",
     "activeProjects": "Active Projects",
-    "yearlyExpense": "Yearly Expense"
+    "yearlyExpense": "Monthly Expense"
   },
   "admin": {
     "dashboard": "Dashboard",

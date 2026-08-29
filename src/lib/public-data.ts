@@ -178,13 +178,25 @@ export async function getSummaryMetrics() {
 
   const getSummaryMetricsCached = unstable_cache(async () => {
     await connectToDatabase();
+
+    // Every metric here reflects the current month, EXCEPT shop: rent for a
+    // given month is only ever collected the following month (e.g. July's
+    // rent comes in during August), so the current month never has any shop
+    // payments recorded against it yet - it's kept one month behind.
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const previousMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
     const [incomeAgg, expenseAgg, donationAgg, projectCount, shopCount, fitrahAgg] = await Promise.all([
-      IncomeRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
-      ExpenseRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Donation.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]),
+      IncomeRecord.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      ExpenseRecord.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Donation.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Project.countDocuments(),
-      ShopRecord.countDocuments(),
-      FitrahRecord.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }])
+      ShopRecord.countDocuments({ month: previousMonth, year: previousMonthYear }),
+      // FitrahRecord has no month field (Fitrah/Zakat are tracked per year only).
+      FitrahRecord.aggregate([{ $match: { year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }])
     ]);
 
     return serialize({

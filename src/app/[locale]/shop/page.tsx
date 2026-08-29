@@ -31,8 +31,19 @@ function formatDate(value: unknown, locale: 'en' | 'ur') {
 }
 
 function normalizeMonth(value: unknown, fallback: number) {
+  // No param at all -> use the caller's default. An explicit "0" (the "All
+  // Months" option) must be respected rather than falling back, so this
+  // checks presence first instead of treating 0 as falsy/invalid.
+  if (value === undefined) return fallback;
   const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 12 ? parsed : fallback;
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 12 ? parsed : fallback;
+}
+
+function buildPeriodLabel(month: number, year: number) {
+  if (month && year) return `${reportMonthNames[month - 1]} ${year}`;
+  if (year) return `Year ${year}`;
+  if (month) return reportMonthNames[month - 1];
+  return 'All Records';
 }
 
 function normalizeYear(value: unknown, fallback: number) {
@@ -94,9 +105,15 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   const allRecords = await getShopRecords();
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
+  // Rent for a given month is only ever collected the following month (e.g.
+  // July's rent comes in during August), so the current calendar month never
+  // has any payments recorded against it yet. Default the view to last
+  // month instead, which is the most recent period that's actually settled.
+  const defaultMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const defaultYear = currentMonth === 1 ? currentYear - 1 : currentYear;
   const selectedShopName = normalizeShopName(resolvedSearchParams?.shopName, null);
-  const selectedMonth = normalizeMonth(resolvedSearchParams?.month, currentMonth);
-  const selectedYear = normalizeYear(resolvedSearchParams?.year, currentYear);
+  const selectedMonth = normalizeMonth(resolvedSearchParams?.month, defaultMonth);
+  const selectedYear = normalizeYear(resolvedSearchParams?.year, defaultYear);
   const [settings, t, common] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' })]);
   const numberFormatter = new Intl.NumberFormat(resolvedLocale === 'ur' ? 'ur-PK' : 'en-PK');
 
@@ -112,8 +129,8 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   }
   const records = allRecords.filter((item: any) =>
     (!selectedShopName || String(item.shopName || '').trim() === selectedShopName) &&
-    getShopRecordMonth(item) === selectedMonth &&
-    getShopRecordYear(item) === selectedYear
+    (!selectedMonth || getShopRecordMonth(item) === selectedMonth) &&
+    (!selectedYear || getShopRecordYear(item) === selectedYear)
   );
 
   const totalShops = records.length;
@@ -162,8 +179,9 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
           <label className="min-w-0">
             <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{common('month')}</div>
             <select name="month" defaultValue={String(selectedMonth)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-white">
+              <option value="0">{t('allMonths')}</option>
               {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
-                <option key={month} value={month}>{month}</option>
+                <option key={month} value={month}>{reportMonthNames[month - 1]}</option>
               ))}
             </select>
           </label>
@@ -181,7 +199,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
           <DownloadReportButton
             siteTitle={settings.masjidName}
             reportTitle="Shop Rent Report"
-            periodLabel={`${reportMonthNames[selectedMonth - 1] || selectedMonth} ${selectedYear}`}
+            periodLabel={buildPeriodLabel(selectedMonth, selectedYear)}
             columns={[
               { key: 'serialNumber', label: 'Serial No.' },
               { key: 'shopName', label: 'Shop Name' },
@@ -196,7 +214,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
               { label: 'Total Outstanding Balance', value: records.reduce((sum: number, item: any) => sum + Number(item.debtAmount || 0), 0) }
             ]}
             paperSettings={settings}
-            fileName={`shop-rent-report-${reportMonthNames[selectedMonth - 1] || selectedMonth}-${selectedYear}.pdf`.toLowerCase()}
+            fileName={`shop-rent-report-${buildPeriodLabel(selectedMonth, selectedYear).replace(/\s+/g, '-')}.pdf`.toLowerCase()}
             label={t('downloadReport')}
           />
         </div>
@@ -204,7 +222,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
       <SectionPage
         brandLabel={`${common('brandTop')} ${common('brandBottom')}`}
         title={t('shop.title')}
-        subtitle={`${t('shop.subtitle')} ${selectedMonth}/${selectedYear}`}
+        subtitle={`${t('shop.subtitle')} ${buildPeriodLabel(selectedMonth, selectedYear)}`}
         summary={[
           { label: common('entries'), value: numberFormatter.format(totalShops) },
           { label: common('clearShops'), value: numberFormatter.format(clearShops) },

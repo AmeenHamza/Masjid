@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
-import { drawPdfHeader, drawPdfFooter, resolvePdfFormat, type PaperSettings } from './print-footer';
+import { drawPdfHeader, drawPdfFooter, PRINT_GREEN_RGB, resolvePdfFormat, type PaperSettings } from './print-footer';
+import { containsArabicScript, drawWrappedPdfText, wrapArabicText } from './pdf-urdu-text';
 import { formatCurrency } from './utils';
 
 export type ReportColumnType = 'text' | 'number' | 'date' | 'amount';
@@ -74,7 +75,7 @@ export function buildMonthlyReportPdf(options: MonthlyReportOptions) {
   pdf.setTextColor(0, 0, 0);
   yPosition += 6;
 
-  pdf.setDrawColor(0, 100, 0);
+  pdf.setDrawColor(...PRINT_GREEN_RGB);
   pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
   yPosition += 6;
 
@@ -111,8 +112,11 @@ export function buildMonthlyReportPdf(options: MonthlyReportOptions) {
     yPosition += 14;
   } else {
     rows.forEach((row) => {
-      const cellLines = columns.map((col) => pdf.splitTextToSize(formatCell(row[col.key], col.type), colWidth - 4) as string[]);
-      const maxLines = Math.max(1, ...cellLines.map((lines) => lines.length));
+      const cellTexts = columns.map((col) => formatCell(row[col.key], col.type));
+      const cellLineCounts = cellTexts.map((text) =>
+        containsArabicScript(text) ? wrapArabicText(text, 8.5, colWidth - 4).length : (pdf.splitTextToSize(text, colWidth - 4) as string[]).length
+      );
+      const maxLines = Math.max(1, ...cellLineCounts);
       const rowHeight = maxLines * lineHeight + cellPaddingV;
 
       if (yPosition + rowHeight > pageHeight - bottomReserve) {
@@ -127,7 +131,7 @@ export function buildMonthlyReportPdf(options: MonthlyReportOptions) {
       columns.forEach((col, index) => {
         const x = marginLeft + index * colWidth;
         pdf.rect(x, yPosition, colWidth, rowHeight);
-        pdf.text(cellLines[index], x + colWidth / 2, yPosition + cellPaddingV / 2 + lineHeight - 1, { align: 'center' });
+        drawWrappedPdfText(pdf, cellTexts[index], x + colWidth / 2, yPosition + cellPaddingV / 2 + lineHeight - 1, 8.5, colWidth - 4, lineHeight, 'center');
       });
 
       yPosition += rowHeight;
@@ -139,7 +143,7 @@ export function buildMonthlyReportPdf(options: MonthlyReportOptions) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(10);
     totals.forEach((total) => {
-      pdf.setTextColor(4, 120, 87);
+      pdf.setTextColor(...PRINT_GREEN_RGB);
       pdf.text(`${total.label}: ${formatCurrency(total.value)}`, pageWidth - marginRight, yPosition, { align: 'right' });
       yPosition += 6;
     });

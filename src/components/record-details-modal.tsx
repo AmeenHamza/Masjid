@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { FieldConfig } from '@/lib/admin-ui';
-import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FOOTER_STYLES, PRINT_HEADER_CONTACT_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
+import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FONT_STACK, PRINT_FOOTER_STYLES, PRINT_GREEN_HEX, PRINT_GREEN_RGB, PRINT_HEADER_ADDRESS_LINE, PRINT_HEADER_WEBSITE_EMAIL_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
+import { drawWrappedPdfText } from '@/lib/pdf-urdu-text';
 
 type SiteSettings = {
   masjidName: string;
@@ -175,7 +176,7 @@ function buildPdf(title: string, items: DetailItem[], historyRecords: Record<str
     yPosition += 7;
   }
 
-  pdf.setDrawColor(0, 100, 0);
+  pdf.setDrawColor(...PRINT_GREEN_RGB);
   pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
   yPosition += 8;
 
@@ -199,7 +200,6 @@ function buildPdf(title: string, items: DetailItem[], historyRecords: Record<str
     for (const item of section.items) {
       const label = `${item.label}:`;
       const value = valueAsText(item);
-      const splitValue = pdf.splitTextToSize(value, contentWidth - 55);
 
       if (yPosition > pageHeight - 20) {
         pdf.addPage();
@@ -209,8 +209,8 @@ function buildPdf(title: string, items: DetailItem[], historyRecords: Record<str
       pdf.setFont('helvetica', 'bold');
       pdf.text(label, marginLeft, yPosition);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(splitValue as string[], marginLeft + 48, yPosition);
-      yPosition += Math.max(splitValue.length, 1) * lineHeight;
+      const lineCount = drawWrappedPdfText(pdf, value, marginLeft + 48, yPosition, 10, contentWidth - 55, lineHeight);
+      yPosition += Math.max(lineCount, 1) * lineHeight;
     }
 
     yPosition += 4;
@@ -377,12 +377,12 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
             body { margin: 0; padding: 20mm; }
             .no-print { display: none; }
           }
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; color: #222; }
+          body { font-family: ${PRINT_FONT_STACK}; margin: 0; padding: 20px; background: white; color: #222; }
           .print-header { text-align: center; margin-bottom: 10px; }
-          .site-name { font-size: 20px; font-weight: 700; color: #0f766e; }
+          .site-name { font-size: 20px; font-weight: 700; color: ${PRINT_GREEN_HEX}; }
           .site-address { font-size: 12px; color: #444; margin-top: 4px; }
           .container { max-width: 800px; margin: 0 auto; padding: 18px; border-radius: 6px; }
-          h1 { color: #075985; margin: 8px 0 16px 0; font-size: 16px; }
+          h1 { color: #0f172a; margin: 8px 0 16px 0; font-size: 16px; }
           .section { margin-bottom: 16px; }
           .section-title { font-size: 14px; font-weight: 700; color: #065f46; margin-bottom: 10px; }
           .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -397,7 +397,8 @@ export function RecordDetailsModal({ open, onOpenChange, title, record, fields, 
         <div class="container">
           <div class="print-header">
             <div class="site-name">${siteTitle}</div>
-            <div class="site-address">${PRINT_HEADER_CONTACT_LINE}</div>
+            <div class="site-address">${PRINT_HEADER_ADDRESS_LINE}</div>
+            <div class="site-address">${PRINT_HEADER_WEBSITE_EMAIL_LINE}</div>
           </div>
           <h1>${title}</h1>
           ${periodLabel ? `<div class="site-address" style="margin-bottom:12px;">${periodLabel}</div>` : ''}

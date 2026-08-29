@@ -90,6 +90,23 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     gallery: String(gallery.length)
   };
 
+  // The nav cards above show the current month's figures for everything
+  // except shop (kept one month behind, since a month's rent is only ever
+  // collected the following month). Deep-link each card into the same
+  // period so what you land on matches the number you just clicked -
+  // switching to "All Months" from there is still one click away.
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const previousMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+  const navHrefs = {
+    income: `/income?month=${currentMonth}&year=${currentYear}`,
+    expense: `/expense?month=${currentMonth}&year=${currentYear}`,
+    shop: `/shop?month=${previousMonth}&year=${previousMonthYear}`,
+    donation: `/donations?month=${currentMonth}&year=${currentYear}`
+  };
+
   const projectPreview = (projects as unknown as Array<{ title: string; description: string; status: string; imageUrl?: string; collectedAmount?: number; targetAmount?: number }>).slice(0, 3);
   const galleryPreview = (gallery as unknown as Array<{ mediaType: 'image' | 'video'; url: string; thumbnailUrl?: string; title: string; caption?: string }>).slice(0, 3);
 
@@ -135,7 +152,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <h2 className="mt-2 text-3xl font-black">{settings.masjidName}</h2>
           </div>
         </div>
-        <NavGrid labels={labels} counts={counts} showMoreLabel={tCommon('showMore')} />
+        <NavGrid labels={labels} counts={counts} showMoreLabel={tCommon('showMore')} hrefs={navHrefs} />
       </section>
 
     <section className="mx-auto max-w-7xl px-4 py-8 lg:px-6">

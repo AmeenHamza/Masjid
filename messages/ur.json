@@ -126,10 +126,10 @@
     "juma": "جمعہ"
   },
   "metrics": {
-    "totalIncome": "کل آمدنی",
-    "totalDonation": "کل عطیات",
+    "totalIncome": "ماہانہ آمدنی",
+    "totalDonation": "ماہانہ عطیات",
     "activeProjects": "فعال منصوبے",
-    "yearlyExpense": "سالانہ اخراجات"
+    "yearlyExpense": "ماہانہ اخراجات"
   },
   "admin": {
     "dashboard": "ڈیش بورڈ",

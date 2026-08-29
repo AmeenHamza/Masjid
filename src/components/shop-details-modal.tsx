@@ -8,7 +8,8 @@ import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
-import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FOOTER_STYLES, PRINT_HEADER_CONTACT_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
+import { buildPrintFooterHtml, drawPdfFooter, drawPdfHeader, PRINT_FONT_STACK, PRINT_FOOTER_STYLES, PRINT_GREEN_HEX, PRINT_GREEN_RGB, PRINT_HEADER_ADDRESS_LINE, PRINT_HEADER_WEBSITE_EMAIL_LINE, resolvePageSizeCss, resolvePdfFormat } from '@/lib/print-footer';
+import { drawWrappedPdfText } from '@/lib/pdf-urdu-text';
 
 type ShopRecord = {
   _id: string;
@@ -121,10 +122,15 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(0, 0, 0);
       pdf.text('Shop Receipt', pageCenter, yPosition, { align: 'center' });
-      yPosition += 10;
+      yPosition += 7;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Shop: ${shopData!.shopName} (No. ${shopData!.serialNumber || '-'})`, pageCenter, yPosition, { align: 'center' });
+      yPosition += 9;
 
       // Divider
-      pdf.setDrawColor(0, 100, 0);
+      pdf.setDrawColor(...PRINT_GREEN_RGB);
       pdf.line(marginLeft, yPosition, pageWidth - marginRight, yPosition);
       yPosition += 8;
 
@@ -141,7 +147,6 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
         { label: 'Payment Date:', value: formatDate(shopData!.date || shopData!.buyDate) },
         { label: 'Previous Balance:', value: formatCurrency(shopData!.previousBalance || 0) },
         { label: 'Paid Amount:', value: formatCurrency(shopData!.paymentAmount || 0) },
-        { label: 'Remaining Balance:', value: formatCurrency(shopData!.debtAmount) },
         { label: 'Notes:', value: shopData!.note || '-' }
       ];
 
@@ -153,16 +158,32 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
 
         pdf.setFont('helvetica', 'bold');
         pdf.text(detail.label, marginLeft, yPosition);
-        
+
         pdf.setFont('helvetica', 'normal');
         const valueX = marginLeft + 50;
         const maxWidth = pageWidth - marginRight - valueX;
-        
-        const splitText = pdf.splitTextToSize(detail.value, maxWidth);
-        pdf.text(splitText as string[], valueX, yPosition);
-        
-        yPosition += lineHeight * splitText.length + 2;
+
+        const lineCount = drawWrappedPdfText(pdf, detail.value, valueX, yPosition, 10, maxWidth, lineHeight);
+
+        yPosition += lineHeight * lineCount + 2;
       });
+
+      // Shop Balance - prominent, bottom of the body, matching the admin
+      // table's "Shop Balance" column value (debtAmount) exactly.
+      if (yPosition > pageHeight - marginTop - 20) {
+        pdf.addPage();
+        yPosition = marginTop;
+      }
+      yPosition += 4;
+      pdf.setFillColor(236, 253, 245);
+      pdf.rect(marginLeft, yPosition - 6, pageWidth - marginLeft - marginRight, 11, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.setTextColor(...PRINT_GREEN_RGB);
+      pdf.text('Shop Balance', marginLeft + 4, yPosition + 1);
+      pdf.text(formatCurrency(shopData!.debtAmount), pageWidth - marginRight - 4, yPosition + 1, { align: 'right' });
+      pdf.setTextColor(0, 0, 0);
+      yPosition += 12;
 
       drawPdfFooter(pdf, { marginLeft, marginRight, pageWidth, pageHeight });
 
@@ -189,22 +210,27 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
         <title>Rent Slip - ${record.shopName}</title>
         <style>
           @page { size: ${resolvePageSizeCss(settings, 'portrait')}; }
-          body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: white; color: #222; }
+          body { font-family: ${PRINT_FONT_STACK}; margin: 0; padding: 24px; background: white; color: #222; }
           .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 20px; max-width: 700px; margin: 0 auto; }
-          .title { font-size: 20px; font-weight: 700; color: #0f766e; text-align: center; margin-bottom: 8px; }
+          .title { font-size: 20px; font-weight: 700; color: ${PRINT_GREEN_HEX}; text-align: center; margin-bottom: 8px; }
           .subtitle { font-size: 12px; color: #64748b; text-align: center; margin-bottom: 16px; }
           .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; }
           .label { font-weight: 600; color: #334155; }
           .value { color: #0f172a; }
           .footer { margin-top: 16px; text-align: center; font-size: 12px; color: #64748b; }
+          .balance-line { margin-top: 16px; display: flex; justify-content: space-between; padding: 10px 12px; background: #ecfdf5; border-radius: 8px; }
+          .balance-line .label { color: ${PRINT_GREEN_HEX}; font-weight: 700; }
+          .balance-line .value { color: ${PRINT_GREEN_HEX}; font-weight: 700; font-size: 15px; }
           ${PRINT_FOOTER_STYLES}
         </style>
       </head>
       <body>
         <div class="card">
           <div class="title">${siteTitle}</div>
-          <div class="subtitle">${PRINT_HEADER_CONTACT_LINE}</div>
+          <div class="subtitle">${PRINT_HEADER_ADDRESS_LINE}</div>
+          <div class="subtitle">${PRINT_HEADER_WEBSITE_EMAIL_LINE}</div>
           <div class="subtitle" style="font-weight:600;color:#0f172a;">Shop Receipt</div>
+          <div class="subtitle" style="font-weight:600;">Shop: ${record.shopName} (No. ${record.serialNumber || '-'})</div>
           <div class="subtitle">Month: ${recordMonth} ${recordYear}</div>
           <div class="row"><span class="label">Serial Number</span><span class="value">${record.serialNumber || '-'}</span></div>
           <div class="row"><span class="label">Shop Name</span><span class="value">${record.shopName}</span></div>
@@ -213,8 +239,8 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           <div class="row"><span class="label">Payment Date</span><span class="value">${formatDate(record.date || record.buyDate)}</span></div>
           <div class="row"><span class="label">Previous Balance</span><span class="value">${formatCurrency(record.previousBalance || 0)}</span></div>
           <div class="row"><span class="label">Paid Amount</span><span class="value">${formatCurrency(record.paymentAmount || 0)}</span></div>
-          <div class="row"><span class="label">Remaining Balance</span><span class="value">${formatCurrency(record.debtAmount || 0)}</span></div>
           <div class="row"><span class="label">Note</span><span class="value">${record.note || '-'}</span></div>
+          <div class="balance-line"><span class="label">Shop Balance</span><span class="value">${formatCurrency(record.debtAmount || 0)}</span></div>
           ${buildPrintFooterHtml()}
         </div>
       </body>
@@ -250,7 +276,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
             .no-print { display: none; }
           }
           body {
-            font-family: Arial, sans-serif;
+            font-family: ${PRINT_FONT_STACK};
             margin: 0;
             padding: 20px;
             background: white;
@@ -263,7 +289,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           .site-name {
             font-size: 20px;
             font-weight: 700;
-            color: #0f766e;
+            color: ${PRINT_GREEN_HEX};
           }
           .site-address {
             font-size: 12px;
@@ -277,7 +303,7 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
             border-radius: 6px;
           }
           h1 {
-            color: #075985;
+            color: #0f172a;
             margin: 8px 0 16px 0;
             font-size: 16px;
             text-align: center;
@@ -292,6 +318,9 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
           .detail-value { color: #444; padding-left: 8px; }
           .notes-section { grid-column: 1 / -1; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
           .print-footer { margin-top: 18px; font-size: 12px; color: #666; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+          .balance-line { margin-top: 16px; display: flex; justify-content: space-between; padding: 10px 12px; background: #ecfdf5; border-radius: 8px; }
+          .balance-line .detail-label { color: ${PRINT_GREEN_HEX}; font-weight: 700; margin-bottom: 0; }
+          .balance-line .detail-value { color: ${PRINT_GREEN_HEX}; font-weight: 700; font-size: 15px; padding-left: 0; }
           @media print { .container { border: none; } }
           ${PRINT_FOOTER_STYLES}
         </style>
@@ -300,8 +329,10 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
         <div class="container">
           <div class="print-header">
             <div class="site-name">${siteTitle}</div>
-            <div class="site-address">${PRINT_HEADER_CONTACT_LINE}</div>
+            <div class="site-address">${PRINT_HEADER_ADDRESS_LINE}</div>
+            <div class="site-address">${PRINT_HEADER_WEBSITE_EMAIL_LINE}</div>
             <h1>Shop Receipt</h1>
+            <div class="site-address" style="font-weight:600;">Shop: ${shopData!.shopName} (No. ${shopData!.serialNumber || '-'})</div>
             <div class="site-address">Month: ${recordMonth} ${recordYear}</div>
           </div>
           <div class="details-grid">
@@ -337,15 +368,12 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
               <div class="detail-label">Paid Amount</div>
               <div class="detail-value">${formatCurrency(shopData!.paymentAmount || 0)}</div>
             </div>
-            <div>
-              <div class="detail-label">Remaining Balance</div>
-              <div class="detail-value">${formatCurrency(shopData!.debtAmount)}</div>
-            </div>
             <div class="notes-section">
               <div class="detail-label">Notes</div>
               <div class="detail-value">${shopData!.note || '-'}</div>
             </div>
           </div>
+          <div class="balance-line"><span class="detail-label">Shop Balance</span><span class="detail-value">${formatCurrency(shopData!.debtAmount)}</span></div>
           ${buildPrintFooterHtml()}
         </div>
       </body>
