@@ -112,12 +112,19 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   const defaultMonth = currentMonth === 1 ? 12 : currentMonth - 1;
   const defaultYear = currentMonth === 1 ? currentYear - 1 : currentYear;
   const selectedShopName = normalizeShopName(resolvedSearchParams?.shopName, null);
+  const selectedOwnerName = normalizeShopName(resolvedSearchParams?.name, null);
   const selectedMonth = normalizeMonth(resolvedSearchParams?.month, defaultMonth);
   const selectedYear = normalizeYear(resolvedSearchParams?.year, defaultYear);
   const [settings, t, common] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' })]);
   const numberFormatter = new Intl.NumberFormat(resolvedLocale === 'ur' ? 'ur-PK' : 'en-PK');
 
   const shopNames = Array.from(new Set(allRecords.map((item: any) => String(item.shopName || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const ownerNames = Array.from(new Set(allRecords
+    .filter((item: any) =>
+      (!selectedShopName || String(item.shopName || '').trim() === selectedShopName)
+    )
+    .map((item: any) => String(item.ownerName || '').trim())
+    .filter(Boolean))).sort((a, b) => a.localeCompare(b));
   const years = Array.from(new Set(allRecords
     .filter((item: any) =>
       (!selectedShopName || String(item.shopName || '').trim() === selectedShopName)
@@ -129,9 +136,15 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   }
   const records = allRecords.filter((item: any) =>
     (!selectedShopName || String(item.shopName || '').trim() === selectedShopName) &&
+    (!selectedOwnerName || String(item.ownerName || '').trim() === selectedOwnerName) &&
     (!selectedMonth || getShopRecordMonth(item) === selectedMonth) &&
     (!selectedYear || getShopRecordYear(item) === selectedYear)
   );
+
+  // The report only ever generates once BOTH a specific shop and a specific
+  // name are selected together (not "All") - confirming the name+shop-no
+  // match, not just that some data happens to exist for the current filter.
+  const shopReportReady = Boolean(selectedShopName) && Boolean(selectedOwnerName) && records.length > 0;
 
   const totalShops = records.length;
   const clearShops = records.filter((item: any) => Number(item.debtAmount || 0) === 0).length;
@@ -144,11 +157,12 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
     [common('year')]: String(getShopRecordYear(item) || selectedYear),
     [common('shopName')]: String(item.shopName || item.itemName || '-'),
     [common('ownerName')]: String(item.ownerName || '-'),
+    [common('status')]: item.vacated ? common('vacated') : common('active'),
     [common('monthlyRent')]: formatCurrency(Number(item.monthlyRent || 0), 'PKR', resolvedLocale),
     [common('shopBalance')]: formatCurrency(Number(item.debtAmount || 0), 'PKR', resolvedLocale)
   }));
 
-  const columns = [common('serial'), common('date'), common('month'), common('year'), common('shopName'), common('ownerName'), common('monthlyRent'), common('shopBalance')];
+  const columns = [common('serial'), common('date'), common('month'), common('year'), common('shopName'), common('ownerName'), common('status'), common('monthlyRent'), common('shopBalance')];
 
   // Balance color: red if more than one month's rent is owed, green if
   // fully clear, amber for anything owed in between.
@@ -166,13 +180,22 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
     <>
       <SiteHeader phone={settings.phone} masjidName={settings.masjidName} />
       <main className="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
-        <form className="mb-6 grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+        <form className="mb-6 grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70 sm:grid-cols-2 sm:items-end lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <label className="min-w-0">
             <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{common('shop')}</div>
             <select name="shopName" defaultValue={selectedShopName ?? ''} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-white">
               <option value="">{t('allShops')}</option>
               {shopNames.map((shopName) => (
                 <option key={shopName} value={shopName}>{shopName}</option>
+              ))}
+            </select>
+          </label>
+          <label className="min-w-0">
+            <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{common('ownerName')}</div>
+            <select name="name" defaultValue={selectedOwnerName ?? ''} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-white">
+              <option value="">{t('allOwners')}</option>
+              {ownerNames.map((ownerName) => (
+                <option key={ownerName} value={ownerName}>{ownerName}</option>
               ))}
             </select>
           </label>
@@ -188,9 +211,10 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
           <label className="min-w-0">
             <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{common('year')}</div>
             <select name="year" defaultValue={String(selectedYear)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-white">
-              {years.length ? years.map((year) => (
+              <option value="0">{t('allYears')}</option>
+              {years.map((year) => (
                 <option key={year} value={year}>{year}</option>
-              )) : <option value={selectedYear}>{selectedYear}</option>}
+              ))}
             </select>
           </label>
           <button type="submit" className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600">Filter</button>
@@ -216,6 +240,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
             paperSettings={settings}
             fileName={`shop-rent-report-${buildPeriodLabel(selectedMonth, selectedYear).replace(/\s+/g, '-')}.pdf`.toLowerCase()}
             label={t('downloadReport')}
+            disabledReason={shopReportReady ? null : 'Select both a Shop and a Name (a matching pair) to generate a report.'}
           />
         </div>
       </main>

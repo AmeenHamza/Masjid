@@ -19,6 +19,7 @@ const ShopRecordSchema = new Schema(
     previousBalance: { type: Number, min: 0, default: 0 },
     serialNumber: { type: String, unique: true, sparse: true, index: true },
     rentHistory: { type: Map, of: Schema.Types.Mixed, default: {} },
+    vacated: { type: Boolean, default: false },
     note: { type: String },
     addedBy: { type: Schema.Types.ObjectId, ref: 'AdminUser' }
   },

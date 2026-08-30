@@ -85,6 +85,7 @@ export const shopRecordSchema = z.object({
   previousBalance: z.number().min(0).optional(),
   serialNumber: z.string().optional(),
   rentHistory: z.record(z.string(), z.any()).optional(),
+  vacated: z.boolean().optional(),
   note: z.string().optional()
 });
 

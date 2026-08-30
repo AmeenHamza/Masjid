@@ -89,6 +89,10 @@ export function SectionPage({ brandLabel, title, subtitle, summary, rows, column
                             badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300';
                           } else if (statusLower === 'partial') {
                             badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700 dark:bg-sky-950/40 dark:text-sky-300';
+                          } else if (statusLower === 'active') {
+                            badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300';
+                          } else if (statusLower === 'vacated') {
+                            badgeClass = 'inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300';
                           }
                         }
 

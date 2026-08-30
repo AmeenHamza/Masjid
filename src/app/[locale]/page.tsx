@@ -20,6 +20,8 @@ type SummaryMetricsData = {
   totalDonation: number;
   activeProjects: number;
   totalShop?: number;
+  totalShopRentReceived?: number;
+  totalShopBalance?: number;
   totalFitrah?: number;
 };
 
@@ -74,6 +76,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     income: tNav('income'),
     expense: tNav('expense'),
     shop: tNav('shop'),
+    shopBalance: tNav('shopBalance'),
     donation: tNav('donation'),
     fitrah: tNav('fitrah'),
     project: tNav('project'),
@@ -83,7 +86,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const counts = {
     income: String((metrics as SummaryMetricsData).totalIncome),
     expense: String((metrics as SummaryMetricsData).yearlyExpense),
-    shop: String((metrics as SummaryMetricsData).totalShop ?? 0),
+    // "Shop" now shows total rent actually received (not an entry count) -
+    // the entry count wasn't a meaningful figure to lead with here.
+    shop: String((metrics as SummaryMetricsData).totalShopRentReceived ?? 0),
+    shopBalance: String((metrics as SummaryMetricsData).totalShopBalance ?? 0),
     donation: String((metrics as SummaryMetricsData).totalDonation),
     fitrah: String((metrics as SummaryMetricsData).totalFitrah ?? 0),
     project: String(projects.length),
@@ -104,6 +110,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     income: `/income?month=${currentMonth}&year=${currentYear}`,
     expense: `/expense?month=${currentMonth}&year=${currentYear}`,
     shop: `/shop?month=${previousMonth}&year=${previousMonthYear}`,
+    shopBalance: `/shop?month=${previousMonth}&year=${previousMonthYear}`,
     donation: `/donations?month=${currentMonth}&year=${currentYear}`
   };
 

@@ -5,6 +5,7 @@ const cards = [
   { key: 'income', color: 'bg-emerald-700', href: '/income' },
   { key: 'expense', color: 'bg-emerald-700', href: '/expense' },
   { key: 'shop', color: 'bg-emerald-700', href: '/shop' },
+  { key: 'shopBalance', color: 'bg-amber-700', href: '/shop' },
   { key: 'donation', color: 'bg-emerald-700', href: '/donations' },
   { key: 'fitrah', color: 'bg-emerald-700', href: '/fitrah' },
   { key: 'project', color: 'bg-emerald-700', href: '/projects' },

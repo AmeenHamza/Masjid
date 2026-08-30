@@ -9,6 +9,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { getResourceConfig, type FieldConfig } from '@/lib/admin-ui';
 import { RecordDetailsModal } from './record-details-modal';
+import { buildMonthlyReportPdf, type ReportColumn } from '@/lib/monthly-report-pdf';
 
 type GroupTab = {
   key: string;
@@ -30,6 +31,13 @@ const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+function buildPeriodLabel(month: number, year: number) {
+  if (month && year) return `${monthNames[month - 1]} ${year}`;
+  if (year) return `Year ${year}`;
+  if (month) return monthNames[month - 1];
+  return 'All Records';
+}
 
 function normalizeValue(field: FieldConfig, value: unknown) {
   if (field.type === 'number') return Number(value ?? 0);
@@ -78,6 +86,14 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [filterMonth, setFilterMonth] = useState(0);
   const [filterYear, setFilterYear] = useState(0);
+  const [reportSettings, setReportSettings] = useState<{ masjidName?: string; paperSize?: 'A4' | 'Letter' | 'Legal' | 'A5' | 'Custom'; paperWidth?: number; paperHeight?: number }>({});
+
+  useEffect(() => {
+    fetch('/api/public/settings')
+      .then((res) => res.json())
+      .then((data) => setReportSettings({ masjidName: data?.masjidName, paperSize: data?.paperSize, paperWidth: data?.paperWidth, paperHeight: data?.paperHeight }))
+      .catch(() => {});
+  }, []);
 
   const activeTab = tabs.find((tab) => tab.key === activeTabKey) ?? tabs[0];
   const resource = activeTab ? getResourceConfig(activeTab.resourceKey) : undefined;
@@ -177,6 +193,28 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
     setItems(refreshed.items || []);
   }
 
+  function downloadReport() {
+    if (!resource || !activeTab) return;
+    const periodLabel = buildPeriodLabel(filterMonth, filterYear);
+    const reportColumns: ReportColumn[] = fields.map((field) => ({
+      key: field.name,
+      label: field.label,
+      type: field.name.toLowerCase() === 'amount' ? 'amount' : field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'
+    }));
+    const hasAmountField = fields.some((field) => field.name.toLowerCase() === 'amount');
+    const totalAmount = hasAmountField ? filteredItems.reduce((sum, item) => sum + Number(item.amount || 0), 0) : 0;
+    const pdf = buildMonthlyReportPdf({
+      siteTitle: reportSettings.masjidName || 'Masjid',
+      reportTitle: `${activeTab.label} Report`,
+      periodLabel,
+      columns: reportColumns,
+      rows: filteredItems,
+      totals: hasAmountField ? [{ label: 'Total Amount', value: totalAmount }] : [],
+      paperSettings: reportSettings
+    });
+    pdf.save(`${activeTab.key}-report-${periodLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  }
+
   if (!resource || !activeTab) {
     return null;
   }
@@ -261,6 +299,9 @@ export function GroupedRecordPanel({ title, subtitle, tabs }: Props) {
                   Clear Filter
                 </Button>
               ) : null}
+              <Button size="sm" onClick={downloadReport} disabled={!filteredItems.length} className="gap-1 bg-emerald-600 hover:bg-emerald-700">
+                Download Report (PDF)
+              </Button>
               <span className="text-xs text-slate-500 dark:text-slate-400">{filteredItems.length} of {items.length} records</span>
             </div>
           ) : null}

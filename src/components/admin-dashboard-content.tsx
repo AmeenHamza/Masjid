@@ -1,14 +1,18 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatPrayerTime } from '@/lib/prayer-activity';
+import { formatCurrency } from '@/lib/utils';
 
 interface AdminDashboardContentProps {
   metrics: {
     totalIncome: number;
     totalDonation: number;
+    totalShopRentReceived?: number;
+    totalShopBalance?: number;
   };
   projects: Array<any>;
   gallery: Array<any>;
@@ -45,6 +49,18 @@ export function AdminDashboardContent({ metrics, projects, gallery, prayers }: A
           <div className="text-sm font-medium text-slate-500">{tCommon('gallery')}</div>
           <div className="mt-2 text-3xl font-black tracking-tight">{gallery.length}</div>
         </Card>
+        <Link href="/admin/shop-records" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+          <Card className="border-emerald-900/10 bg-gradient-to-br from-teal-50 to-white transition hover:shadow-md">
+            <div className="text-sm font-medium text-slate-500">Rent Received</div>
+            <div className="mt-2 text-3xl font-black tracking-tight">{formatCurrency(metrics.totalShopRentReceived ?? 0)}</div>
+          </Card>
+        </Link>
+        <Link href="/admin/shop-records" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+          <Card className="border-emerald-900/10 bg-gradient-to-br from-amber-50 to-white transition hover:shadow-md">
+            <div className="text-sm font-medium text-slate-500">Shop Balance</div>
+            <div className="mt-2 text-3xl font-black tracking-tight">{formatCurrency(metrics.totalShopBalance ?? 0)}</div>
+          </Card>
+        </Link>
       </div>
       <Card className="border-emerald-900/10 bg-white/80">
         <h2 className="text-xl font-black sm:text-2xl">{t('todayPrayerTimes')}</h2>

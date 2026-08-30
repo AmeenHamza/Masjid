@@ -29,6 +29,7 @@ type ShopRecord = {
   serialNumber?: string;
   paymentStatus: string;
   note: string;
+  vacated?: boolean;
 };
 
 interface ShopDetailsModalProps {
@@ -36,6 +37,7 @@ interface ShopDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   shopData: ShopRecord | null;
   history?: ShopRecord[];
+  onEditRecord?: (record: ShopRecord) => void;
 }
 
 type SiteSettings = {
@@ -59,7 +61,7 @@ function formatDate(value: unknown) {
   }).format(date);
 }
 
-export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }: ShopDetailsModalProps) {
+export function ShopDetailsModal({ open, onOpenChange, shopData, history = [], onEditRecord }: ShopDetailsModalProps) {
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
 
@@ -400,7 +402,14 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
         <div className="space-y-6 pr-6">
           {/* Shop Information */}
           <Card className="p-6 border-emerald-200 bg-emerald-50">
-            <h3 className="text-lg font-semibold text-emerald-900 mb-4">Basic Information</h3>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold text-emerald-900">Basic Information</h3>
+              {shopData.vacated ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Shop Vacated</span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DetailField label="Shop Name" value={shopData.shopName} />
               <DetailField label="Rental Name" value={shopData.ownerName} />
@@ -454,7 +463,12 @@ export function ShopDetailsModal({ open, onOpenChange, shopData, history = [] }:
                       <div><span className="font-medium text-slate-700">Remaining Balance:</span> {formatCurrency(record.debtAmount || 0)}</div>
                       <div className="sm:col-span-2"><span className="font-medium text-slate-700">Note:</span> {record.note || '-'}</div>
                     </div>
-                    <div className="mt-3 flex justify-end">
+                    <div className="mt-3 flex justify-end gap-2">
+                      {onEditRecord ? (
+                        <Button variant="outline" size="sm" onClick={() => onEditRecord(record)}>
+                          Edit
+                        </Button>
+                      ) : null}
                       <Button variant="outline" size="sm" onClick={() => printSlipForRecord(record)}>
                         Print Slip
                       </Button>

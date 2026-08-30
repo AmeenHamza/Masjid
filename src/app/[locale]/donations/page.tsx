@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getDonationRecords, getSiteSettings } from '@/lib/public-data';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
+import { DownloadReportButton } from '@/components/download-report-button';
 import { getTranslations } from 'next-intl/server';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Link } from '@/navigation';
@@ -38,6 +39,13 @@ const reportMonthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
+
+function buildReportPeriodLabel(month: number, year: number) {
+  if (month && year) return `${reportMonthNames[month - 1]} ${year}`;
+  if (year) return `Year ${year}`;
+  if (month) return reportMonthNames[month - 1];
+  return 'All Records';
+}
 
 export default async function DonationsPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const { locale } = await params;
@@ -149,6 +157,27 @@ export default async function DonationsPage({ params, searchParams }: { params: 
           </label>
           <button type="submit" className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600">Filter</button>
         </form>
+
+        <div className="mt-4 flex justify-end">
+          <DownloadReportButton
+            siteTitle={settings.masjidName}
+            reportTitle={`${viewLabels[view]} Report`}
+            periodLabel={buildReportPeriodLabel(selectedMonth, selectedYear)}
+            columns={[
+              { key: 'donorName', label: 'Donor Name' },
+              { key: 'amount', label: 'Amount', type: 'amount' },
+              { key: 'date', label: 'Date', type: 'date' },
+              { key: 'month', label: 'Month' },
+              { key: 'year', label: 'Year' },
+              { key: 'note', label: 'Note' }
+            ]}
+            rows={filteredRecords}
+            totals={[{ label: 'Total Amount', value: totalAmount }]}
+            paperSettings={settings}
+            fileName={`${view}-donation-report-${buildReportPeriodLabel(selectedMonth, selectedYear).replace(/\s+/g, '-').toLowerCase()}.pdf`}
+            label={t('downloadReport')}
+          />
+        </div>
 
         <section className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white/85 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
           <div className="border-b border-slate-200/80 bg-slate-50 px-6 py-5 dark:border-white/10 dark:bg-white/5">

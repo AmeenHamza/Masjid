@@ -172,6 +172,8 @@ export async function getSummaryMetrics() {
       totalDonation: 12000,
       activeProjects: 1,
       totalShop: 0,
+      totalShopRentReceived: 0,
+      totalShopBalance: 0,
       totalFitrah: 0
     };
   }
@@ -189,12 +191,18 @@ export async function getSummaryMetrics() {
     const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
     const previousMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
-    const [incomeAgg, expenseAgg, donationAgg, projectCount, shopCount, fitrahAgg] = await Promise.all([
+    const [incomeAgg, expenseAgg, donationAgg, projectCount, shopCount, shopAgg, fitrahAgg] = await Promise.all([
       IncomeRecord.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       ExpenseRecord.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Donation.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Project.countDocuments(),
       ShopRecord.countDocuments({ month: previousMonth, year: previousMonthYear }),
+      // Total rent actually received, and total balance still owed, across
+      // every shop for that same previous (settled) month.
+      ShopRecord.aggregate([
+        { $match: { month: previousMonth, year: previousMonthYear } },
+        { $group: { _id: null, totalReceived: { $sum: '$paymentAmount' }, totalBalance: { $sum: '$debtAmount' } } }
+      ]),
       // FitrahRecord has no month field (Fitrah/Zakat are tracked per year only).
       FitrahRecord.aggregate([{ $match: { year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }])
     ]);
@@ -205,6 +213,8 @@ export async function getSummaryMetrics() {
       totalDonation: donationAgg[0]?.total ?? 0,
       activeProjects: projectCount,
       totalShop: shopCount,
+      totalShopRentReceived: shopAgg[0]?.totalReceived ?? 0,
+      totalShopBalance: shopAgg[0]?.totalBalance ?? 0,
       totalFitrah: fitrahAgg[0]?.total ?? 0
     });
   }, ['public-summary-metrics'], { revalidate: 60, tags: ['public-summary-metrics'] });
@@ -220,6 +230,8 @@ export async function getSummaryMetrics() {
       totalDonation: 12000,
       activeProjects: 1,
       totalShop: 0,
+      totalShopRentReceived: 0,
+      totalShopBalance: 0,
       totalFitrah: 0
     };
   }

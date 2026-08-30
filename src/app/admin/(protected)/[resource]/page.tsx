@@ -161,6 +161,7 @@ export default function AdminResourcePage() {
   const [filterYear, setFilterYear] = useState<number>(0);
   const [filterClass, setFilterClass] = useState<string>('');
   const [filterShopName, setFilterShopName] = useState<string>('');
+  const [filterOwnerName, setFilterOwnerName] = useState<string>('');
   const [selected, setSelected] = useState<Record<string, unknown> | undefined>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -187,6 +188,7 @@ export default function AdminResourcePage() {
   const [isSerialSearching, setIsSerialSearching] = useState(false);
   const [serialSearchError, setSerialSearchError] = useState<string | null>(null);
   const [staffCreateRequestToken, setStaffCreateRequestToken] = useState(0);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [reportSiteTitle, setReportSiteTitle] = useState('Masjid');
   const [reportPaperSettings, setReportPaperSettings] = useState<{ paperSize?: 'A4' | 'Letter' | 'Legal' | 'A5' | 'Custom'; paperWidth?: number; paperHeight?: number }>({});
 
@@ -221,6 +223,7 @@ export default function AdminResourcePage() {
 
   function handlePaymentShopChange(shopKey: string) {
     setPaymentShopId(shopKey);
+    setEditingPaymentId(null);
     const latestShopRecord = getLatestShopRecord(items, shopKey);
     const shop = latestShopRecord as Record<string, unknown> | undefined;
     setPaymentPreviousBalance(shop ? String(shop.debtAmount ?? 0) : '');
@@ -234,6 +237,27 @@ export default function AdminResourcePage() {
     setPaymentYear(shop ? nextMonthYear.year : now.getFullYear());
     setPaymentDate(now.toISOString().slice(0, 10));
     setPaymentError(null);
+  }
+
+  // Loads one specific past payment record into the "Update Shop Rent
+  // Payment" form for correction, instead of always starting a fresh
+  // payment - lets a wrong entry for an individual month be fixed in place.
+  function startEditPayment(record: Record<string, unknown>) {
+    setShopDetailsOpen(false);
+    setPaymentShopId(getShopKey(record));
+    setEditingPaymentId(String(record._id));
+    setPaymentPreviousBalance(String(record.previousBalance ?? 0));
+    setPaymentAmount(String(record.paymentAmount ?? 0));
+    setPaymentNote(String(record.note ?? ''));
+    setPaymentMonth(Number(record.month) || new Date().getMonth() + 1);
+    setPaymentYear(Number(record.year) || new Date().getFullYear());
+    const rawDate = String(record.date || record.buyDate || '');
+    setPaymentDate(rawDate ? rawDate.slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setPaymentError(null);
+  }
+
+  function cancelEditPayment() {
+    handlePaymentShopChange('');
   }
 
   async function saveShopPayment(event: FormEvent<HTMLFormElement>) {
@@ -280,6 +304,12 @@ export default function AdminResourcePage() {
     };
 
     try {
+      // Always POST, even when correcting an existing entry: the API
+      // matches on shopName + ownerName + month + year and updates that
+      // exact record in place (with full previous/next-month balance
+      // cascade recalculation) rather than creating a duplicate. A PATCH
+      // straight to the record's id would skip that cascade entirely and
+      // leave every other month's cumulative balance stale.
       const response = await fetch(currentResource.apiPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -297,6 +327,7 @@ export default function AdminResourcePage() {
       setSelectedShopForDetails(responseData.item ?? shop);
       setShopDetailsOpen(true);
       setPaymentShopId('');
+      setEditingPaymentId(null);
       setPaymentPreviousBalance('');
       setPaymentAmount('');
       setPaymentNote('');
@@ -351,6 +382,7 @@ export default function AdminResourcePage() {
     setFilterYear(0);
     setFilterClass('');
     setFilterShopName('');
+    setFilterOwnerName('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resource]);
 
@@ -384,6 +416,17 @@ export default function AdminResourcePage() {
           header: 'Tenant Name',
           cell: ({ getValue }: { getValue: () => unknown }) => (
             <span className="block max-w-[260px] break-words">{String(getValue() ?? '')}</span>
+          )
+        },
+        {
+          accessorKey: 'vacated',
+          header: 'Status',
+          cell: ({ row }: { row: { original: Record<string, unknown> } }) => (
+            row.original.vacated ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Vacated</span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Active</span>
+            )
           )
         },
         {
@@ -581,15 +624,33 @@ export default function AdminResourcePage() {
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [items, currentResource.key]);
 
+  const filterOwnerNameOptions = useMemo(() => {
+    if (currentResource.key !== 'shop-records') return [] as string[];
+    const values = new Set<string>();
+    items.forEach((item) => {
+      if (filterShopName && String(item.shopName ?? '').trim() !== filterShopName) return;
+      const value = String(item.ownerName ?? '').trim();
+      if (value) values.add(value);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [items, currentResource.key, filterShopName]);
+
   const shopReportItems = useMemo(() => {
     if (currentResource.key !== 'shop-records') return [];
     return items.filter((item) => {
       const matchesMonth = !filterMonth || Number(item.month) === filterMonth;
       const matchesYear = !filterYear || Number(item.year) === filterYear;
       const matchesShop = !filterShopName || String(item.shopName ?? '').trim() === filterShopName;
-      return matchesMonth && matchesYear && matchesShop;
+      const matchesOwner = !filterOwnerName || String(item.ownerName ?? '').trim() === filterOwnerName;
+      return matchesMonth && matchesYear && matchesShop && matchesOwner;
     });
-  }, [items, currentResource.key, filterMonth, filterYear, filterShopName]);
+  }, [items, currentResource.key, filterMonth, filterYear, filterShopName, filterOwnerName]);
+
+  // The report only ever generates once BOTH a specific shop and a specific
+  // name are selected together (not "All") - this is the explicit
+  // name+shop-no match the report is meant to confirm, not just "some data
+  // happens to exist for whatever's currently selected".
+  const shopReportReady = Boolean(filterShopName) && Boolean(filterOwnerName) && shopReportItems.length > 0;
 
   function downloadShopMonthlyReport() {
     const periodLabel = buildPeriodLabel(filterMonth, filterYear);
@@ -819,6 +880,19 @@ export default function AdminResourcePage() {
               </select>
             </label>
             <label className="min-w-0">
+              <div className="mb-2 text-sm font-semibold">Name</div>
+              <select
+                value={filterOwnerName}
+                onChange={(event) => setFilterOwnerName(event.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="">All Names</option>
+                {filterOwnerNameOptions.map((ownerName) => (
+                  <option key={ownerName} value={ownerName}>{ownerName}</option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0">
               <div className="mb-2 text-sm font-semibold">Month</div>
               <select
                 value={filterMonth}
@@ -844,14 +918,19 @@ export default function AdminResourcePage() {
                 ))}
               </select>
             </label>
-            {(filterMonth || filterYear || filterShopName) ? (
-              <Button variant="outline" size="sm" onClick={() => { setFilterMonth(0); setFilterYear(0); setFilterShopName(''); }}>
+            {(filterMonth || filterYear || filterShopName || filterOwnerName) ? (
+              <Button variant="outline" size="sm" onClick={() => { setFilterMonth(0); setFilterYear(0); setFilterShopName(''); setFilterOwnerName(''); }}>
                 Clear Filter
               </Button>
             ) : null}
-            <Button size="sm" onClick={downloadShopMonthlyReport} disabled={!shopReportItems.length} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-              Download Monthly Rent Report (PDF)
-            </Button>
+            <div className="flex flex-col gap-1">
+              <Button size="sm" onClick={downloadShopMonthlyReport} disabled={!shopReportReady} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                Download Monthly Rent Report (PDF)
+              </Button>
+              {!shopReportReady ? (
+                <span className="text-xs text-amber-700">Select both Shop and Name (a matching pair) to generate a report.</span>
+              ) : null}
+            </div>
             <span className="text-sm text-slate-500">{shopReportItems.length} payment record(s) for this period</span>
           </div>
         </Card>
@@ -919,13 +998,18 @@ export default function AdminResourcePage() {
       {currentResource.key === 'shop-records' ? (
         <Card className="border-emerald-900/10 bg-white/85 shadow-lg">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Update Shop Rent Payment</h2>
+            <h2 className="text-lg font-bold">{editingPaymentId ? 'Edit Shop Rent Entry' : 'Update Shop Rent Payment'}</h2>
             {isPaymentSubmitting ? (
               <span className="inline-flex items-center gap-2 text-sm text-emerald-700">
                 <Loader2 className="h-4 w-4 animate-spin" /> Updating...
               </span>
             ) : null}
           </div>
+          {editingPaymentId ? (
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Editing an existing entry for {selectedPaymentMonthLabel} {paymentYear}. Correct the fields below and save, or cancel to add a new payment instead.
+            </div>
+          ) : null}
           {paymentError ? <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{paymentError}</div> : null}
           <form className="space-y-4" onSubmit={saveShopPayment}>
             <div className="grid gap-4 md:grid-cols-2">
@@ -934,7 +1018,8 @@ export default function AdminResourcePage() {
                 <select
                   value={paymentShopId}
                   onChange={(event) => handlePaymentShopChange(event.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                  disabled={Boolean(editingPaymentId)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 >
                   <option value="">Select a shop</option>
                   {Array.from(new Map(items.map((shop) => [getShopKey(shop), shop])).values()).map((shop) => {
@@ -995,11 +1080,14 @@ export default function AdminResourcePage() {
               </label>
               <label className="min-w-0">
                 <div className="mb-2 text-sm font-semibold">Rent For Month</div>
-                <p className="mb-1.5 -mt-1 text-xs text-slate-500">Which month&apos;s rent this payment covers - independent of the date above.</p>
+                <p className="mb-1.5 -mt-1 text-xs text-slate-500">
+                  {editingPaymentId ? 'Locked while editing - delete and re-add the entry to move it to a different month.' : "Which month's rent this payment covers - independent of the date above."}
+                </p>
                 <select
                   value={paymentMonth}
                   onChange={(event) => setPaymentMonth(Number(event.target.value))}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                  disabled={Boolean(editingPaymentId)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 >
                   {Array.from({ length: 12 }, (_, i) => (
                     <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en-US', { month: 'long' })}</option>
@@ -1015,7 +1103,8 @@ export default function AdminResourcePage() {
                   value={paymentYear}
                   onChange={(event) => setPaymentYear(Number(event.target.value))}
                   type="number"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none"
+                  disabled={Boolean(editingPaymentId)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </label>
 
@@ -1033,10 +1122,10 @@ export default function AdminResourcePage() {
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Button type="submit" disabled={isPaymentSubmitting}>
-                {isPaymentSubmitting ? 'Updating...' : 'Save Payment Update'}
+                {isPaymentSubmitting ? 'Updating...' : editingPaymentId ? 'Save Corrected Entry' : 'Save Payment Update'}
               </Button>
-              <Button type="button" variant="outline" onClick={() => handlePaymentShopChange('')}>
-                Reset
+              <Button type="button" variant="outline" onClick={cancelEditPayment}>
+                {editingPaymentId ? 'Cancel Edit' : 'Reset'}
               </Button>
             </div>
           </form>
@@ -1250,6 +1339,7 @@ export default function AdminResourcePage() {
               onOpenChange={setShopDetailsOpen}
               shopData={selectedShopForDetails as any}
               history={items.filter((record) => getShopKey(record) === getShopKey(selectedShopForDetails as Record<string, unknown>)) as any[]}
+              onEditRecord={startEditPayment}
             />
           )}
           {resource?.key !== 'shop-records' && (

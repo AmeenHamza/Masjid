@@ -135,7 +135,8 @@ export const adminResources: ResourceConfig[] = [
       { name: 'month', label: 'Month', type: 'number' },
       { name: 'year', label: 'Year', type: 'number' },
       { name: 'note', label: 'Note', type: 'textarea' },
-      { name: 'monthlyRent', label: 'Monthly Rent (Rs)', type: 'number' }
+      { name: 'monthlyRent', label: 'Monthly Rent (Rs)', type: 'number' },
+      { name: 'vacated', label: 'Shop Vacated', type: 'checkbox' }
     ]
   },
   {
