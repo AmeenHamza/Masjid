@@ -141,14 +141,15 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
     (!selectedYear || getShopRecordYear(item) === selectedYear)
   );
 
-  // The report only ever generates once BOTH a specific shop and a specific
-  // name are selected together (not "All") - confirming the name+shop-no
-  // match, not just that some data happens to exist for the current filter.
-  const shopReportReady = Boolean(selectedShopName) && Boolean(selectedOwnerName) && records.length > 0;
+  // Selecting a specific Name is what confirms the report is for a real
+  // tenant, not just whatever happens to be currently filtered - Shop is
+  // optional on top of that (narrows a tenant with multiple shops down to
+  // one of them, or covers all of that tenant's shops when left on "All").
+  const shopReportReady = Boolean(selectedOwnerName) && records.length > 0;
 
   const totalShops = records.length;
   const clearShops = records.filter((item: any) => Number(item.debtAmount || 0) === 0).length;
-  const totalMonthlyRent = records.reduce((sum: number, item: any) => sum + (Number(item.monthlyRent || 0) || 0), 0);
+  const totalPaymentReceived = records.reduce((sum: number, item: any) => sum + (Number(item.paymentAmount || 0) || 0), 0);
 
   const rows = records.map((item: any, index: number) => ({
     [common('serial')]: numberFormatter.format(index + 1),
@@ -158,11 +159,11 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
     [common('shopName')]: String(item.shopName || item.itemName || '-'),
     [common('ownerName')]: String(item.ownerName || '-'),
     [common('status')]: item.vacated ? common('vacated') : common('active'),
-    [common('monthlyRent')]: formatCurrency(Number(item.monthlyRent || 0), 'PKR', resolvedLocale),
+    [common('paymentReceived')]: formatCurrency(Number(item.paymentAmount || 0), 'PKR', resolvedLocale),
     [common('shopBalance')]: formatCurrency(Number(item.debtAmount || 0), 'PKR', resolvedLocale)
   }));
 
-  const columns = [common('serial'), common('date'), common('month'), common('year'), common('shopName'), common('ownerName'), common('status'), common('monthlyRent'), common('shopBalance')];
+  const columns = [common('serial'), common('date'), common('month'), common('year'), common('shopName'), common('ownerName'), common('status'), common('paymentReceived'), common('shopBalance')];
 
   // Balance color: red if more than one month's rent is owed, green if
   // fully clear, amber for anything owed in between.
@@ -240,7 +241,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
             paperSettings={settings}
             fileName={`shop-rent-report-${buildPeriodLabel(selectedMonth, selectedYear).replace(/\s+/g, '-')}.pdf`.toLowerCase()}
             label={t('downloadReport')}
-            disabledReason={shopReportReady ? null : 'Select both a Shop and a Name (a matching pair) to generate a report.'}
+            disabledReason={shopReportReady ? null : 'Select a Name to generate a report.'}
           />
         </div>
       </main>
@@ -251,7 +252,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
         summary={[
           { label: common('entries'), value: numberFormatter.format(totalShops) },
           { label: common('clearShops'), value: numberFormatter.format(clearShops) },
-          { label: common('monthlyRentTotal'), value: formatCurrency(totalMonthlyRent, 'PKR', resolvedLocale) }
+          { label: common('paymentReceivedTotal'), value: formatCurrency(totalPaymentReceived, 'PKR', resolvedLocale) }
         ]}
         columns={columns}
         rows={normalizedRows}

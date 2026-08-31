@@ -430,8 +430,8 @@ export default function AdminResourcePage() {
           )
         },
         {
-          accessorKey: 'monthlyRent',
-          header: 'Monthly Rent',
+          accessorKey: 'paymentAmount',
+          header: 'Payment Received',
           cell: ({ getValue }: { getValue: () => unknown }) => (
             <span className="block max-w-[260px] break-words">{formatCurrency(Number(getValue() ?? 0))}</span>
           )
@@ -646,11 +646,13 @@ export default function AdminResourcePage() {
     });
   }, [items, currentResource.key, filterMonth, filterYear, filterShopName, filterOwnerName]);
 
-  // The report only ever generates once BOTH a specific shop and a specific
-  // name are selected together (not "All") - this is the explicit
-  // name+shop-no match the report is meant to confirm, not just "some data
-  // happens to exist for whatever's currently selected".
-  const shopReportReady = Boolean(filterShopName) && Boolean(filterOwnerName) && shopReportItems.length > 0;
+  // Selecting a specific Name is what confirms the report is for a real
+  // tenant, not just whatever happens to be currently filtered - Shop is
+  // optional on top of that (narrows a tenant with multiple shops down to
+  // one of them, or covers all of that tenant's shops when left on "All").
+  const shopReportReady = Boolean(filterOwnerName) && shopReportItems.length > 0;
+  const shopReportTotalReceived = shopReportItems.reduce((sum, item) => sum + Number(item.paymentAmount || 0), 0);
+  const shopReportTotalBalance = shopReportItems.reduce((sum, item) => sum + Number(item.debtAmount || 0), 0);
 
   function downloadShopMonthlyReport() {
     const periodLabel = buildPeriodLabel(filterMonth, filterYear);
@@ -928,10 +930,14 @@ export default function AdminResourcePage() {
                 Download Monthly Rent Report (PDF)
               </Button>
               {!shopReportReady ? (
-                <span className="text-xs text-amber-700">Select both Shop and Name (a matching pair) to generate a report.</span>
+                <span className="text-xs text-amber-700">Select a Name to generate a report.</span>
               ) : null}
             </div>
-            <span className="text-sm text-slate-500">{shopReportItems.length} payment record(s) for this period</span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+              <span>{shopReportItems.length} payment record(s) for this period</span>
+              <span className="font-semibold text-emerald-700">Total Received: {formatCurrency(shopReportTotalReceived)}</span>
+              <span className="font-semibold text-amber-700">Total Balance: {formatCurrency(shopReportTotalBalance)}</span>
+            </div>
           </div>
         </Card>
       ) : null}

@@ -207,13 +207,20 @@ export async function getSummaryMetrics() {
       FitrahRecord.aggregate([{ $match: { year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }])
     ]);
 
+    const shopRentReceived = shopAgg[0]?.totalReceived ?? 0;
+
+    // The dashboard's "Income" figure is a combined total: this month's
+    // actual income entries, plus this month's donations, plus last
+    // month's shop rent received (shop stays one month behind - see above).
+    const combinedIncome = (incomeAgg[0]?.total ?? 0) + (donationAgg[0]?.total ?? 0) + shopRentReceived;
+
     return serialize({
-      totalIncome: incomeAgg[0]?.total ?? 0,
+      totalIncome: combinedIncome,
       yearlyExpense: expenseAgg[0]?.total ?? 0,
       totalDonation: donationAgg[0]?.total ?? 0,
       activeProjects: projectCount,
       totalShop: shopCount,
-      totalShopRentReceived: shopAgg[0]?.totalReceived ?? 0,
+      totalShopRentReceived: shopRentReceived,
       totalShopBalance: shopAgg[0]?.totalBalance ?? 0,
       totalFitrah: fitrahAgg[0]?.total ?? 0
     });
