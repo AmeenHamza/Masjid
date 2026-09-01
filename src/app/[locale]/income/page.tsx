@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { getSiteSettings } from '@/lib/public-data';
-import { getIncomeRecords } from '@/lib/public-data';
+import { getIncomeRecords, getShopRecords, getDonationRecords } from '@/lib/public-data';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { SectionPage } from '@/components/section-page';
@@ -61,7 +61,7 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
   const { locale } = await params;
   const resolvedLocale = locale as 'en' | 'ur';
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const [settings, t, common, allRecords] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' }), getIncomeRecords()]);
+  const [settings, t, common, allRecords, allShopRecords, allDonationRecords] = await Promise.all([getSiteSettings(), getTranslations({ locale: resolvedLocale, namespace: 'pages' }), getTranslations({ locale: resolvedLocale, namespace: 'common' }), getIncomeRecords(), getShopRecords(), getDonationRecords()]);
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -88,6 +88,22 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
   // source/month/year - they're computed from allRecords, not records.
   const monthly = allRecords.filter((item: any) => item.month === currentMonth && item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
   const yearly = allRecords.filter((item: any) => item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+
+  // Shop Received / Donations Received follow whichever month is picked in
+  // the filter above (defaulting to the current month when left on "All
+  // Months") - shop stays one month behind, same rent-cycle reasoning used
+  // everywhere else in the app, while donations reflect that same month.
+  const donationPeriodMonth = selectedMonth || currentMonth;
+  const donationPeriodYear = selectedYear || currentYear;
+  const shopPeriodMonth = donationPeriodMonth === 1 ? 12 : donationPeriodMonth - 1;
+  const shopPeriodYear = donationPeriodMonth === 1 ? donationPeriodYear - 1 : donationPeriodYear;
+
+  const shopReceived = allShopRecords
+    .filter((item: any) => Number(item.month) === shopPeriodMonth && Number(item.year) === shopPeriodYear)
+    .reduce((sum: number, item: any) => sum + Number(item.paymentAmount || 0), 0);
+  const donationsReceived = allDonationRecords
+    .filter((item: any) => Number(item.month) === donationPeriodMonth && Number(item.year) === donationPeriodYear)
+    .reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
   const rows = records.map((item: any) => ({
     date: `${item.month || '-'}-${item.year || '-'}`,
@@ -164,7 +180,9 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
         summary={[
           { label: common('monthly'), value: formatCurrency(monthly) },
           { label: common('yearly'), value: formatCurrency(yearly) },
-          { label: common('entries'), value: formatNumber(records.length) }
+          { label: common('entries'), value: formatNumber(records.length) },
+          { label: common('shopReceived'), value: formatCurrency(shopReceived) },
+          { label: common('donationsReceived'), value: formatCurrency(donationsReceived) }
         ]}
         columns={columns}
         rows={normalizedRows}

@@ -662,6 +662,7 @@ export default function AdminResourcePage() {
       { key: 'ownerName', label: 'Rental Name' },
       { key: 'previousBalance', label: 'Previous Balance', type: 'amount' },
       { key: 'date', label: 'Payment Date', type: 'date' },
+      { key: 'paymentAmount', label: 'Payment Received', type: 'amount' },
       { key: 'debtAmount', label: 'Remaining Balance', type: 'amount' }
     ];
     const totalRentReceived = shopReportItems.reduce((sum, item) => sum + Number(item.paymentAmount || 0), 0);

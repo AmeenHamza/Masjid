@@ -231,6 +231,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
               { key: 'ownerName', label: 'Rental Name' },
               { key: 'previousBalance', label: 'Previous Balance', type: 'amount' },
               { key: 'date', label: 'Payment Date', type: 'date' },
+              { key: 'paymentAmount', label: 'Payment Received', type: 'amount' },
               { key: 'debtAmount', label: 'Remaining Balance', type: 'amount' }
             ]}
             rows={records.map((item: any) => ({ ...item, date: item.date || item.buyDate }))}
