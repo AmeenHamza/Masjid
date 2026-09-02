@@ -191,28 +191,50 @@ export async function getSummaryMetrics() {
     const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
     const previousMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
-    const [incomeAgg, expenseAgg, donationAgg, projectCount, shopCount, shopAgg, fitrahAgg] = await Promise.all([
-      IncomeRecord.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+    const [expenseAgg, donationAgg, projectCount, shopCount, shopAgg, shopRecordsForBalance, fitrahAgg] = await Promise.all([
       ExpenseRecord.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Donation.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Project.countDocuments(),
       ShopRecord.countDocuments({ month: previousMonth, year: previousMonthYear }),
-      // Total rent actually received, and total balance still owed, across
-      // every shop for that same previous (settled) month.
+      // Rent actually received across every shop for that same previous
+      // (settled) month - a plain sum, since it's inherently period-specific.
       ShopRecord.aggregate([
         { $match: { month: previousMonth, year: previousMonthYear } },
-        { $group: { _id: null, totalReceived: { $sum: '$paymentAmount' }, totalBalance: { $sum: '$debtAmount' } } }
+        { $group: { _id: null, totalReceived: { $sum: '$paymentAmount' } } }
       ]),
+      // Every shop's balance as of that same settled month, for the total
+      // balance figure below - fetched raw and grouped in JS rather than
+      // matched by exact month, since a shop's most recent record (its
+      // current balance) may predate the settled month if it's fallen
+      // behind or gone quiet, and a plain month-match would silently drop
+      // it from "every shop's balance" entirely.
+      ShopRecord.find({
+        $or: [
+          { year: { $lt: previousMonthYear } },
+          { year: previousMonthYear, month: { $lte: previousMonth } }
+        ]
+      }).select('shopName ownerName month year debtAmount').lean(),
       // FitrahRecord has no month field (Fitrah/Zakat are tracked per year only).
       FitrahRecord.aggregate([{ $match: { year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }])
     ]);
 
     const shopRentReceived = shopAgg[0]?.totalReceived ?? 0;
 
-    // The dashboard's "Income" figure is a combined total: this month's
-    // actual income entries, plus this month's donations, plus last
+    const latestBalanceByShop = new Map<string, { rank: number; debtAmount: number }>();
+    for (const record of shopRecordsForBalance as Array<Record<string, unknown>>) {
+      const key = `${String(record.shopName ?? '').trim()}|${String(record.ownerName ?? '').trim()}`;
+      const rank = Number(record.year ?? 0) * 12 + Number(record.month ?? 0);
+      const existing = latestBalanceByShop.get(key);
+      if (!existing || rank > existing.rank) {
+        latestBalanceByShop.set(key, { rank, debtAmount: Number(record.debtAmount ?? 0) });
+      }
+    }
+    const totalShopBalance = Array.from(latestBalanceByShop.values()).reduce((sum, entry) => sum + entry.debtAmount, 0);
+
+    // The dashboard's "Income" figure is this month's donations plus last
     // month's shop rent received (shop stays one month behind - see above).
-    const combinedIncome = (incomeAgg[0]?.total ?? 0) + (donationAgg[0]?.total ?? 0) + shopRentReceived;
+    // It deliberately does not include the separate Income Records total.
+    const combinedIncome = (donationAgg[0]?.total ?? 0) + shopRentReceived;
 
     return serialize({
       totalIncome: combinedIncome,
@@ -221,7 +243,7 @@ export async function getSummaryMetrics() {
       activeProjects: projectCount,
       totalShop: shopCount,
       totalShopRentReceived: shopRentReceived,
-      totalShopBalance: shopAgg[0]?.totalBalance ?? 0,
+      totalShopBalance,
       totalFitrah: fitrahAgg[0]?.total ?? 0
     });
   }, ['public-summary-metrics'], { revalidate: 60, tags: ['public-summary-metrics'] });

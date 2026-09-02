@@ -83,16 +83,19 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
     (!selectedYear || Number(item.year) === selectedYear)
   );
 
-  // Monthly/yearly summary cards are fixed headline totals for the current
-  // period and should not shrink when the user filters the table below by
-  // source/month/year - they're computed from allRecords, not records.
-  const monthly = allRecords.filter((item: any) => item.month === currentMonth && item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  // Yearly is a fixed headline total for the current calendar year, from
+  // the actual Income Records collection, and shouldn't shrink when the
+  // user filters the table below by source/month/year.
   const yearly = allRecords.filter((item: any) => item.year === currentYear).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
-  // Shop Received / Donations Received follow whichever month is picked in
-  // the filter above (defaulting to the current month when left on "All
-  // Months") - shop stays one month behind, same rent-cycle reasoning used
+  // The page's main "Income" figure - and Shop Received / Donations
+  // Received, its two components - follow whichever month is picked in the
+  // filter above (defaulting to the current month when left on "All
+  // Months"). Shop stays one month behind, same rent-cycle reasoning used
   // everywhere else in the app, while donations reflect that same month.
+  // Income here is deliberately just Donations + Shop Received, not the
+  // separate Income Records total (shown in its own Entries/Yearly figures
+  // and the table below).
   const donationPeriodMonth = selectedMonth || currentMonth;
   const donationPeriodYear = selectedYear || currentYear;
   const shopPeriodMonth = donationPeriodMonth === 1 ? 12 : donationPeriodMonth - 1;
@@ -104,6 +107,7 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
   const donationsReceived = allDonationRecords
     .filter((item: any) => Number(item.month) === donationPeriodMonth && Number(item.year) === donationPeriodYear)
     .reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  const monthly = shopReceived + donationsReceived;
 
   const rows = records.map((item: any) => ({
     date: `${item.month || '-'}-${item.year || '-'}`,

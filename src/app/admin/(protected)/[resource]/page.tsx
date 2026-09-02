@@ -646,16 +646,19 @@ export default function AdminResourcePage() {
     });
   }, [items, currentResource.key, filterMonth, filterYear, filterShopName, filterOwnerName]);
 
-  // Selecting a specific Name is what confirms the report is for a real
-  // tenant, not just whatever happens to be currently filtered - Shop is
-  // optional on top of that (narrows a tenant with multiple shops down to
-  // one of them, or covers all of that tenant's shops when left on "All").
-  const shopReportReady = Boolean(filterOwnerName) && shopReportItems.length > 0;
+  // Any non-empty filtered result can generate a report - a specific Name
+  // gives an individual tenant's report, a specific Shop (with Name left on
+  // "All") covers that shop's whole history, and Month/Year alone with both
+  // left on "All" gives a bulk report across every shop for that period.
+  const shopReportReady = shopReportItems.length > 0;
   const shopReportTotalReceived = shopReportItems.reduce((sum, item) => sum + Number(item.paymentAmount || 0), 0);
   const shopReportTotalBalance = shopReportItems.reduce((sum, item) => sum + Number(item.debtAmount || 0), 0);
 
   function downloadShopMonthlyReport() {
-    const periodLabel = buildPeriodLabel(filterMonth, filterYear);
+    let periodLabel = buildPeriodLabel(filterMonth, filterYear);
+    if (filterShopName) {
+      periodLabel = `${periodLabel} — Shop: ${filterShopName}`;
+    }
     const columns: ReportColumn[] = [
       { key: 'serialNumber', label: 'Serial No.' },
       { key: 'shopName', label: 'Shop Name' },
@@ -663,7 +666,8 @@ export default function AdminResourcePage() {
       { key: 'previousBalance', label: 'Previous Balance', type: 'amount' },
       { key: 'date', label: 'Payment Date', type: 'date' },
       { key: 'paymentAmount', label: 'Payment Received', type: 'amount' },
-      { key: 'debtAmount', label: 'Remaining Balance', type: 'amount' }
+      { key: 'debtAmount', label: 'Shop Balance', type: 'amount' },
+      { key: 'note', label: 'Note' }
     ];
     const totalRentReceived = shopReportItems.reduce((sum, item) => sum + Number(item.paymentAmount || 0), 0);
     const totalOutstanding = shopReportItems.reduce((sum, item) => sum + Number(item.debtAmount || 0), 0);
@@ -674,12 +678,12 @@ export default function AdminResourcePage() {
       columns,
       rows: shopReportItems.map((item) => ({ ...item, date: item.date || item.buyDate })),
       totals: [
-        { label: 'Total Rent Received', value: totalRentReceived },
-        { label: 'Total Outstanding Balance', value: totalOutstanding }
+        { label: 'Total Received Amount', value: totalRentReceived },
+        { label: 'Total Balance', value: totalOutstanding }
       ],
       paperSettings: reportPaperSettings
     });
-    pdf.save(`shop-rent-report-${periodLabel.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    pdf.save(`shop-rent-report-${periodLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`);
   }
 
   function downloadResourceMonthlyReport() {
@@ -931,7 +935,7 @@ export default function AdminResourcePage() {
                 Download Monthly Rent Report (PDF)
               </Button>
               {!shopReportReady ? (
-                <span className="text-xs text-amber-700">Select a Name to generate a report.</span>
+                <span className="text-xs text-amber-700">No records match the current filter.</span>
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">

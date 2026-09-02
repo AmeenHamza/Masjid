@@ -141,11 +141,14 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
     (!selectedYear || getShopRecordYear(item) === selectedYear)
   );
 
-  // Selecting a specific Name is what confirms the report is for a real
-  // tenant, not just whatever happens to be currently filtered - Shop is
-  // optional on top of that (narrows a tenant with multiple shops down to
-  // one of them, or covers all of that tenant's shops when left on "All").
-  const shopReportReady = Boolean(selectedOwnerName) && records.length > 0;
+  // Any non-empty filtered result can generate a report - a specific Name
+  // gives an individual tenant's report, a specific Shop (with Name left on
+  // "All") covers that shop's whole history, and Month/Year alone with both
+  // left on "All" gives a bulk report across every shop for that period.
+  const shopReportReady = records.length > 0;
+  const shopReportPeriodLabel = selectedShopName
+    ? `${buildPeriodLabel(selectedMonth, selectedYear)} — Shop: ${selectedShopName}`
+    : buildPeriodLabel(selectedMonth, selectedYear);
 
   const totalShops = records.length;
   const clearShops = records.filter((item: any) => Number(item.debtAmount || 0) === 0).length;
@@ -224,7 +227,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
           <DownloadReportButton
             siteTitle={settings.masjidName}
             reportTitle="Shop Rent Report"
-            periodLabel={buildPeriodLabel(selectedMonth, selectedYear)}
+            periodLabel={shopReportPeriodLabel}
             columns={[
               { key: 'serialNumber', label: 'Serial No.' },
               { key: 'shopName', label: 'Shop Name' },
@@ -232,17 +235,18 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
               { key: 'previousBalance', label: 'Previous Balance', type: 'amount' },
               { key: 'date', label: 'Payment Date', type: 'date' },
               { key: 'paymentAmount', label: 'Payment Received', type: 'amount' },
-              { key: 'debtAmount', label: 'Remaining Balance', type: 'amount' }
+              { key: 'debtAmount', label: 'Shop Balance', type: 'amount' },
+              { key: 'note', label: 'Note' }
             ]}
             rows={records.map((item: any) => ({ ...item, date: item.date || item.buyDate }))}
             totals={[
-              { label: 'Total Rent Received', value: records.reduce((sum: number, item: any) => sum + Number(item.paymentAmount || 0), 0) },
-              { label: 'Total Outstanding Balance', value: records.reduce((sum: number, item: any) => sum + Number(item.debtAmount || 0), 0) }
+              { label: 'Total Received Amount', value: records.reduce((sum: number, item: any) => sum + Number(item.paymentAmount || 0), 0) },
+              { label: 'Total Balance', value: records.reduce((sum: number, item: any) => sum + Number(item.debtAmount || 0), 0) }
             ]}
             paperSettings={settings}
-            fileName={`shop-rent-report-${buildPeriodLabel(selectedMonth, selectedYear).replace(/\s+/g, '-')}.pdf`.toLowerCase()}
+            fileName={`shop-rent-report-${shopReportPeriodLabel.replace(/[^a-z0-9]+/gi, '-')}.pdf`.toLowerCase()}
             label={t('downloadReport')}
-            disabledReason={shopReportReady ? null : 'Select a Name to generate a report.'}
+            disabledReason={shopReportReady ? null : 'No records match the current filter.'}
           />
         </div>
       </main>

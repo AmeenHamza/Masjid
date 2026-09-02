@@ -51,9 +51,13 @@ type SiteSettings = {
 };
 
 function formatDate(value: unknown) {
-  if (!value) return '-';
+  if (!value) return '00-00-0000';
   const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return String(value);
+  // A missing/blank date sometimes ends up stored as a near-zero
+  // timestamp, which parses to a "real" but nonsensical date (e.g. year
+  // 1 or 1970) instead of failing the NaN check below - treat any year
+  // this masjid's records couldn't actually predate as invalid too.
+  if (Number.isNaN(date.getTime()) || date.getFullYear() < 2000) return '00-00-0000';
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
