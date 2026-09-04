@@ -21,6 +21,7 @@ type SummaryMetricsData = {
   activeProjects: number;
   totalShop?: number;
   totalShopRentReceived?: number;
+  monthlyShopIncome?: number;
   totalShopBalance?: number;
   totalFitrah?: number;
 };
@@ -142,10 +143,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       <section className="mx-auto max-w-7xl px-4 py-4 lg:px-6">
         <SummaryMetrics
-          metrics={metrics}
+          metrics={{ ...metrics, monthlyShopIncome: (metrics as SummaryMetricsData).monthlyShopIncome ?? 0 }}
           labels={{
             totalIncome: tMetrics('totalIncome'),
-            totalDonation: tMetrics('totalDonation'),
+            monthlyShopIncome: tMetrics('monthlyShopIncome'),
             activeProjects: tMetrics('activeProjects'),
             yearlyExpense: tMetrics('yearlyExpense')
           }}

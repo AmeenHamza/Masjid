@@ -34,7 +34,8 @@
     "month": "Month",
     "yearly": "Yearly",
     "entries": "Entries",
-    "shopReceived": "Shop Received (Last Month)",
+    "total": "Total",
+    "shopReceived": "Shop Received",
     "donationsReceived": "Donations Received",
     "serial": "Serial",
     "date": "Date",
@@ -136,6 +137,7 @@
   "metrics": {
     "totalIncome": "Monthly Income",
     "totalDonation": "Monthly Donation",
+    "monthlyShopIncome": "Monthly Shop Income",
     "activeProjects": "Active Projects",
     "yearlyExpense": "Monthly Expense"
   },

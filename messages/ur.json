@@ -34,7 +34,8 @@
     "month": "مہینہ",
     "yearly": "سالانہ",
     "entries": "اندراجات",
-    "shopReceived": "دکان کی وصولی (پچھلا مہینہ)",
+    "total": "کل",
+    "shopReceived": "دکان کی وصولی",
     "donationsReceived": "موصولہ عطیات",
     "serial": "سیریل نمبر",
     "date": "تاریخ",
@@ -136,6 +137,7 @@
   "metrics": {
     "totalIncome": "ماہانہ آمدنی",
     "totalDonation": "ماہانہ عطیات",
+    "monthlyShopIncome": "ماہانہ دکان آمدنی",
     "activeProjects": "فعال منصوبے",
     "yearlyExpense": "ماہانہ اخراجات"
   },

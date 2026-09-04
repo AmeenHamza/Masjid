@@ -210,6 +210,15 @@ export default async function DonationsPage({ params, searchParams }: { params: 
                     </td>
                   </tr>
                 )}
+                {normalizedRows.length ? (
+                  <tr className="border-t-2 border-emerald-200 bg-emerald-50/70 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                    {columns.map((column, columnIndex) => (
+                      <td key={column} className="px-6 py-4 font-black text-emerald-900 dark:text-emerald-200">
+                        {columnIndex === 0 ? common('total') : (column === common('amount') ? formatCurrency(totalAmount) : '')}
+                      </td>
+                    ))}
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>

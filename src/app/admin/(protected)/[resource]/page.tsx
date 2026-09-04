@@ -66,6 +66,25 @@ function getLatestShopRecord(records: Record<string, unknown>[], shopKey: string
   return matches.sort((a, b) => ((Number(b.year || 0) * 100) + Number(b.month || 0)) - ((Number(a.year || 0) * 100) + Number(a.month || 0)))[0];
 }
 
+// debtAmount is a running balance as of that record's month, not a
+// per-month amount - summing it across every row of a report double (or
+// triple-) counts a shop that appears in more than one month. The correct
+// total is each distinct shop's most recent record within the reported
+// set, summed once per shop.
+function sumLatestBalancePerShop(records: Record<string, unknown>[]) {
+  const latestByShop = new Map<string, { rank: number; debtAmount: number }>();
+  records.forEach((record) => {
+    const key = getShopKey(record);
+    if (!key) return;
+    const rank = Number(record.year || 0) * 100 + Number(record.month || 0);
+    const existing = latestByShop.get(key);
+    if (!existing || rank > existing.rank) {
+      latestByShop.set(key, { rank, debtAmount: Number(record.debtAmount || 0) });
+    }
+  });
+  return Array.from(latestByShop.values()).reduce((sum, entry) => sum + entry.debtAmount, 0);
+}
+
 function getShopRecordForMonthYear(records: Record<string, unknown>[], shopKey: string, month: number, year: number) {
   const matches = records.filter((record) =>
     getShopKey(record) === shopKey &&
@@ -652,13 +671,13 @@ export default function AdminResourcePage() {
   // left on "All" gives a bulk report across every shop for that period.
   const shopReportReady = shopReportItems.length > 0;
   const shopReportTotalReceived = shopReportItems.reduce((sum, item) => sum + Number(item.paymentAmount || 0), 0);
-  const shopReportTotalBalance = shopReportItems.reduce((sum, item) => sum + Number(item.debtAmount || 0), 0);
+  const shopReportTotalBalance = sumLatestBalancePerShop(shopReportItems);
+  // Header reflects the filter exactly: which shop(s) and which period,
+  // e.g. "SHOP-01 — August 2026" or "SHOP-01 — All Records" or
+  // "All Shops — All Records".
+  const shopReportHeaderLabel = `${filterShopName || 'All Shops'} — ${buildPeriodLabel(filterMonth, filterYear)}`;
 
   function downloadShopMonthlyReport() {
-    let periodLabel = buildPeriodLabel(filterMonth, filterYear);
-    if (filterShopName) {
-      periodLabel = `${periodLabel} — Shop: ${filterShopName}`;
-    }
     const columns: ReportColumn[] = [
       { key: 'serialNumber', label: 'Serial No.' },
       { key: 'shopName', label: 'Shop Name' },
@@ -669,21 +688,19 @@ export default function AdminResourcePage() {
       { key: 'debtAmount', label: 'Shop Balance', type: 'amount' },
       { key: 'note', label: 'Note' }
     ];
-    const totalRentReceived = shopReportItems.reduce((sum, item) => sum + Number(item.paymentAmount || 0), 0);
-    const totalOutstanding = shopReportItems.reduce((sum, item) => sum + Number(item.debtAmount || 0), 0);
     const pdf = buildMonthlyReportPdf({
       siteTitle: reportSiteTitle,
       reportTitle: 'Shop Rent Report',
-      periodLabel,
+      periodLabel: shopReportHeaderLabel,
       columns,
       rows: shopReportItems.map((item) => ({ ...item, date: item.date || item.buyDate })),
       totals: [
-        { label: 'Total Received Amount', value: totalRentReceived },
-        { label: 'Total Balance', value: totalOutstanding }
+        { label: 'Total Received Amount', value: shopReportTotalReceived },
+        { label: 'Total Balance', value: shopReportTotalBalance }
       ],
       paperSettings: reportPaperSettings
     });
-    pdf.save(`shop-rent-report-${periodLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`);
+    pdf.save(`shop-rent-report-${shopReportHeaderLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.pdf`);
   }
 
   function downloadResourceMonthlyReport() {

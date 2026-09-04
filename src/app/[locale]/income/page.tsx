@@ -91,15 +91,20 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
   // The page's main "Income" figure - and Shop Received / Donations
   // Received, its two components - follow whichever month is picked in the
   // filter above (defaulting to the current month when left on "All
-  // Months"). Shop stays one month behind, same rent-cycle reasoning used
-  // everywhere else in the app, while donations reflect that same month.
-  // Income here is deliberately just Donations + Shop Received, not the
-  // separate Income Records total (shown in its own Entries/Yearly figures
-  // and the table below).
+  // Months"). Shop stays two months behind (rent for a month is collected
+  // the month after, and isn't fully entered until the month after that -
+  // viewed in September, it shows July), while donations reflect that same
+  // selected month. Income here is deliberately just Donations + Shop
+  // Received, not the separate Income Records total (shown in its own
+  // Entries/Yearly figures and the table below).
   const donationPeriodMonth = selectedMonth || currentMonth;
   const donationPeriodYear = selectedYear || currentYear;
-  const shopPeriodMonth = donationPeriodMonth === 1 ? 12 : donationPeriodMonth - 1;
-  const shopPeriodYear = donationPeriodMonth === 1 ? donationPeriodYear - 1 : donationPeriodYear;
+  let shopPeriodMonth = donationPeriodMonth - 2;
+  let shopPeriodYear = donationPeriodYear;
+  if (shopPeriodMonth <= 0) {
+    shopPeriodMonth += 12;
+    shopPeriodYear -= 1;
+  }
 
   const shopReceived = allShopRecords
     .filter((item: any) => Number(item.month) === shopPeriodMonth && Number(item.year) === shopPeriodYear)
@@ -117,6 +122,10 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
   }));
 
   const columns = [common('date'), common('title'), common('source'), common('amount')];
+
+  // Total of exactly what's listed below (the currently filtered records),
+  // not the fixed Monthly/Yearly headline figures above.
+  const filteredTotalAmount = records.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
   const normalizedRows = rows.map((item) => ({
     [common('date')]: item.date,
@@ -185,13 +194,14 @@ export default async function IncomePage({ params, searchParams }: { params: Pro
           { label: common('monthly'), value: formatCurrency(monthly) },
           { label: common('yearly'), value: formatCurrency(yearly) },
           { label: common('entries'), value: formatNumber(records.length) },
-          { label: common('shopReceived'), value: formatCurrency(shopReceived) },
+          { label: `${common('shopReceived')} (${reportMonthNames[shopPeriodMonth - 1]} ${shopPeriodYear})`, value: formatCurrency(shopReceived) },
           { label: common('donationsReceived'), value: formatCurrency(donationsReceived) }
         ]}
         columns={columns}
         rows={normalizedRows}
         recordsLabel={common('records')}
         noRecordsLabel={common('noRecordsYet')}
+        totalRow={{ label: common('total'), valuesByColumn: { [common('amount')]: formatCurrency(filteredTotalAmount) } }}
       />
       <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>

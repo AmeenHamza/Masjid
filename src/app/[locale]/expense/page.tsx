@@ -97,6 +97,10 @@ export default async function ExpensePage({ params, searchParams }: { params: Pr
 
   const columns = [common('date'), common('title'), common('note'), common('amount')];
 
+  // Total of exactly what's listed below (the currently filtered records),
+  // not the fixed Monthly/Yearly headline figures above.
+  const filteredTotalAmount = records.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+
   const normalizedRows = rows.map((item) => ({
     [common('date')]: item.date,
     [common('title')]: item.title,
@@ -169,6 +173,7 @@ export default async function ExpensePage({ params, searchParams }: { params: Pr
         rows={normalizedRows}
         recordsLabel={common('records')}
         noRecordsLabel={common('noRecordsYet')}
+        totalRow={{ label: common('total'), valuesByColumn: { [common('amount')]: formatCurrency(filteredTotalAmount) } }}
       />
       <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>

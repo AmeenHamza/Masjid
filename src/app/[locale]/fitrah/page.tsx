@@ -67,6 +67,7 @@ export default async function FitrahPage({ params, searchParams }: { params: Pro
         rows={normalizedRows}
         recordsLabel={common('records')}
         noRecordsLabel={common('noRecordsYet')}
+        totalRow={{ label: common('total'), valuesByColumn: { [common('amount')]: formatCurrency(totalAmount) } }}
       />
       <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>

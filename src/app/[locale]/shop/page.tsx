@@ -98,6 +98,25 @@ function getShopRecordYear(record: Record<string, unknown>) {
   return Number.isNaN(parsed.getTime()) ? null : parsed.getFullYear();
 }
 
+// debtAmount is a running balance as of that record's month, not a
+// per-month amount - summing it across every row of a report double (or
+// triple-) counts a shop that appears in more than one month. The correct
+// total is each distinct shop's most recent record within the reported
+// set, summed once per shop.
+function sumLatestBalancePerShop(records: Array<Record<string, unknown>>) {
+  const latestByShop = new Map<string, { rank: number; debtAmount: number }>();
+  records.forEach((record) => {
+    const key = `${String(record.shopName ?? '').trim()}|${String(record.ownerName ?? '').trim()}`;
+    if (key === '|') return;
+    const rank = Number(record.year ?? 0) * 100 + Number(record.month ?? 0);
+    const existing = latestByShop.get(key);
+    if (!existing || rank > existing.rank) {
+      latestByShop.set(key, { rank, debtAmount: Number(record.debtAmount ?? 0) });
+    }
+  });
+  return Array.from(latestByShop.values()).reduce((sum, entry) => sum + entry.debtAmount, 0);
+}
+
 export default async function ShopPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const { locale } = await params;
   const resolvedLocale = locale as 'en' | 'ur';
@@ -146,9 +165,11 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
   // "All") covers that shop's whole history, and Month/Year alone with both
   // left on "All" gives a bulk report across every shop for that period.
   const shopReportReady = records.length > 0;
-  const shopReportPeriodLabel = selectedShopName
-    ? `${buildPeriodLabel(selectedMonth, selectedYear)} — Shop: ${selectedShopName}`
-    : buildPeriodLabel(selectedMonth, selectedYear);
+  // Header reflects the filter exactly: which shop(s) and which period,
+  // e.g. "SHOP-01 — August 2026" or "SHOP-01 — All Records" or
+  // "All Shops — All Records".
+  const shopReportPeriodLabel = `${selectedShopName || 'All Shops'} — ${buildPeriodLabel(selectedMonth, selectedYear)}`;
+  const shopReportTotalBalance = sumLatestBalancePerShop(records);
 
   const totalShops = records.length;
   const clearShops = records.filter((item: any) => Number(item.debtAmount || 0) === 0).length;
@@ -241,7 +262,7 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
             rows={records.map((item: any) => ({ ...item, date: item.date || item.buyDate }))}
             totals={[
               { label: 'Total Received Amount', value: records.reduce((sum: number, item: any) => sum + Number(item.paymentAmount || 0), 0) },
-              { label: 'Total Balance', value: records.reduce((sum: number, item: any) => sum + Number(item.debtAmount || 0), 0) }
+              { label: 'Total Balance', value: shopReportTotalBalance }
             ]}
             paperSettings={settings}
             fileName={`shop-rent-report-${shopReportPeriodLabel.replace(/[^a-z0-9]+/gi, '-')}.pdf`.toLowerCase()}
@@ -264,6 +285,13 @@ export default async function ShopPage({ params, searchParams }: { params: Promi
         recordsLabel={common('records')}
         noRecordsLabel={common('noRecordsYet')}
         columnColorOverrides={{ column: common('shopBalance'), colors: balanceColors }}
+        totalRow={{
+          label: common('total'),
+          valuesByColumn: {
+            [common('paymentReceived')]: formatCurrency(totalPaymentReceived, 'PKR', resolvedLocale),
+            [common('shopBalance')]: formatCurrency(shopReportTotalBalance, 'PKR', resolvedLocale)
+          }
+        }}
       />
       <SiteFooter address={settings.address} phone={settings.phone} email={settings.email} />
     </>

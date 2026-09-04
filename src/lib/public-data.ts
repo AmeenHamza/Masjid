@@ -173,6 +173,7 @@ export async function getSummaryMetrics() {
       activeProjects: 1,
       totalShop: 0,
       totalShopRentReceived: 0,
+      monthlyShopIncome: 0,
       totalShopBalance: 0,
       totalFitrah: 0
     };
@@ -181,23 +182,35 @@ export async function getSummaryMetrics() {
   const getSummaryMetricsCached = unstable_cache(async () => {
     await connectToDatabase();
 
-    // Every metric here reflects the current month, EXCEPT shop: rent for a
+    // Every metric here reflects the current month, EXCEPT shop. Rent for a
     // given month is only ever collected the following month (e.g. July's
-    // rent comes in during August), so the current month never has any shop
-    // payments recorded against it yet - it's kept one month behind.
+    // rent comes in during August), and shop payments typically aren't
+    // fully entered until well into the month after that - so "Rent
+    // Received" is kept two months behind (viewed in September, it shows
+    // July), while the balance below just wants each shop's latest
+    // available record and stays one month behind (see comment there).
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
     const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
     const previousMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+    const rentReceivedMonth = previousMonth === 1 ? 12 : previousMonth - 1;
+    const rentReceivedYear = previousMonth === 1 ? previousMonthYear - 1 : previousMonthYear;
 
-    const [expenseAgg, donationAgg, projectCount, shopCount, shopAgg, shopRecordsForBalance, fitrahAgg] = await Promise.all([
+    const [expenseAgg, donationAgg, projectCount, shopCount, shopAgg, monthlyShopIncomeAgg, shopRecordsForBalance, fitrahAgg] = await Promise.all([
       ExpenseRecord.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Donation.aggregate([{ $match: { month: currentMonth, year: currentYear } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Project.countDocuments(),
-      ShopRecord.countDocuments({ month: previousMonth, year: previousMonthYear }),
-      // Rent actually received across every shop for that same previous
+      ShopRecord.countDocuments({ month: rentReceivedMonth, year: rentReceivedYear }),
+      // Rent actually received across every shop for that two-months-back
       // (settled) month - a plain sum, since it's inherently period-specific.
+      ShopRecord.aggregate([
+        { $match: { month: rentReceivedMonth, year: rentReceivedYear } },
+        { $group: { _id: null, totalReceived: { $sum: '$paymentAmount' } } }
+      ]),
+      // The homepage summary tile's "Monthly Shop Income" is a separate,
+      // one-month-behind figure (viewed in September, it shows August) -
+      // deliberately not the same two-months-behind Rent Received above.
       ShopRecord.aggregate([
         { $match: { month: previousMonth, year: previousMonthYear } },
         { $group: { _id: null, totalReceived: { $sum: '$paymentAmount' } } }
@@ -231,8 +244,8 @@ export async function getSummaryMetrics() {
     }
     const totalShopBalance = Array.from(latestBalanceByShop.values()).reduce((sum, entry) => sum + entry.debtAmount, 0);
 
-    // The dashboard's "Income" figure is this month's donations plus last
-    // month's shop rent received (shop stays one month behind - see above).
+    // The dashboard's "Income" figure is this month's donations plus that
+    // same two-months-behind shop rent received above.
     // It deliberately does not include the separate Income Records total.
     const combinedIncome = (donationAgg[0]?.total ?? 0) + shopRentReceived;
 
@@ -243,6 +256,7 @@ export async function getSummaryMetrics() {
       activeProjects: projectCount,
       totalShop: shopCount,
       totalShopRentReceived: shopRentReceived,
+      monthlyShopIncome: monthlyShopIncomeAgg[0]?.totalReceived ?? 0,
       totalShopBalance,
       totalFitrah: fitrahAgg[0]?.total ?? 0
     });
@@ -260,6 +274,7 @@ export async function getSummaryMetrics() {
       activeProjects: 1,
       totalShop: 0,
       totalShopRentReceived: 0,
+      monthlyShopIncome: 0,
       totalShopBalance: 0,
       totalFitrah: 0
     };
